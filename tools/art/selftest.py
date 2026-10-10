@@ -206,6 +206,10 @@ def main():
         check(any("배경" in w for w in reps["vfx_4"]["warnings"]), "이펙트에 배경이 칠해지면 경고")
         check(any("M05" in w and "경계" in w for w in reps["card_art_m"]["warnings"]), "일러스트 칸에 다른 그림 경계가 보이면 경고")
         check(not any("경계" in w for w in reps["card_art_p"]["warnings"]), "정상 일러스트는 경고 없음")
+        pole = np.full((104, 104, 4), 255, np.uint8)
+        pole[..., :3] = (70, 80, 90)
+        pole[8:96, 50:53, :3] = (20, 15, 10)  # 깃대처럼 가는 세로선: 경계가 아님
+        check(pp.seam_ratio(pole) == 0, "가는 선(깃대)은 그림 경계로 보지 않음")
         _, al = foot_and_height(os.path.join(A, "npcs", "N01_give.png"), 100)
         check(len(reps["npc_N01"]["outputs"]) == 3, "NPC 3동작 출력")
         t = Image.open(os.path.join(A, "tiles", "T01.png"))

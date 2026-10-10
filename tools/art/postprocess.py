@@ -352,26 +352,35 @@ def align_unit_rows(rows: list[list[np.ndarray]], ref_row: int):
     return out, ref_g, cx, max_dx, max_dy
 
 
-def seam_ratio(arr: np.ndarray, thr: int = 60) -> float:
-    """꽉 찬 그림 안에 다른 그림과의 직선 경계가 있는지: 가로·세로로 끊김 없이 이어진 급격한 색 변화의 최대 길이 비율.
-    정상 일러스트는 0.45 이하, 칸 배치가 어긋나 두 그림이 섞이면 0.6 이상(실측)."""
+def seam_ratio(arr: np.ndarray, thr: int = 60, gap: int = 6, band: int = 8) -> float:
+    """꽉 찬 그림 안에 다른 그림과의 직선 경계가 있는지 점수(0~1).
+    1) 가로·세로로 끊김 없이 길게 이어진 급격한 색 변화 줄을 찾고(길이 비율)
+    2) 그 줄 양옆(gap 건너 band 폭)의 색이 실제로 다른 '단차'인지 확인한다.
+       깃대·전봇대 같은 가는 선은 양옆이 같은 배경이라 단차가 작다.
+    실측(104px 일러스트): 배치가 어긋난 경계 단차 69~396, 깃대 33 → 50 이상만 경계로 본다.
+    정상 일러스트 0, 경계가 섞인 그림 0.6 이상."""
     rgb = arr[..., :3].astype(np.int32)
     best = 0.0
     for axis in (1, 0):
-        d = np.abs(np.diff(rgb, axis=axis)).sum(axis=2)
-        if axis == 0:
-            d = d.T
-        big = d > thr
-        n, length = big.shape[1], big.shape[0]
+        img = rgb if axis == 1 else rgb.transpose(1, 0, 2)
+        big = np.abs(np.diff(img, axis=1)).sum(axis=2) > thr
+        length, n = big.shape
         for c in range(int(n * 0.08), int(n * 0.92)):
             col = big[:, c]
             if col.sum() < length * 0.5:
                 continue
-            run = cur = 0
-            for v in col:
+            run = cur = end = 0
+            for i, v in enumerate(col):
                 cur = cur + 1 if v else 0
-                run = max(run, cur)
-            best = max(best, run / length)
+                if cur > run:
+                    run, end = cur, i
+            if run / length <= best:
+                continue
+            rows = slice(end - run + 1, end + 1)
+            left = img[rows, max(0, c - gap - band + 1):max(1, c - gap + 1)].mean(axis=1)
+            right = img[rows, min(n - 1, c + 1 + gap):min(n, c + 1 + gap + band)].mean(axis=1)
+            if np.abs(left - right).sum(axis=1).mean() >= 50:
+                best = run / length
     return best
 
 

@@ -30,6 +30,8 @@ MD_GUIDE = """# 압록강 서바이벌 — 그래픽 자동 생성 (112장)
 
 **마음에 안 드는 그림 다시 만들기**: `REGENERATE`에 항목 이름을 쉼표로 적고 실행합니다(예: `ally_A01,enemy_E04`). 프롬프트가 바뀐 항목만 다시 만들려면 `changed`.
 
+**되돌리기**: 다시 만든 그림이 예전보다 나쁘면 Drive `amnok_art/raw/history`의 이전 파일을 `raw/<항목 이름>.png`로 복사하고 `CONVERT_ONLY`로 실행합니다.
+
 **단계**: `P1`(스테이지 1, 23장) → `P2`(스테이지 1~5) → `P3`(나머지). 필요한 것부터 만들어 비용을 나눠 쓸 수 있습니다.
 """
 
@@ -263,6 +265,13 @@ def generate(item):
     tmp = raw_path(item) + ".tmp"
     with open(tmp, "wb") as f:
         f.write(png)
+    if os.path.exists(raw_path(item)):  # 다시 만들 때 이전 원본은 raw/history에 보관(되돌리기용)
+        hist = os.path.join(RAW_DIR, "history")
+        os.makedirs(hist, exist_ok=True)
+        stamp = time.strftime("%Y%m%d-%H%M%S")
+        os.replace(raw_path(item), os.path.join(hist, f"{item['name']}.{stamp}.png"))
+        if os.path.exists(meta_path(item)):
+            os.replace(meta_path(item), os.path.join(hist, f"{item['name']}.{stamp}.json"))
     os.replace(tmp, raw_path(item))  # 중간에 끊겨도 깨진 파일이 '완료'로 남지 않게
     meta = {"name": item["name"], "prompt_hash": prompt_hash(item), "model": USE_MODEL, "quality": QUALITY,
             "size": size, "transparent_requested": item["transparent"], "has_alpha": has_alpha,

@@ -349,7 +349,7 @@ FX_SETS = [
                ("supply_drop", "V10 SUPPLY_DROP: 1-3 parachute crate descending; 4 landing dust; 5-6 green-white healing sparkles rising (50-100%)", 100),
                ("mines", "V11 MINES: 1-2 small mines drop and bury; 3 flash; 4-6 chain of small pops", 100),
                ("crit_ring", "V13 CRIT_RING: golden shock ring with radial lines expanding then fading over 6 frames", 100)]),
-    ("vfx_4", [("muzzle", "V14 MUZZLE_FLASH: small flash and a popping shell casing over 6 frames", 100),
+    ("vfx_4", [("muzzle", "V14 MUZZLE_FLASH: ONLY the flash itself, overlaid on a gun tip in the game, so NO soldier, hands or gun: a small star-shaped yellow-white flash pointing right that blooms then shrinks, plus a tiny brass shell casing popping out, over 6 frames", 100),
                ("dust", "V15 DUST_PUFF: soft dithered dust ring (25-50%) expanding and thinning over 6 frames", 100),
                ("skill_AS01", "AS01 CARPET_BOMB (large effect, fills most of the cell, no background): a bomber shadow sweeps across; three lines of explosions follow with smoke trails", 200),
                ("skill_AS04", "AS04 NAVAL_SALVO (large effect, fills most of the cell, no background): three wide muzzle flashes at the edge, then three shell impacts", 200),
