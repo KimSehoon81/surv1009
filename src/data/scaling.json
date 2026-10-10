@@ -1,0 +1,13 @@
+{
+  "$comment": "난이도 스케일링(PRD §7.3). threatPerLevel은 뉴게임+ 위협 등급(D38)용 자리, 지금은 0단계만 사용",
+  "hpPerStage": 0.4,
+  "hpPerLevel": 0.06,
+  "attackPerStage": 0.25,
+  "densityPerStage": 0.15,
+  "speedBands": [
+    { "from": 1, "to": 3, "mult": 1.0 },
+    { "from": 4, "to": 6, "mult": 1.1 },
+    { "from": 7, "to": 10, "mult": 1.2 }
+  ],
+  "threatPerLevel": 0.25
+}

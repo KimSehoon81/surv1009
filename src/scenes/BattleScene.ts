@@ -1,5 +1,9 @@
 import * as Phaser from 'phaser';
 import floorData from '../data/floor.json';
+import spawnData from '../data/spawn.json';
+import combat from '../data/combat.json';
+import { createRng } from '../core/rng';
+import { EnemySystem } from '../systems/enemies';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { Depth } from '../config/depth';
 import { params } from '../config/params';
@@ -19,6 +23,7 @@ export class BattleScene extends Phaser.Scene {
   private controls!: InputMap;
   private player!: Player;
   private floor!: Floor;
+  enemies!: EnemySystem;
   private debug!: DebugOverlay;
   private pauseText!: Phaser.GameObjects.Text;
 
@@ -33,7 +38,7 @@ export class BattleScene extends Phaser.Scene {
 
     const start: CharacterId = isCharacterId(params.char) ? params.char : 'A01';
     this.player = new Player(this, 0, 0, start);
-    this.player.sprite.setDepth(Depth.Unit);
+    this.enemies = new EnemySystem(this, spawnData.S1, createRng(params.seed).fork('enemies'));
     this.cameras.main.startFollow(this.player.sprite, true);
     this.cameras.main.centerOn(0, 0);
 
@@ -56,7 +61,8 @@ export class BattleScene extends Phaser.Scene {
       return [
         `player ${this.player.id} ${this.player.action} (${Math.round(this.player.x)}, ${Math.round(this.player.y)}) speed x${this.player.speedMul}`,
         `floor chunks ${f.chunks} pool ${f.pooled}`,
-        params.debug ? 'J공격 K방어 L스킬 U치명 O느림 C캐릭터 Esc정지' : '',
+        `enemies ${this.enemies.alive}${this.enemies.stress ? ' [STRESS]' : ''} pool ${this.enemies.pool.capacity} (created ${this.enemies.pool.created})`,
+        params.debug ? 'J공격 K방어 L스킬 U치명 O느림 C캐릭터 F2적300 Esc정지' : '',
       ].filter(Boolean);
     });
   }
@@ -67,7 +73,10 @@ export class BattleScene extends Phaser.Scene {
     const now = this.clock.timeMs;
     if (params.debug && !this.clock.hasScale('pause')) this.debugKeys(now);
     this.player.update(this.controls, dt, now, this.clock.scale);
-    this.floor.update(this.cameras.main);
+    const cam = this.cameras.main;
+    this.player.sprite.setDepth(Depth.Unit + (this.player.y - cam.scrollY) * 0.001);
+    this.enemies.update(dt, now, this.clock.scale, { x: this.player.x, y: this.player.y, radius: combat.playerRadius }, cam);
+    this.floor.update(cam);
     this.debug.update(delta);
     this.controls.endFrame();
   }
@@ -85,6 +94,9 @@ export class BattleScene extends Phaser.Scene {
     if (this.controls.justDown('debugSkill')) p.trigger('skill', now);
     if (this.controls.justDown('debugCrit')) p.trigger('crit', now);
     if (this.controls.justDown('debugSlow')) p.speedMul = p.speedMul < 1 ? 1 : DEBUG_SLOW;
+    if (this.controls.justDown('debugStress')) {
+      this.enemies.setStress(!this.enemies.stress, { x: p.x, y: p.y, radius: combat.playerRadius }, now);
+    }
     if (this.controls.justDown('debugCharacter')) {
       const next = CHARACTERS[(CHARACTERS.indexOf(p.id) + 1) % CHARACTERS.length] as CharacterId;
       p.setCharacter(next, now);

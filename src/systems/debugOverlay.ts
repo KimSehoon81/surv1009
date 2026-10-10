@@ -6,6 +6,7 @@ import { Depth } from '../config/depth';
 export class DebugOverlay {
   private readonly text: Phaser.GameObjects.Text;
   private elapsed = 0;
+  private readonly fpsSamples: number[] = [];
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -24,18 +25,25 @@ export class DebugOverlay {
     });
   }
 
+  get avgFps(): number {
+    return this.fpsSamples.length ? this.fpsSamples.reduce((a, b) => a + b, 0) / this.fpsSamples.length : 0;
+  }
+
   /** 실시간 delta로 4회/초 갱신(매 프레임 텍스트 갱신은 비용이 크다) */
   update(realDeltaMs: number): void {
     if (!this.text.visible) return;
     this.elapsed += realDeltaMs;
     if (this.elapsed < 250) return;
     this.elapsed = 0;
+    // 최근 10초(250ms × 40) 평균 FPS
+    this.fpsSamples.push(this.scene.game.loop.actualFps);
+    if (this.fpsSamples.length > 40) this.fpsSamples.shift();
     const snap = this.clock.snapshot();
     const mods = Object.entries(snap.modifiers)
       .map(([k, v]) => `${k}:${v}`)
       .join(' ');
     this.text.setText([
-      `FPS ${this.scene.game.loop.actualFps.toFixed(0)}  objects ${this.scene.children.length}`,
+      `FPS ${this.scene.game.loop.actualFps.toFixed(0)} (10s avg ${this.avgFps.toFixed(1)})  objects ${this.scene.children.length}`,
       `clock x${snap.scale.toFixed(2)} t=${(snap.timeMs / 1000).toFixed(1)}s${mods ? ' ' + mods : ''}`,
       ...this.extra(),
     ]);

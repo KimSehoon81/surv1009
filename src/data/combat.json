@@ -1,0 +1,4 @@
+{
+  "$comment": "전투 공통 수치. playerRadius=플레이어 충돌 반지름(px)",
+  "playerRadius": 14
+}

@@ -1,0 +1,29 @@
+{
+  "$comment": "적 정의(PRD §9.2). hp·attack은 스테이지 1 레벨 1 기준이며 core/scaling 배율이 곱해진다. speed=px/초, radius=충돌 반지름(px), xp=처치 시 경험치, speedJitter=개체별 속도 흔들림(±비율). behaviors는 core/behaviors의 부품 조합",
+  "enemies": {
+    "E01": {
+      "name": "인민군 보병",
+      "tier": "normal",
+      "hp": 18,
+      "attack": 6,
+      "defense": 0,
+      "speed": 52,
+      "speedJitter": 0.12,
+      "radius": 14,
+      "xp": 1,
+      "behaviors": [{ "type": "chase" }]
+    },
+    "E02": {
+      "name": "척후병",
+      "tier": "normal",
+      "hp": 11,
+      "attack": 4,
+      "defense": 0,
+      "speed": 82,
+      "speedJitter": 0.1,
+      "radius": 12,
+      "xp": 1,
+      "behaviors": [{ "type": "chase" }, { "type": "zigzag", "amplitude": 0.9, "freq": 1.6 }]
+    }
+  }
+}
