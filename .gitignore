@@ -5,3 +5,4 @@ dist-zip/
 .DS_Store
 # npm run assets가 매번 생성
 src/assets/available.json
+__pycache__/

@@ -25,9 +25,11 @@ describe('manifest', () => {
     expect(m.sheet('A01', 'attack').key).toBe('A01_attack');
   });
 
-  it('시트 규격: 100×100 프레임, 4×4 격자, 10프레임', () => {
+  it('시트 규격: 100×100 프레임, 4×4 격자, 진영별 프레임 수(아군 6, 적·NPC 5)', () => {
     const s = m.sheet('A02', 'crit');
-    expect([s.frameSize, s.cols, s.rows, s.frames, s.large]).toEqual([100, 4, 4, 10, false]);
+    expect([s.frameSize, s.cols, s.rows, s.frames, s.large]).toEqual([100, 4, 4, 6, false]);
+    expect(m.sheet('E01', 'hit').frames).toBe(5);
+    expect(m.sheet('N01', 'idle').frames).toBe(5);
   });
 
   it('대형(_L) 시트가 있으면 우선하고 200×200 프레임', () => {

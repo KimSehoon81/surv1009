@@ -165,9 +165,9 @@ export function createImagePlaceholder(scene: Phaser.Scene, image: ImageSpec): v
     label(ctx, image.label, 3, 3, 8, 'rgba(255,255,255,0.18)');
   } else if (image.category === 'card') {
     rect(ctx, 1, 1, w - 2, h - 2, '#e9dcc0');
-    rect(ctx, 8, 22, w - 16, 84, '#9c8a6a');
+    rect(ctx, 8, 22, w - 16, 104, '#9c8a6a'); // 일러스트 칸 104×104 (tools/art 규격)
     label(ctx, image.label, w / 2, 6, 12, '#3a2a1a', 'center');
-    label(ctx, '?', w / 2, 50, 28, '#e9dcc0', 'center');
+    label(ctx, '?', w / 2, 58, 28, '#e9dcc0', 'center');
   } else {
     ctx.strokeStyle = '#ff4fd8';
     ctx.lineWidth = 2;

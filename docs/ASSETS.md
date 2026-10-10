@@ -19,7 +19,7 @@
 | 캐릭터 몸체 | 프레임 안에서 **높이 56~64px**. 화면에서 캐릭터 키 ≈ 화면 높이의 1/9 |
 | 남는 여백 | 총구 화염·근접 휘두르기·방패 등 동작 여유 공간 |
 | 보스·전차·대형 적 | 100×100을 꽉 채우거나, 200×200 프레임 시트로 납품(파일명 `_L` 접미사: `E05_move_L.png`) |
-| 카드 | 120×168로 그리면 게임이 HUD에서 0.5배로 표시 → ×2 화면에서 **원본 픽셀 그대로** 보임 |
+| 카드 | 120×168로 그리면 게임이 HUD에서 0.5배로 표시 → ×2 화면에서 **원본 픽셀 그대로** 보임. 일러스트 칸은 104×104 |
 
 PRD §10의 "정수 배율 3~4배"를 그대로 쓰면 100×100 프레임이 화면 높이의 55~75%를 차지해, 적 300체가 몰려오는 서바이벌 화면이 성립하지 않습니다. 그래서 ×2로 확정했습니다. **그림 규격(100×100)은 바뀌지 않았고, 몸체를 프레임 안에서 조금 작게 그리는 것만 다릅니다.**
 
@@ -29,21 +29,28 @@ PRD §10의 "정수 배율 3~4배"를 그대로 쓰면 100×100 프레임이 화
 | --- | --- |
 | 바라보는 방향 | **오른쪽**. 왼쪽은 코드가 좌우 반전 |
 | 발 위치(기준점) | 모든 프레임에서 **x=50, y=92** 부근 고정 (프레임마다 발이 흔들리면 미끄러져 보임) |
-| 배경 | 완전 투명(알파). 마젠타(#FF00FF) 배경으로 납품하면 변환 도구가 투명 처리 |
+| 배경 | 완전 투명(알파). 투명이 안 되면 마젠타(#FF00FF) 단색 배경 → 변환 도구가 투명 처리 |
 | 안티앨리어싱 | 없음(경계 반투명 픽셀 금지). 외곽선 짙은 갈색 1~2px |
-| 팔레트 | 캐릭터 48색 이내, 배경 32색 이내, UI 16색 (PRD §10) |
+| 팔레트 | 캐릭터 48색, 타일 32색, 아이콘 24색 이내 (변환 도구가 자동 제한) |
 
 ## 3. 시트 규격
 
-| 종류 | 프레임 | 시트 | 배치 |
+**만드는 방법은 6장의 자동 생성 파이프라인(`tools/art`)을 권장합니다.** 아래 규격으로 자동 변환되어 나옵니다. 직접 그릴 때도 같은 규격을 따르면 됩니다.
+
+| 종류 | 프레임 | 시트 | 프레임 수(앞 N칸 사용) |
 | --- | --- | --- | --- |
-| 캐릭터·적·NPC 동작 | 100×100 | 400×400 (4×4 격자) | 좌→우, 위→아래로 **앞 10칸** 사용, 나머지 6칸 투명 |
-| 대형 적·보스(선택) | 200×200 | 800×800 (4×4 격자) | 동일 |
-| 이펙트(일반) | 100×100 | 400×400 | 동일 |
-| 이펙트(대형 연출) | 200×200 | 800×800 | 동일 |
-| 배경 소품 루프 | 100×100 | 400×400 | 앞 6칸(흔들림 6프레임 루프), 풀 밟힘은 2칸 |
+| 아군 캐릭터 | 100×100 | 400×400 (4×4 격자) | 동작마다 **6** |
+| 적 보병·NPC | 100×100 | 400×400 | 동작마다 **5** |
+| 적 보스·차량·항공기 (`_L`) | 200×200 | 800×800 | 5 |
+| 이펙트 일반 / 대형 | 100×100 / 200×200 | 400×400 / 800×800 | 6 |
+| 배경 소품 루프 (나무·잔해는 `_L`) | 100×100 / 200×200 | 400×400 / 800×800 | 6 |
 | 바닥 타일 | 64×64 단일 이미지 | — | 상하좌우 이음매 없이 반복 |
-| 카드 | 120×168 단일 이미지 | — | 프레임과 일러스트 분리 납품 권장(4장 참고) |
+| 카드 프레임·뒷면·오버레이 | 120×168 단일 이미지 | — | — |
+| 카드 일러스트 | 104×104 단일 이미지 | — | 카드 안 일러스트 칸에 들어감 |
+| 아이콘 (병과·스킬·업그레이드·UI) | 32×32 단일 이미지 | — | — |
+| 작전지도 | 360×540 | — | — |
+
+배치는 좌→우, 위→아래이며 나머지 칸은 투명입니다. PRD §10의 "동작당 10프레임"은 AI 생성으로 한 장에 전 동작을 그려 캐릭터 일관성을 지키기 위해 6·5프레임으로 조정했습니다(애니메이션 속도는 게임에서 맞춤).
 
 ## 4. 폴더와 파일명
 
@@ -52,20 +59,21 @@ public/assets/
   chars/    A01_attack.png  A01_defend.png  A01_skill.png  A01_move_slow.png  A01_move_fast.png  A01_crit.png
             (선택) A01_idle.png — 없으면 move_slow 첫 프레임을 대기 자세로 사용
   enemies/  E01_move.png  E01_attack.png  E01_defend.png  E01_crit.png  E01_hit.png
+            보스·차량·항공기는 E05_move_L.png 처럼 _L (200×200 프레임)
   npcs/     N01_idle.png  N01_talk.png  N01_give.png
   tiles/    T01.png ~ T20.png
-  props/    tree_leaf.png  tree_pine.png  tree_dead.png  grass.png  reed.png  grass_step.png
-            flag.png  drum_fire.png  smoke_column.png
-            (정지 소품) rock.png  wire.png  sandbag.png  burnt_truck.png
-  cards/    frame_common.png  frame_rare.png  frame_legend.png  frame_minus.png  card_back.png
-            P01.png ~ P16.png  M01.png ~ M08.png   (일러스트만, 프레임 안쪽 영역 크기)
-  fx/       spark.png  hit_ring.png  explosion_s.png  explosion_l.png  smoke.png  muzzle.png  shell.png
-            bomber.png  fighter.png  bomb.png  shell_naval.png  tank.png  crate_parachute.png
-            ally_gunner_XX.png (참전국 코드: kr us uk tr ca au et gr ph fr nl th)
-            marker_ally.png  marker_enemy.png  crater.png  heal_aura.png  shield_dome.png
+  props/    tree_leaf_L  tree_pine_L  tree_dead_L  tree_snow_L  burnt_truck_L
+            grass  reed  bush  flag  drum_fire  wire  sandbag  rock            (.png)
+  cards/    frame_common  frame_rare  frame_legend  frame_minus  card_back       (120×168)
+            P01 ~ P16  M01 ~ M08                                                 (104×104 일러스트)
+  fx/       bomb_fall  explosion_s  explosion_l  bomber  bomber_shadow  timebomb  burst_shell
+            support_volley  hit_spark  naval_shell  tank_charge  supply_drop  mines  crit_ring
+            muzzle  dust  skill_AS01 · AS03 · AS04 · AS06 · AS07 · AS09 · AS10 · AS11 · AS12
   skills/   AS01.png ~ AS12.png   (QWER 슬롯 아이콘 32×32)
-  ui/       hud_*.png  icon_upgrade_*.png  star_xp.png  seal.png  font_pixel.png(선택)
-  map/      korea_map.png  fog.png  flag_ally.png
+  ui/       tag_infantry  tag_artillery  tag_armor  tag_air  tag_navy  tag_intel  tag_engineer  tag_medical  tag_allied
+            overlay_smoke  overlay_static  overlay_snow  overlay_night  overlay_crack  overlay_success  (120×168)
+            icon_upgrade_*  star_xp  seal  bullet  shell  merit  tp  op  lock  flag_ally        (32×32)
+  map/      korea_map.png
   audio/    (선택, 7장 참고)
 docs/mockup/
   main.png  — 메인화면 목업 (D29에 반영)
@@ -73,43 +81,29 @@ docs/mockup/
 
 동작 이름은 PRD §4.3과 같습니다. 아군 6동작: attack · defend · skill · move_slow · move_fast · crit / 적 5동작: move · attack · defend · crit · hit / NPC 3동작: idle · talk · give
 
-## 5. 필요 시점 (이 Day 전에 넣으면 그날 화면에서 바로 확인)
+## 5. 필요 시점
 
-| 시점 | 에셋 | 수량(시트) |
-| --- | --- | --- |
-| D02 | A01~A03 6동작, T01·T02 | 18 + 타일 2 |
-| D03 | E01·E02 5동작 | 10 |
-| D04 | 탄환, 경험치 별 | 소형 2 |
-| D05 | spark, hit_ring, explosion_s/l, smoke, muzzle, shell | 이펙트 7 |
-| D06 | 업그레이드 아이콘 | 10~15 |
-| D08 | 카드 프레임 4종 + 뒷면, P01~P16·M01~M08 일러스트 | 29 |
-| D10 | bomber, bomb, crater, marker_ally | 4 |
-| D11 | ally_gunner(국가별), tank, shell_naval, crate_parachute, heal_aura | 6~17 |
-| D12 | fighter, AS03 아이콘, E03·E04 | 1 + 1 + 10 |
-| D13 | E05(보스), flag | 5 + 1 |
-| D14 | N01·N02 3동작, 픽셀 폰트(선택) | 6 |
-| **P1 합계** | | 시트 약 60장 + 단일 이미지 약 50장 |
-| D17 | korea_map, fog, flag_ally | 3 |
-| D20~D21 | A04~A15 6동작 | 72 |
-| D22~D25 | E06~E09, E11~E14, E16~E19, E21~E24 / T03~T10 | 80 + 타일 8 |
-| D23~D25 | AS01·AS04·AS05·AS06·AS08 아이콘 + 해당 이펙트 | 5 + α |
-| D26 | N03~N05 | 9 |
-| D27~D28 | E10·E15·E20·E25 (보스) | 20 |
-| D29 | docs/mockup/main.png, 로고, UI 패널 | — |
-| D30~D31 | A16~A30 | 90 |
-| D32~D36 | E26~E50, T11~T20, AS02·AS07·AS09~AS12 | 125 + 타일 10 + 6 |
-| D37 | N06~N10, 배경 소품 시트 | 15 + 소품 약 13 |
+자동 생성 노트북의 `PHASE`가 개발 단계와 맞춰져 있습니다. 해당 단계 전에 만들어 두면 그날 화면에서 바로 확인할 수 있습니다(없어도 개발은 진행됨).
 
-## 6. 시트 변환 도구 (D02 이후 사용 가능)
+| PHASE | 장수 | 내용 | 쓰이는 Day |
+| --- | --- | --- | --- |
+| P1 | 23 | 타일 T01~T04, 아군 A01~A03, 적 E01~E05, NPC N01·N02, 카드 프레임·일러스트·병과 아이콘·오버레이, UI·업그레이드·스킬 아이콘, 이펙트 4시트 | D02~D16 |
+| P2 | 39 | 작전지도, 타일 T05~T12, 소품 1시트, 아군 A04~A15, 적 E06~E25, NPC N03~N05 | D17~D29 |
+| P3 | 50 | 타일 T13~T20, 소품 2시트, 아군 A16~A30, 적 E26~E50, NPC N06~N10, 대형 스킬 이펙트 | D30~D37 |
 
-Dreamina 등에서 1024×1024(4×4 격자)로 생성한 이미지를 게임 규격으로 바꿉니다.
+## 6. 자동 생성 파이프라인 (`tools/art`)
 
-```
-node tools/slice-sheet.mjs <입력.png> <출력.png> [--frame 100] [--key FF00FF]
-```
+| 파일 | 역할 |
+| --- | --- |
+| `generate_images.ipynb` | **Colab에 올려 실행.** 생성 → 게임 규격 변환 → `game_assets.zip` 다운로드까지 한 번에 |
+| `catalog.py` | 프롬프트·규격의 원본(수정은 여기서) |
+| `build.py` | catalog → `prompts.json`, `prompts_plain_oneline.txt`, 노트북 재생성 |
+| `postprocess.py` | 원본 → 게임 규격 변환(노트북에도 내장). 로컬: `python3 tools/art/postprocess.py --raw raw --out out` |
+| `selftest.py` | 변환 규격 자체 검증 |
 
-1. 4×4 칸으로 자름 → 2. 칸마다 100×100으로 최근접 축소 → 3. 마젠타 배경 투명화 → 4. 400×400 시트로 저장
-(폴더 일괄 처리와 상세 옵션은 D02 작업 후 이 절에 추가됩니다.)
+변환이 하는 일: 칸 자르기 → 투명 배경이 없으면 배경색 제거 → 기준 동작의 몸체 크기로 배율을 정해 모든 프레임에 같은 변환(보병 몸체 62px, 발 50,92) → BOX 축소·알파 하드닝(이펙트는 5단계)·시트당 팔레트 제한 → 4×4 시트 저장, 미리보기·경고(`report.json`).
+
+`game_assets.zip`을 풀면 `public/assets/...` 구조입니다. GitHub 웹에서 저장소 루트에 폴더째 업로드(main 커밋)하면 다음 실행부터 자동 반영됩니다.
 
 ## 7. 사운드 (선택)
 

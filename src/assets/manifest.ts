@@ -66,7 +66,7 @@ export function createManifest(available: readonly string[]) {
       faction,
       path: largePath ?? normalPath,
       frameSize: large ? spec.sheet.frameLarge : spec.sheet.frame,
-      frames: spec.sheet.frames,
+      frames: spec.sheet.frames[faction],
       cols: spec.sheet.cols,
       rows: spec.sheet.rows,
       large,
