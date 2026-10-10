@@ -1,0 +1,19 @@
+{
+  "$comment": "에셋 규격(ASSETS.md 2~4장). 파일명 규칙: <ID>_<동작>.png, 대형은 <ID>_<동작>_L.png",
+  "sheet": { "frame": 100, "frameLarge": 200, "cols": 4, "rows": 4, "frames": 10 },
+  "actions": {
+    "ally": ["attack", "defend", "skill", "move_slow", "move_fast", "crit"],
+    "enemy": ["move", "attack", "defend", "crit", "hit"],
+    "npc": ["idle", "talk", "give"]
+  },
+  "optionalActions": {
+    "ally": ["idle"],
+    "enemy": [],
+    "npc": []
+  },
+  "folders": { "ally": "chars", "enemy": "enemies", "npc": "npcs" },
+  "idPrefix": { "A": "ally", "E": "enemy", "N": "npc" },
+  "anchor": { "x": 0.5, "y": 0.92 },
+  "tile": { "size": 64, "folder": "tiles" },
+  "card": { "width": 120, "height": 168, "folder": "cards" }
+}

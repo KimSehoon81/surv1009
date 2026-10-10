@@ -1,0 +1,7 @@
+node_modules/
+dist/
+dist-zip/
+*.log
+.DS_Store
+# npm run assets가 매번 생성
+src/assets/available.json

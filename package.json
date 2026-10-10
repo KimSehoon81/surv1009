@@ -1,0 +1,31 @@
+{
+  "name": "amnok-survival",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "압록강 서바이벌(가칭) — 레트로 2D 도트 서바이벌 + 확률형 전략카드",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "assets": "node tools/gen-asset-list.mjs",
+    "predev": "npm run assets",
+    "dev": "vite",
+    "prebuild": "npm run assets",
+    "build": "vite build",
+    "preview": "vite preview",
+    "pretest": "npm run assets",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run assets && tsc --noEmit && vitest run --reporter=dot && vite build --logLevel warn"
+  },
+  "dependencies": {
+    "phaser": "3.90.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "5.0.3"
+  }
+}

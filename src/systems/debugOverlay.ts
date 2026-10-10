@@ -1,0 +1,41 @@
+import * as Phaser from 'phaser';
+import type { GameClock } from './clock';
+
+/** F1로 켜고 끄는 디버그 표시: FPS, 개체 수, 전투 시계 상태 */
+export class DebugOverlay {
+  private readonly text: Phaser.GameObjects.Text;
+  private elapsed = 0;
+
+  constructor(
+    private readonly scene: Phaser.Scene,
+    private readonly clock: GameClock,
+    visible = import.meta.env.DEV,
+  ) {
+    this.text = scene.add
+      .text(4, 4, '', { fontFamily: 'monospace', fontSize: '10px', color: '#e8ffe8', backgroundColor: '#000000a0' })
+      .setScrollFactor(0)
+      .setDepth(10_000)
+      .setVisible(visible);
+    scene.input.keyboard?.on('keydown-F1', (e: KeyboardEvent) => {
+      e.preventDefault();
+      this.text.setVisible(!this.text.visible);
+    });
+  }
+
+  /** 실시간 delta로 4회/초 갱신(매 프레임 텍스트 갱신은 비용이 크다) */
+  update(realDeltaMs: number): void {
+    if (!this.text.visible) return;
+    this.elapsed += realDeltaMs;
+    if (this.elapsed < 250) return;
+    this.elapsed = 0;
+    const snap = this.clock.snapshot();
+    const mods = Object.entries(snap.modifiers)
+      .map(([k, v]) => `${k}:${v}`)
+      .join(' ');
+    this.text.setText([
+      `FPS ${this.scene.game.loop.actualFps.toFixed(0)}`,
+      `objects ${this.scene.children.length}`,
+      `clock x${snap.scale.toFixed(2)} t=${(snap.timeMs / 1000).toFixed(1)}s${mods ? ' ' + mods : ''}`,
+    ]);
+  }
+}
