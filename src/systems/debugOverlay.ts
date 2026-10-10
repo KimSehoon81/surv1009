@@ -1,7 +1,8 @@
-import * as Phaser from 'phaser';
+import type * as Phaser from 'phaser';
 import type { GameClock } from './clock';
+import { Depth } from '../config/depth';
 
-/** F1로 켜고 끄는 디버그 표시: FPS, 개체 수, 전투 시계 상태 */
+/** F1로 켜고 끄는 디버그 표시: FPS, 개체 수, 전투 시계 + 씬이 넘겨주는 추가 정보 */
 export class DebugOverlay {
   private readonly text: Phaser.GameObjects.Text;
   private elapsed = 0;
@@ -9,12 +10,13 @@ export class DebugOverlay {
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly clock: GameClock,
-    visible = import.meta.env.DEV,
+    visible: boolean,
+    private readonly extra: () => string[] = () => [],
   ) {
     this.text = scene.add
       .text(4, 4, '', { fontFamily: 'monospace', fontSize: '10px', color: '#e8ffe8', backgroundColor: '#000000a0' })
       .setScrollFactor(0)
-      .setDepth(10_000)
+      .setDepth(Depth.Debug)
       .setVisible(visible);
     scene.input.keyboard?.on('keydown-F1', (e: KeyboardEvent) => {
       e.preventDefault();
@@ -33,9 +35,9 @@ export class DebugOverlay {
       .map(([k, v]) => `${k}:${v}`)
       .join(' ');
     this.text.setText([
-      `FPS ${this.scene.game.loop.actualFps.toFixed(0)}`,
-      `objects ${this.scene.children.length}`,
+      `FPS ${this.scene.game.loop.actualFps.toFixed(0)}  objects ${this.scene.children.length}`,
       `clock x${snap.scale.toFixed(2)} t=${(snap.timeMs / 1000).toFixed(1)}s${mods ? ' ' + mods : ''}`,
+      ...this.extra(),
     ]);
   }
 }

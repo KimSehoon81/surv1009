@@ -1,0 +1,123 @@
+{
+  "$comment": "동작별 재생 규칙. fps=초당 프레임, loop=반복 여부, minMs=최소 재생 시간(한 번 재생 동작이 너무 빨리 끊기지 않게). priority는 높은 것부터. slowThreshold: 이동 속도 배율이 이 값 미만이면 move_slow(PRD §4.3 '50% 미만, 슬로우 디버프'), 이상이면 move_fast(풀 이동). locomotion: 정지·느린 이동·빠른 이동일 때 재생할 동작(적은 늘 move, NPC는 늘 idle)",
+  "ally": {
+    "actions": {
+      "idle": {
+        "fps": 6,
+        "loop": true
+      },
+      "move_slow": {
+        "fps": 8,
+        "loop": true
+      },
+      "move_fast": {
+        "fps": 12,
+        "loop": true
+      },
+      "attack": {
+        "fps": 16,
+        "loop": false,
+        "minMs": 0
+      },
+      "defend": {
+        "fps": 14,
+        "loop": false,
+        "minMs": 0
+      },
+      "skill": {
+        "fps": 12,
+        "loop": false,
+        "minMs": 400
+      },
+      "crit": {
+        "fps": 16,
+        "loop": false,
+        "minMs": 300
+      }
+    },
+    "priority": [
+      "crit",
+      "skill",
+      "defend",
+      "attack",
+      "move_fast",
+      "move_slow",
+      "idle"
+    ],
+    "slowThreshold": 0.5,
+    "locomotion": {
+      "idle": "idle",
+      "slow": "move_slow",
+      "fast": "move_fast"
+    }
+  },
+  "enemy": {
+    "actions": {
+      "move": {
+        "fps": 8,
+        "loop": true
+      },
+      "attack": {
+        "fps": 12,
+        "loop": false,
+        "minMs": 0
+      },
+      "defend": {
+        "fps": 10,
+        "loop": false,
+        "minMs": 0
+      },
+      "crit": {
+        "fps": 10,
+        "loop": false,
+        "minMs": 300
+      },
+      "hit": {
+        "fps": 20,
+        "loop": false,
+        "minMs": 150
+      }
+    },
+    "priority": [
+      "hit",
+      "crit",
+      "defend",
+      "attack",
+      "move"
+    ],
+    "slowThreshold": 0,
+    "locomotion": {
+      "idle": "move",
+      "slow": "move",
+      "fast": "move"
+    }
+  },
+  "npc": {
+    "actions": {
+      "idle": {
+        "fps": 6,
+        "loop": true
+      },
+      "talk": {
+        "fps": 8,
+        "loop": true
+      },
+      "give": {
+        "fps": 8,
+        "loop": false,
+        "minMs": 0
+      }
+    },
+    "priority": [
+      "give",
+      "talk",
+      "idle"
+    ],
+    "slowThreshold": 0,
+    "locomotion": {
+      "idle": "idle",
+      "slow": "idle",
+      "fast": "idle"
+    }
+  }
+}

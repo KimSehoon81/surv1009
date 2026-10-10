@@ -26,6 +26,7 @@ Phaser 3 + TypeScript + Vite, 테스트 Vitest. 논리 해상도 960×540, 정�
 
 - `npm run dev` 개발 서버 (백그라운드로만, 필요할 때만)
 - `npm run check` = `tsc --noEmit` + `vitest run` + `vite build` — 커밋 전 필수
+- `npm run assets:check` 그래픽 규격 검사, 주소 `?gallery=1` 그래픽 갤러리, `?debug=1` 디버그 키
 - 스크린샷: `vite preview` + Playwright, chromium 경로 `/opt/pw-browsers`
 
 ## 일일 작업 절차

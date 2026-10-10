@@ -1,12 +1,17 @@
 import * as Phaser from 'phaser';
+import floorData from '../data/floor.json';
+import characters from '../data/characters.json';
 import { manifest, type AssetSpec } from '../assets/manifest';
 import { ensureTextures, queueAssets } from '../systems/assetLoader';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
+import { params } from '../config/params';
 import { SceneKey } from './keys';
+import { galleryUnitIds } from './GalleryScene';
 
-/** 전투 시작에 필요한 에셋 목록. 이후 Day에서 스테이지 데이터 기반으로 바뀐다 */
+/** 전투 시작에 필요한 에셋: 선택 가능한 캐릭터 전원 + 스테이지 바닥 */
 function battleAssets(): AssetSpec[] {
-  return [...manifest.unitSheets('A01'), manifest.tile('T01'), manifest.tile('T02')];
+  const units = Object.keys(characters.characters).flatMap((id) => manifest.unitSheets(id));
+  return [...units, manifest.tile(floorData.S1.base), manifest.tile(floorData.S1.patch)];
 }
 
 export class PreloadScene extends Phaser.Scene {
@@ -17,7 +22,7 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   preload(): void {
-    this.specs = battleAssets();
+    this.specs = params.gallery ? galleryUnitIds().flatMap((id) => manifest.unitSheets(id)) : battleAssets();
 
     const barW = 320;
     const x = (LOGICAL_WIDTH - barW) / 2;
@@ -41,6 +46,6 @@ export class PreloadScene extends Phaser.Scene {
   create(): void {
     const result = ensureTextures(this, this.specs);
     console.info(`[assets] 파일 ${result.fromFile}개, 자리표시자 ${result.placeholders}개`);
-    this.scene.start(SceneKey.Battle);
+    this.scene.start(params.gallery ? SceneKey.Gallery : SceneKey.Battle);
   }
 }

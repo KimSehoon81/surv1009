@@ -11,7 +11,9 @@ npm run check    # 타입 검사 + 테스트 + 빌드
 npm run build    # dist/ 에 배포용 빌드
 ```
 
-- 게임 중 `F1`: 디버그 표시(FPS, 개체 수, 전투 시계)
+- 게임 중 `F1`: 디버그 표시(FPS, 개체 수, 전투 시계). 이동 WASD·방향키, 일시정지 Esc
+- 개발용 주소: `?debug=1`(디버그 키 J공격 K방어 L스킬 U치명 O느림 C캐릭터), `?char=A02`(시작 캐릭터), `?gallery=1`(그래픽 갤러리: 모든 유닛 동작을 기준선과 함께 재생)
+- `npm run assets:check`: `public/assets` 파일 규격(크기·파일명·투명 채널) 검사
 - 그래픽은 `public/assets/` 아래에 규격대로 PNG를 넣으면 자동으로 교체됩니다. 없으면 자리표시자로 그립니다. 규격은 [에셋 납품 가이드](docs/ASSETS.md) 참고.
 
 ## 문서

@@ -1,0 +1,22 @@
+{
+  "$comment": "바닥 구성. base 타일을 화면 전체에 반복하고, patch 타일을 시드 기반 덩어리로 얹어 반복 무늬를 깬다. cell은 패치 셀 크기(px, 타일 크기의 약수), chunkCells는 청크 한 변의 셀 수, sub는 가장자리 마스크 세분(셀을 sub×sub로 나눔), alpha는 [경계, 안쪽] 불투명도. D13에서 stages.json으로 옮길 수 있음",
+  "S1": {
+    "base": "T01",
+    "patch": "T02",
+    "cell": 32,
+    "chunkCells": 16,
+    "patchesPerChunk": [
+      0,
+      2
+    ],
+    "cellsPerPatch": [
+      10,
+      36
+    ],
+    "sub": 4,
+    "alpha": [
+      0.42,
+      0.88
+    ]
+  }
+}

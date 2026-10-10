@@ -1,0 +1,16 @@
+{
+  "$comment": "키 배치(PRD §3). 액션 이름 → Phaser 키 이름 목록. D29·D42에서 키 재설정이 이 표를 바꾼다. debug*는 개발용(디버그 모드에서만)",
+  "keys": {
+    "up": ["W", "UP"],
+    "down": ["S", "DOWN"],
+    "left": ["A", "LEFT"],
+    "right": ["D", "RIGHT"],
+    "pause": ["ESC"],
+    "debugAttack": ["J"],
+    "debugDefend": ["K"],
+    "debugSkill": ["L"],
+    "debugCrit": ["U"],
+    "debugSlow": ["O"],
+    "debugCharacter": ["C"]
+  }
+}

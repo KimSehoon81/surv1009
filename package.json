@@ -9,6 +9,7 @@
   },
   "scripts": {
     "assets": "node tools/gen-asset-list.mjs",
+    "assets:check": "tsx tools/check-assets.ts",
     "predev": "npm run assets",
     "dev": "vite",
     "prebuild": "npm run assets",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@types/node": "22.20.5",
+    "tsx": "4.23.15",
     "typescript": "5.9.3",
     "vite": "7.3.7",
     "vitest": "5.0.3"

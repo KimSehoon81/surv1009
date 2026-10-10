@@ -1,0 +1,20 @@
+{
+  "$comment": "아군 캐릭터 기본 능력치(PRD §4.1). 수치는 초안이며 D16·D39 밸런스에서 조정. moveSpeed는 논리 해상도 기준 px/초, attackSpeed는 초당 공격 횟수, range·magnet은 px",
+  "characters": {
+    "A01": {
+      "name": "국군 소총수",
+      "role": "균형형, 연사",
+      "stats": { "hp": 100, "defense": 5, "moveSpeed": 120, "attack": 10, "attackSpeed": 1.6, "range": 170, "critChance": 0.05, "critMult": 2.0, "magnet": 48, "luck": 0 }
+    },
+    "A02": {
+      "name": "국군 방호병",
+      "role": "방탄판 휴대, 방어형",
+      "stats": { "hp": 140, "defense": 14, "moveSpeed": 104, "attack": 9, "attackSpeed": 1.2, "range": 150, "critChance": 0.05, "critMult": 2.0, "magnet": 48, "luck": 0 }
+    },
+    "A03": {
+      "name": "국군 박격포병",
+      "role": "범위 포격",
+      "stats": { "hp": 90, "defense": 4, "moveSpeed": 112, "attack": 16, "attackSpeed": 0.7, "range": 230, "critChance": 0.05, "critMult": 2.0, "magnet": 48, "luck": 0 }
+    }
+  }
+}

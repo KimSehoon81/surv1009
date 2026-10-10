@@ -62,5 +62,14 @@
     "width": 120,
     "height": 168,
     "folder": "cards"
+  },
+  "cardArt": {
+    "width": 104,
+    "height": 104
+  },
+  "icon": 32,
+  "map": {
+    "width": 360,
+    "height": 540
   }
 }
