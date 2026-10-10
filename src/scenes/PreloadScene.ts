@@ -13,7 +13,9 @@ import { galleryUnitIds } from './GalleryScene';
 function battleAssets(): AssetSpec[] {
   const enemyIds = [...new Set(spawnData.S1.spawns.map((s) => s.enemy))];
   const units = [...Object.keys(characters.characters), ...enemyIds].flatMap((id) => manifest.unitSheets(id));
-  return [...units, manifest.tile(floorData.S1.base), manifest.tile(floorData.S1.patch)];
+  const ui = ['bullet', 'star_xp', 'icon_upgrade_weapon_grenade'].map((n) => manifest.image('ui', n, 32, 32));
+  const fx = ['explosion_s'].map((n) => manifest.fx(n));
+  return [...units, ...ui, ...fx, manifest.tile(floorData.S1.base), manifest.tile(floorData.S1.patch)];
 }
 
 export class PreloadScene extends Phaser.Scene {

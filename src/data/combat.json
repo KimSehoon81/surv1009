@@ -1,4 +1,17 @@
 {
-  "$comment": "전투 공통 수치. playerRadius=플레이어 충돌 반지름(px)",
-  "playerRadius": 14
+  "$comment": "전투 공통 수치. playerRadius=플레이어 충돌 반지름(px), bodyOffsetY=발 기준점에서 몸통(조준·명중 지점)까지 위로 거리(px). 방어 확률 = 방어력/(방어력+blockK), 최대 maxBlockChance, 방어 성공 시 피해 −blockReduction(PRD §4.3: −50%). enemyHitStunMs=적 피격 경직(PRD §4.3: 0.15초), flashMs=흰색 점멸(PRD §4.4: 2프레임). pickupCap=경험치 별 동시 상한(넘으면 오래된 것끼리 병합)",
+  "playerRadius": 14,
+  "bodyOffsetY": 28,
+  "blockK": 30,
+  "blockReduction": 0.5,
+  "maxBlockChance": 0.6,
+  "playerInvulnMs": 600,
+  "enemyHitStunMs": 150,
+  "flashMs": 33,
+  "playerHurtFlashMs": 120,
+  "pickupCap": 200,
+  "collectRadius": 16,
+  "magnetPullSpeed": 300,
+  "magnetAccel": 900,
+  "defeatRestartMs": 1800
 }

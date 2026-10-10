@@ -5,25 +5,38 @@
       "name": "인민군 보병",
       "tier": "normal",
       "hp": 18,
-      "attack": 6,
+      "attack": 4,
       "defense": 0,
       "speed": 52,
       "speedJitter": 0.12,
       "radius": 14,
       "xp": 1,
-      "behaviors": [{ "type": "chase" }]
+      "behaviors": [
+        {
+          "type": "chase"
+        }
+      ]
     },
     "E02": {
       "name": "척후병",
       "tier": "normal",
-      "hp": 11,
-      "attack": 4,
+      "hp": 10,
+      "attack": 3,
       "defense": 0,
       "speed": 82,
       "speedJitter": 0.1,
       "radius": 12,
       "xp": 1,
-      "behaviors": [{ "type": "chase" }, { "type": "zigzag", "amplitude": 0.9, "freq": 1.6 }]
+      "behaviors": [
+        {
+          "type": "chase"
+        },
+        {
+          "type": "zigzag",
+          "amplitude": 0.9,
+          "freq": 1.6
+        }
+      ]
     }
   }
 }

@@ -63,6 +63,16 @@ export class Floor {
     }
   }
 
+  /** 씬 종료 시 청크 캔버스 텍스처 해제(텍스처는 게임 전역이라 씬 재시작마다 쌓이지 않게) */
+  destroy(): void {
+    for (const c of [...this.active.values(), ...this.pool]) {
+      c.image.destroy();
+      c.texture.destroy();
+    }
+    this.active.clear();
+    this.pool.length = 0;
+  }
+
   /** 디버그 표시용 */
   get stats(): { chunks: number; pooled: number } {
     return { chunks: this.active.size, pooled: this.pool.length };

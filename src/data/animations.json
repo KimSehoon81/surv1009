@@ -1,5 +1,5 @@
 {
-  "$comment": "동작별 재생 규칙. fps=초당 프레임, loop=반복 여부, minMs=최소 재생 시간(한 번 재생 동작이 너무 빨리 끊기지 않게). priority는 높은 것부터. slowThreshold: 이동 속도 배율이 이 값 미만이면 move_slow(PRD §4.3 '50% 미만, 슬로우 디버프'), 이상이면 move_fast(풀 이동). locomotion: 정지·느린 이동·빠른 이동일 때 재생할 동작(적은 늘 move, NPC는 늘 idle)",
+  "$comment": "동작별 재생 규칙. fps=초당 프레임, loop=반복 여부, minMs=최소 재생 시간(한 번 재생 동작이 너무 빨리 끊기지 않게). priority는 높은 것부터. slowThreshold: 이동 속도 배율이 이 값 미만이면 move_slow(PRD §4.3 '50% 미만, 슬로우 디버프'), 이상이면 move_fast(풀 이동). locomotion: 정지·느린 이동·빠른 이동일 때 재생할 동작(적은 늘 move, NPC는 늘 idle). whileMoving=false인 한 번 재생 동작은 이동 중에는 재생하지 않는다(달리면서 쏠 때 다리가 멈춘 공격 자세로 미끄러지지 않게)",
   "ally": {
     "actions": {
       "idle": {
@@ -17,7 +17,8 @@
       "attack": {
         "fps": 16,
         "loop": false,
-        "minMs": 0
+        "minMs": 0,
+        "whileMoving": false
       },
       "defend": {
         "fps": 14,

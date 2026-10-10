@@ -27,6 +27,10 @@ export class Enemy implements Agent {
   radius = 12;
   ageMs = 0;
   phase = 0;
+  /** 풀에서 꺼내져 살아 있는 동안 true(같은 프레임에 이미 죽은 적을 또 맞히지 않게) */
+  alive = false;
+  /** 이 시각(전투 시계)까지 피격 경직: 이동하지 않음 */
+  stunUntilMs = 0;
   private anims!: UnitAnims;
   private anim!: AnimState;
   private lastKey = '';
@@ -62,6 +66,8 @@ export class Enemy implements Agent {
     this.radius = def.radius;
     this.ageMs = 0;
     this.phase = rng.next();
+    this.alive = true;
+    this.stunUntilMs = 0;
     this.anims = anims;
     this.anim = createAnimState(anims.rules, nowMs);
     this.lastKey = '';
@@ -73,6 +79,7 @@ export class Enemy implements Agent {
   }
 
   despawn(): void {
+    this.alive = false;
     this.sprite.anims.stop();
     this.sprite.setActive(false).setVisible(false);
   }

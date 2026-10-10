@@ -5,6 +5,8 @@ export const Depth = {
   Decal: 10,
   Shadow: 20,
   Unit: 100,
+  /** 적(Unit + y 비율 0~1)보다 항상 앞 */
+  Player: 150,
   Projectile: 200,
   Explosion: 300,
   Smoke: 400,

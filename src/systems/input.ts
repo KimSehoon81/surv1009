@@ -12,6 +12,7 @@ export type InputAction = keyof typeof controls.keys;
 export class InputMap {
   private readonly keys = new Map<InputAction, Phaser.Input.Keyboard.Key[]>();
   private readonly pressed = new Set<InputAction>();
+  private readonly listeners: Array<[Phaser.Input.Keyboard.Key, () => void]> = [];
 
   constructor(scene: Phaser.Scene) {
     const kb = scene.input.keyboard;
@@ -19,7 +20,11 @@ export class InputMap {
     for (const [action, names] of Object.entries(controls.keys) as Array<[InputAction, string[]]>) {
       // enableCapture: 방향키가 페이지를 스크롤하지 않게
       const keys = names.map((n) => kb.addKey(n, true));
-      for (const k of keys) k.on('down', () => this.pressed.add(action));
+      for (const k of keys) {
+        const fn = () => this.pressed.add(action);
+        k.on('down', fn);
+        this.listeners.push([k, fn]);
+      }
       this.keys.set(action, keys);
     }
   }
@@ -35,6 +40,13 @@ export class InputMap {
 
   /** 프레임 끝에 호출: 이번 프레임에 쓰지 않은 눌림은 버린다(일시정지 중 누른 키가 풀릴 때 한꺼번에 실행되지 않게) */
   endFrame(): void {
+    this.pressed.clear();
+  }
+
+  /** 씬 종료 시: 키 객체는 씬 재시작 후에도 재사용되므로 리스너를 떼어 중복 등록을 막는다 */
+  destroy(): void {
+    for (const [k, fn] of this.listeners) k.off('down', fn);
+    this.listeners.length = 0;
     this.pressed.clear();
   }
 

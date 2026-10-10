@@ -99,7 +99,7 @@ export class EnemySystem {
     // 1) 이동
     for (let i = list.length - 1; i >= 0; i--) {
       const e = list[i] as Enemy;
-      if (dtMs > 0) {
+      if (dtMs > 0 && nowMs >= e.stunUntilMs) {
         e.ageMs += dtMs;
         const dir = steer(e, e.behaviors, ctx);
         const d = (e.speed * dtMs) / 1000;
@@ -169,6 +169,13 @@ export class EnemySystem {
         }
       }
     }
+  }
+
+  /** 적 하나 회수(처치) */
+  kill(e: Enemy): void {
+    if (!e.alive) return;
+    e.despawn();
+    this.pool.release(e);
   }
 
   /** 모든 적 회수(재시작용) */

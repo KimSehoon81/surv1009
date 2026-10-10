@@ -3,7 +3,7 @@
 // 자리표시자 단계에서도 화면 비율·정렬을 실제 그림과 같게 확인할 수 있다.
 
 import type * as Phaser from 'phaser';
-import type { Faction, ImageSpec, SheetSpec } from '../assets/manifest';
+import type { Faction, FxSpec, ImageSpec, SheetSpec } from '../assets/manifest';
 
 const OUTLINE = '#2a1a10'; // PRD §10: 짙은 갈색 외곽선
 
@@ -173,6 +173,28 @@ export function createImagePlaceholder(scene: Phaser.Scene, image: ImageSpec): v
     ctx.lineWidth = 2;
     ctx.strokeRect(1, 1, w - 2, h - 2);
     label(ctx, image.label, 4, 4, 10, '#ff4fd8');
+  }
+  tex.refresh();
+}
+
+/** 이펙트 자리표시자: 프레임마다 커졌다 사라지는 주황 원(이름 표시) */
+export function createFxPlaceholder(scene: Phaser.Scene, fx: FxSpec): void {
+  const fs = fx.frameSize;
+  const tex = scene.textures.createCanvas(fx.key, fs * fx.cols, fs * fx.rows);
+  if (!tex) throw new Error(`placeholder: 텍스처 생성 실패 ${fx.key}`);
+  const ctx = tex.getContext();
+  for (let i = 0; i < fx.frames; i++) {
+    const x = (i % fx.cols) * fs;
+    const y = Math.floor(i / fx.cols) * fs;
+    const t = (i + 1) / fx.frames;
+    ctx.globalAlpha = 1 - t * 0.7;
+    ctx.fillStyle = '#ffb040';
+    ctx.beginPath();
+    ctx.arc(x + fs / 2, y + fs / 2, (fs / 2.4) * t, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    label(ctx, fx.name, x + 3, y + 3, Math.round(fs / 12), '#ffffff');
+    tex.add(i, 0, x, y, fs, fs);
   }
   tex.refresh();
 }

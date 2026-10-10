@@ -71,5 +71,26 @@
   "map": {
     "width": 360,
     "height": 540
+  },
+  "fx": {
+    "folder": "fx",
+    "frames": 6,
+    "large": [
+      "explosion_l",
+      "bomber",
+      "bomber_shadow",
+      "support_volley",
+      "naval_shell",
+      "tank_charge",
+      "skill_AS01",
+      "skill_AS03",
+      "skill_AS04",
+      "skill_AS06",
+      "skill_AS07",
+      "skill_AS09",
+      "skill_AS10",
+      "skill_AS11",
+      "skill_AS12"
+    ]
   }
 }

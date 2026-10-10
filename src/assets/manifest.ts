@@ -34,7 +34,19 @@ export interface ImageSpec {
   height: number;
 }
 
-export type AssetSpec = SheetSpec | ImageSpec;
+/** 이펙트 시트: 4×4 격자 앞 frames칸, 프레임 100 또는 200(대형) */
+export interface FxSpec {
+  kind: 'fx';
+  key: string;
+  name: string;
+  path: string | null;
+  frameSize: number;
+  frames: number;
+  cols: number;
+  rows: number;
+}
+
+export type AssetSpec = SheetSpec | ImageSpec | FxSpec;
 
 const UNIT_ID = /^[AEN]\d{2}$/;
 const ASSET_ROOT = 'assets/';
@@ -114,6 +126,20 @@ export function createManifest(available: readonly string[]) {
     height,
   });
 
+  const fx = (name: string): FxSpec => {
+    const large = spec.fx.large.includes(name);
+    return {
+      kind: 'fx',
+      key: `fx_${name}`,
+      name,
+      path: resolve(`${spec.fx.folder}/${name}.png`),
+      frameSize: large ? spec.sheet.frameLarge : spec.sheet.frame,
+      frames: spec.fx.frames,
+      cols: spec.sheet.cols,
+      rows: spec.sheet.rows,
+    };
+  };
+
   return {
     has: (relPath: string) => files.has(relPath),
     count: () => files.size,
@@ -124,6 +150,7 @@ export function createManifest(available: readonly string[]) {
     tile,
     card,
     image,
+    fx,
     anchor: spec.anchor,
   };
 }

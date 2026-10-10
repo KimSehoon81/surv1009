@@ -1,0 +1,29 @@
+{
+  "$comment": "무기 정의(D20에서 캐릭터별 무기로 확장). type: projectile=직선 투사체, lob=곡사(착지 시 범위 피해). damageMult=공격력 배율, cooldownMs가 없으면 캐릭터 attackSpeed(초당 횟수)로 계산, range가 없으면 캐릭터 range. 속도 px/초, 반지름 px",
+  "weapons": {
+    "rifle": {
+      "name": "소총",
+      "type": "projectile",
+      "damageMult": 1.0,
+      "projectileSpeed": 460,
+      "radius": 4,
+      "pierce": 0,
+      "sprite": "bullet",
+      "scale": 0.4
+    },
+    "grenade": {
+      "name": "수류탄",
+      "type": "lob",
+      "damageMult": 1.6,
+      "cooldownMs": 2600,
+      "range": 210,
+      "flightMs": 650,
+      "arcHeight": 46,
+      "aoeRadius": 48,
+      "sprite": "icon_upgrade_weapon_grenade",
+      "scale": 0.45,
+      "fx": "explosion_s",
+      "fxScale": 0.9
+    }
+  }
+}

@@ -40,6 +40,12 @@
     ],
     "debugStress": [
       "F2"
+    ],
+    "debugWeapon": [
+      "V"
+    ],
+    "debugInvincible": [
+      "I"
     ]
   }
 }

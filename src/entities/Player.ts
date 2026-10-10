@@ -20,7 +20,11 @@ export class Player {
   stats: Stats;
   /** 이동 속도 배율(슬로우 디버프·가속 버프가 바꾼다). 1 = 기본 */
   speedMul = 1;
-  private facing: 1 | -1 = 1;
+  hp = 1;
+  maxHp = 1;
+  /** 이 시각(전투 시계)까지 피격 무적 */
+  invulnUntilMs = 0;
+  private facingDir: 1 | -1 = 1;
   private anims!: UnitAnims;
   private anim!: AnimState;
   private moving = false;
@@ -49,6 +53,8 @@ export class Player {
   setCharacter(id: CharacterId, nowMs: number): void {
     this.id = id;
     this.stats = characters.characters[id].stats;
+    this.maxHp = this.stats.hp;
+    this.hp = this.maxHp;
     this.anims = registerUnitAnims(this.scene, id);
     this.anim = createAnimState(this.anims.rules, nowMs);
     this.applyAnim(true);
@@ -66,6 +72,33 @@ export class Player {
     return this.anim.current;
   }
 
+  /** 시작 무기 ID 목록(data/characters.json) */
+  get weapons(): readonly string[] {
+    return characters.characters[this.id].weapons;
+  }
+
+  get facing(): 1 | -1 {
+    return this.facingDir;
+  }
+
+  get isMoving(): boolean {
+    return this.moving;
+  }
+
+  /** 서 있을 때만 목표 쪽으로 돌아선다(이동 중에는 이동 방향 유지) */
+  faceTowards(x: number): void {
+    if (this.moving) return;
+    this.facingDir = x < this.sprite.x ? -1 : 1;
+    this.sprite.setFlipX(this.facingDir < 0);
+  }
+
+  /** 발사 동작. whileMoving=false면 이동 중에는 다리 동작을 유지한다 */
+  fireAnim(nowMs: number): void {
+    const rule = this.anims.rules.actions.attack as { whileMoving?: boolean } | undefined;
+    if (this.moving && rule?.whileMoving === false) return;
+    this.trigger('attack', nowMs);
+  }
+
   /**
    * @param dtMs 전투 시계 기준 경과 시간(일시정지·히트스톱이면 0)
    * @param nowMs 전투 시계 누적 시간
@@ -78,8 +111,10 @@ export class Player {
       const next = step(this.sprite, dir, this.stats.moveSpeed * this.speedMul, dtMs);
       this.sprite.setPosition(next.x, next.y);
     }
-    this.facing = facingFrom(dir.x, this.facing);
-    this.sprite.setFlipX(this.facing < 0);
+    if (this.moving) {
+      this.facingDir = facingFrom(dir.x, this.facingDir);
+      this.sprite.setFlipX(this.facingDir < 0);
+    }
     this.anim = updateAnimState(this.anim, this.anims.rules, { moving: this.moving, speedRatio: this.speedMul }, nowMs);
     this.applyAnim(false);
     this.sprite.anims.timeScale = timeScale;
