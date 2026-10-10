@@ -91,7 +91,7 @@ def fx_sheet():
 def tiles_sheet():
     rng = np.random.default_rng(1)
     arr = (rng.integers(60, 90, (1024, 1024, 3))).astype(np.uint8)
-    return Image.fromarray(np.dstack([arr, np.full((1024, 1024), 255, np.uint8)]), "RGBA")
+    return Image.fromarray(np.dstack([arr, np.full((1024, 1024), 255, np.uint8)]))
 
 
 def card_row():

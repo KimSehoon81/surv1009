@@ -54,7 +54,7 @@ def load_rgba(path: str) -> np.ndarray:
 def save_rgba(arr: np.ndarray, path: str) -> None:
     os.makedirs(os.path.dirname(path), exist_ok=True)
     tmp = path + ".tmp.png"
-    Image.fromarray(arr, "RGBA").save(tmp, optimize=True)
+    Image.fromarray(np.ascontiguousarray(arr, dtype=np.uint8)).save(tmp, optimize=True)
     os.replace(tmp, path)
 
 
@@ -233,7 +233,7 @@ def resize(arr: np.ndarray, w: int, h: int) -> np.ndarray:
     if (w, h) == (arr.shape[1], arr.shape[0]):
         return arr.copy()
     shrink = w < arr.shape[1] or h < arr.shape[0]
-    im = Image.fromarray(arr, "RGBA").convert("RGBa")
+    im = Image.fromarray(np.ascontiguousarray(arr, dtype=np.uint8)).convert("RGBa")
     im = im.resize((w, h), Image.Resampling.BOX if shrink else Image.Resampling.NEAREST)
     return np.array(im.convert("RGBA"))
 
@@ -277,7 +277,7 @@ def quantize(arr: np.ndarray, colors: int) -> np.ndarray:
         return arr
     rgb = arr[..., :3].copy()
     rgb[~mask] = rgb[mask].mean(axis=0).astype(np.uint8)
-    q = Image.fromarray(rgb, "RGB").quantize(colors=colors, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+    q = Image.fromarray(np.ascontiguousarray(rgb, dtype=np.uint8)).quantize(colors=colors, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
     out = arr.copy()
     out[..., :3] = np.where(mask[..., None], np.array(q.convert("RGB")), 0)
     return out
@@ -431,7 +431,7 @@ def process_unit(img, post, out_root, report):
     grid, removed = extract_cells(img, cols, rows)
     cells = {a: grid[r][:nframes] for r, a in enumerate(spec["actions"])}
     if removed:
-        report["warnings"].append(f"이웃 칸에서 넘어온 조각 {removed}개 제거")
+        report["info"].append(f"이웃 칸에서 넘어온 조각 {removed}개 제거")
     for a, row in cells.items():
         empty = sum(bbox(c) is None for c in row)
         if empty:
@@ -487,7 +487,7 @@ def process_strips(img, post, out_root, report, kind):
     """props·fx: 6열 x 5행, 행마다 하나의 6프레임 애니메이션"""
     grid, removed = extract_cells(img, 6, 5)
     if removed:
-        report["warnings"].append(f"이웃 칸에서 넘어온 조각 {removed}개 제거")
+        report["info"].append(f"이웃 칸에서 넘어온 조각 {removed}개 제거")
     outs = []
     for r, row in enumerate(post["rows"]):
         cells = grid[r]
@@ -503,9 +503,15 @@ def process_strips(img, post, out_root, report, kind):
             mode = "steps" if row["name"] in SOFT_PROPS else "hard"
             folder = "props"
         else:
-            opaque = np.mean([(c[..., 3] >= 250).mean() / max(1e-6, (c[..., 3] > 0).mean()) for c in cells if (c[..., 3] > 0).any()])
-            covered = np.mean([(c[..., 3] >= 250).mean() for c in cells])
-            if covered > 0.35 and opaque > 0.85:
+            # 배경을 칠한 이펙트: 그림 영역이 칸의 절반 이상이고 그 안이 거의 꽉 참(실측: 배경 칠함 0.94~0.97, 정상 0.70 이하)
+            nominal = (img.shape[0] / 5) * (img.shape[1] / 6)
+            flags = []
+            for c in cells:
+                b = bbox(c, 1)
+                if b:
+                    area = (b[2] - b[0]) * (b[3] - b[1])
+                    flags.append(area / nominal >= 0.45 and (c[b[1]:b[3], b[0]:b[2], 3] >= 250).mean() >= 0.85)
+            if flags and sum(flags) * 2 > len(flags):
                 report["warnings"].append(f"{row['name']}: 배경(지형·바다·하늘)이 칠해진 것 같음 → 다시 생성 권장")
             frames, _ = fit_frames(cells, fs, "contain", 0.96, False, warn=report["warnings"])
             mode = "steps"
@@ -540,7 +546,7 @@ def process_grid(img, post, out_root, report):
     if fill != "stretch":
         smart, removed = extract_cells(img, post["cols"], post["rows"])
         if removed:
-            report["warnings"].append(f"이웃 칸에서 넘어온 조각 {removed}개 제거")
+            report["info"].append(f"이웃 칸에서 넘어온 조각 {removed}개 제거")
     pal = PALETTE["card"] if mode == "none" else PALETTE["overlay"] if mode == "steps" else PALETTE["icon"]
     outs = []
     for i, name in enumerate(post["names"]):
