@@ -54,6 +54,22 @@ def drift_sheet(shift=0.04, overlap=False):
     return im
 
 
+def jitter_sheet():
+    """실제 결과물에서 측정된 AI 버릇 재현(6x6 아군): 열마다 좌우 ±14px 어긋남, 아래 행일수록 발이 최대 22px 올라감,
+    총이 오른쪽으로 길게 튀어나옴(몸통 중심과 bbox 중심이 다름)"""
+    rng = np.random.default_rng(7)
+    im = Image.new("RGBA", (1024, 1024), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    cw = ch = 1024 / 6
+    for r in range(6):
+        for c in range(6):
+            cx = c * cw + cw / 2 + int(rng.integers(-14, 15))
+            base = r * ch + ch * 0.92 - 22 * r / 5
+            d.rectangle([cx - 15, base - ch * 0.6, cx + 15, base], fill=(90, 110, 60, 255))
+            d.rectangle([cx + 15, base - ch * 0.4, cx + 45, base - ch * 0.36], fill=(60, 50, 40, 255))  # 총
+    return im
+
+
 def single_run(frame):
     ys = np.nonzero((frame[..., 3] > 0).any(axis=1))[0]
     return len(ys) > 0 and (ys[-1] - ys[0] + 1) == len(ys)
@@ -126,6 +142,19 @@ def main():
         unit_sheet(5, 5, 0.3, overflow=True).save(os.path.join(raw, "enemy_E05.png"))
         unit_sheet(5, 5, 0.6).save(os.path.join(raw, "npc_N01.png"))
         drift_sheet(0.12).save(os.path.join(raw, "enemy_E02.png"))
+        jitter_sheet().save(os.path.join(raw, "ally_A02.png"))
+        # 이펙트 시트에 배경을 칠한 경우(대형 스킬 이펙트에서 실제 발생)
+        fx_bg = fx_sheet()
+        ImageDraw.Draw(fx_bg).rectangle([0, 1024 * 4 // 5, 1023, 1023], fill=(30, 80, 140, 255))
+        fx_bg.save(os.path.join(raw, "vfx_4.png"))
+        # 3x3 일러스트 배치가 어긋나 칸 안에 다른 그림 경계가 보이는 경우(M 카드에서 실제 발생)
+        art = Image.new("RGB", (1024, 1024), (60, 90, 60))
+        da = ImageDraw.Draw(art)
+        for k in range(9):
+            r, c = divmod(k, 3)
+            da.rectangle([c * 341 + 20, r * 341 + 20, c * 341 + 320, r * 341 + 320], fill=(100 + k * 15, 120, 160 - k * 10))
+        da.rectangle([1024 // 2, 0, 1024 // 2 + 170, 1023], fill=(230, 220, 90))  # 칸 가운데를 가로지르는 경계
+        art.save(os.path.join(raw, "card_art_m.png"))
         drift_sheet(0.05, overlap=True).save(os.path.join(raw, "enemy_E03.png"))
         tiles_sheet().save(os.path.join(raw, "tiles_1.png"))
         fx_sheet().save(os.path.join(raw, "vfx_1.png"))
@@ -155,7 +184,7 @@ def main():
         sheet = pp.load_rgba(os.path.join(A, "enemies", "E04_move_L.png"))
         ub = pp.union([pp.bbox(sheet[(i // 4) * 200:(i // 4 + 1) * 200, (i % 4) * 200:(i % 4 + 1) * 200]) for i in range(5)])
         check(ub is not None and abs((ub[2] - ub[0]) - 140) <= 3, f"차량 너비(동작 전체) 140px 근처 (실제 {ub[2] - ub[0] if ub else None})")
-        check(any("넘쳐" in w for w in reps["enemy_E05"]["warnings"]), "프레임 넘침 시 배율 축소 경고")
+        check(any("축소" in w for w in reps["enemy_E05"]["warnings"]), "프레임 넘침 시 최대 10% 축소 + 잘림 경고")
         for uid in ("E02", "E03"):
             frames = []
             for act in ("move", "attack", "defend", "crit", "hit"):
@@ -166,6 +195,17 @@ def main():
             # 마지막 행(hit)은 합성 이미지에서 캔버스 아래로 잘리므로 제외, 합성 좌표 반올림 오차 1px 허용
             bottoms = {pp.bbox(f)[3] for f in frames[:20] if pp.bbox(f)}
             check(max(bottoms) - min(bottoms) <= 1, f"{label}: 동작 간 발 기준선 일치 ({sorted(bottoms)})")
+        frames = []
+        for act in ("attack", "defend", "skill", "move_slow", "move_fast", "crit"):
+            sh = pp.load_rgba(os.path.join(A, "chars", f"A02_{act}.png"))
+            frames += [sh[(i // 4) * 100:(i // 4 + 1) * 100, (i % 4) * 100:(i % 4 + 1) * 100] for i in range(6)]
+        mx = [pp.mass_center_x(f) for f in frames]
+        bt = [pp.bbox(f)[3] for f in frames]
+        check(max(abs(m - 50) for m in mx) <= 1.5, f"열마다 어긋난 그림 → 몸통 중심 x=50 정렬 (범위 {min(mx):.0f}~{max(mx):.0f})")
+        check(set(bt) == {92}, f"행마다 다른 발 높이 → 전부 y=92 정렬 ({sorted(set(bt))})")
+        check(any("배경" in w for w in reps["vfx_4"]["warnings"]), "이펙트에 배경이 칠해지면 경고")
+        check(any("M05" in w and "경계" in w for w in reps["card_art_m"]["warnings"]), "일러스트 칸에 다른 그림 경계가 보이면 경고")
+        check(not any("경계" in w for w in reps["card_art_p"]["warnings"]), "정상 일러스트는 경고 없음")
         _, al = foot_and_height(os.path.join(A, "npcs", "N01_give.png"), 100)
         check(len(reps["npc_N01"]["outputs"]) == 3, "NPC 3동작 출력")
         t = Image.open(os.path.join(A, "tiles", "T01.png"))

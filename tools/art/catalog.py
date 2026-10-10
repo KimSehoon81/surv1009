@@ -44,7 +44,8 @@ ALPHA_FX = (
     "If true transparency is impossible, use one flat pure magenta #FF00FF background instead."
 )
 
-GRID_RULE = "The grid is invisible: no grid lines, borders, numbers or labels anywhere."
+GRID_RULE = ("All rows and columns are exactly equal in size and evenly spaced; leave a clear empty gap between neighboring drawings. "
+             "The grid is invisible: no grid lines, borders, numbers or labels anywhere.")
 
 # ---------------------------------------------------------------- 유닛(캐릭터·적·NPC)
 
@@ -200,8 +201,8 @@ def ally_prompt(uid, desc):
         "CANVAS: 1:1 square split into an invisible grid of 6 columns x 6 rows of equal square cells. "
         "Each row is one action animated in 6 frames, left to right; rows from top to bottom in the order listed. " + GRID_RULE,
         "FRAMES: the SAME character in all 36 cells, as if traced from one model sheet: identical design, colors, gear and size. "
-        "Side view facing RIGHT. The figure is about 60% of the cell height, horizontally centered, feet on one shared baseline "
-        "8% above the cell bottom. Leave the empty space around the body for muzzle flashes and effects; nothing crosses a cell border. "
+        "Side view facing RIGHT. The figure is about 60% of the cell height; its BODY (not the weapon) is centered on the cell's vertical center line "
+        "in every frame, feet on one shared baseline 8% above the cell bottom. Leave the empty space around the body for muzzle flashes and effects; nothing crosses a cell border. "
         "Each row loops smoothly from frame 6 back to frame 1.",
         "ROWS:\n" + _rows_text(ALLY_ROWS, 6),
     ])
@@ -218,7 +219,7 @@ def enemy_prompt(uid, tag, desc):
         "CANVAS: 1:1 square split into an invisible grid of 5 columns x 5 rows of equal square cells. "
         "Each row is one action animated in 5 frames, left to right; rows from top to bottom in the order listed. " + GRID_RULE,
         f"FRAMES: the SAME unit in all 25 cells, as if traced from one model sheet: identical design, colors and size. "
-        f"Side view facing RIGHT. Size: {SIZE_RULE[tag]}. Horizontally centered, feet, wheels or treads on one shared baseline "
+        f"Side view facing RIGHT. Size: {SIZE_RULE[tag]}. Its body (not the weapon) is centered on the cell's vertical center line in every frame; feet, wheels or treads on one shared baseline "
         "8% above the cell bottom. Nothing crosses a cell border. "
         "Each row loops smoothly from frame 5 back to frame 1.",
         "ROWS:\n" + _rows_text(enemy_rows(tag), 5),
@@ -240,7 +241,7 @@ def npc_prompt(uid, desc):
         "CANVAS: 1:1 square split into an invisible grid of 5 columns x 5 rows of equal square cells. "
         "Use only the top 3 rows (each row is one action animated in 5 frames, left to right); rows 4 and 5 stay completely empty. " + GRID_RULE,
         "FRAMES: the SAME character in all 15 used cells, as if traced from one model sheet. Side view facing RIGHT toward the player. "
-        "The figure is about 60% of the cell height, horizontally centered, feet on one shared baseline 8% above the cell bottom. "
+        "The figure is about 60% of the cell height, its body centered on the cell's vertical center line, feet on one shared baseline 8% above the cell bottom. "
         "Each row loops smoothly from frame 5 back to frame 1.",
         "ROWS:\n" + _rows_text(NPC_ROWS, 5),
     ])
@@ -249,24 +250,24 @@ def npc_prompt(uid, desc):
 # ---------------------------------------------------------------- 바닥 타일
 
 TILE_SETS = [
-    ("tiles_1", [("T01", "riverbank sand and fine gravel beside a wide river (Gyeongsang)"),
-                 ("T02", "rice-paddy ridges and dry field soil"),
+    ("tiles_1", [("T01", "riverbank sand and fine gravel, dry, no water visible (Gyeongsang)"),
+                 ("T02", "dry field soil with faint short furrow marks in random directions"),
                  ("T03", "flat harvested rice paddy with short green-gold stubble (Jeolla)"),
-                 ("T04", "ochre-red clay road with shallow wheel ruts")]),
+                 ("T04", "ochre-red clay ground with a few short, faint wheel marks")]),
     ("tiles_2", [("T05", "rolling hill grass, short and dry (Chungcheong)"),
-                 ("T06", "packed brown dirt country road with gravel"),
+                 ("T06", "packed brown dirt with scattered gravel"),
                  ("T07", "forest floor of fallen autumn leaves (Gangwon)"),
-                 ("T08", "rocky valley stone path with moss")]),
+                 ("T08", "rocky valley ground: small flat stones with moss between them")]),
     ("tiles_3", [("T09", "scrubby hillside grass with bare patches (Gyeonggi)"),
                  ("T10", "ruined village ground: dirt and broken roof-tile shards"),
-                 ("T11", "cracked city asphalt with faded paint remnants (Seoul)"),
+                 ("T11", "cracked city asphalt with small faded paint flecks (Seoul)"),
                  ("T12", "collapsed brick and concrete rubble")]),
     ("tiles_4", [("T13", "reed plain: dry brown reeds and mud (Hwanghae)"),
                  ("T14", "dry yellow-brown loess plain with cracks"),
-                 ("T15", "silver-grass plain and railway gravel (Pyongan)"),
-                 ("T16", "muddy road after rain with puddles and tire tracks")]),
+                 ("T15", "silver-grass tufts on gravelly ground (Pyongan)"),
+                 ("T16", "mud after rain with small puddles and short tire marks")]),
     ("tiles_5", [("T17", "paved city street with patches of old snow (Pyongyang)"),
-                 ("T18", "river sandbar with wet sand ripples"),
+                 ("T18", "wet river sand with small ripple marks, no open water"),
                  ("T19", "snow-covered ground with faint footprints (Hamgyong)"),
                  ("T20", "frozen lake surface with ice cracks and snow dust")]),
 ]
@@ -283,6 +284,8 @@ def tiles_prompt(tiles):
         "Each tile is a 64x64-pixel texture enlarged 8 times, viewed straight down from above (90 degrees), "
         "and wraps seamlessly on its own: its left edge continues its right edge and its top edge continues its bottom edge.",
         "LOOK: flat ground only, medium-dark values and LOW contrast so bright character sprites stand out on top; "
+        "an EVEN, uniform texture across the whole tile: no water edge or shoreline, no roads, paths, rails or lines that run across the tile, "
+        "no single large feature, no gradient from one side to the other; "
         "no outlines on the ground texture itself, no large objects, no strong shadows, no people, no blood; "
         "4-6 small scattered details per tile (pebbles, tufts, cracks, puddles) spread evenly with no obvious repeat. "
         "Reading order: top-left, top-right, bottom-left, bottom-right.",
@@ -340,7 +343,7 @@ FX_SETS = [
                ("burst_shell", "V06 BURST_SHELL: 1-2 colored smoke flare rising (50-75%); 3-6 small-to-medium shell impact with debris", 100),
                ("support_volley", "V07 SUPPORT_VOLLEY: 1 allied silhouettes fade in (25-75%); 2 three UN riflemen in mixed uniforms with small flag patches crouch to aim; 3-5 firing with muzzle flashes and ejected casings; 6 fade out", 200),
                ("hit_spark", "V12 HIT_SPARK: 1 white flash star; 2-4 yellow sparks radiating; 5-6 fast fade", 100),
-               ("skill_AS03", "AS03 STRAFE (large, fills most of each cell): a fighter plane seen from above passes; a line of bullet-impact dust dots and muzzle glare", 200)]),
+               ("skill_AS03", "AS03 STRAFE (large effect, fills most of the cell, no background): a fighter plane seen from above passes; a line of bullet-impact dust dots and muzzle glare", 200)]),
     ("vfx_3", [("naval_shell", "V08 NAVAL_SHELL: 1 big muzzle glow at the cell edge; 2-4 shell arcing with a thin smoke trail (50%); 5-6 impact with a tall dirt-and-smoke column", 200),
                ("tank_charge", "V09 TANK_CHARGE: tank rolling right with animated treads, lingering semi-transparent dust trail (25-50%), pixel shock arcs ahead, 6-frame loop", 200),
                ("supply_drop", "V10 SUPPLY_DROP: 1-3 parachute crate descending; 4 landing dust; 5-6 green-white healing sparkles rising (50-100%)", 100),
@@ -348,14 +351,14 @@ FX_SETS = [
                ("crit_ring", "V13 CRIT_RING: golden shock ring with radial lines expanding then fading over 6 frames", 100)]),
     ("vfx_4", [("muzzle", "V14 MUZZLE_FLASH: small flash and a popping shell casing over 6 frames", 100),
                ("dust", "V15 DUST_PUFF: soft dithered dust ring (25-50%) expanding and thinning over 6 frames", 100),
-               ("skill_AS01", "AS01 CARPET_BOMB (large, fills most of each cell): a bomber shadow sweeps across; three lines of explosions follow with smoke trails", 200),
-               ("skill_AS04", "AS04 NAVAL_SALVO (large, fills most of each cell): three wide muzzle flashes at the edge, then three shell impacts", 200),
-               ("skill_AS06", "AS06 ALLIED_BATTALION (large, fills most of each cell): a row of five UN riflemen with small flag patches fade in, fire, fade out", 200)]),
-    ("vfx_5", [("skill_AS07", "AS07 ARMOR_CHARGE (large, fills most of each cell): three tanks abreast with dust trails and shock arcs", 200),
-               ("skill_AS09", "AS09 TOTAL_ASSAULT (large, fills most of each cell): cascading explosions inside a golden pixel ring (50%)", 200),
-               ("skill_AS10", "AS10 DEFENSE_DOME (large, fills most of each cell): translucent steel-blue dome (fill 25%, rim 75%) with scanline pixels and an impact ripple", 200),
-               ("skill_AS11", "AS11 ENCIRCLE (large, fills most of each cell): a contracting ring (75%) with inward arrows, then an implosion flash", 200),
-               ("skill_AS12", "AS12 JOINT_STRIKE (large, fills most of each cell): bomber shadow, shell trail and volley glow merge into one white flash", 200)]),
+               ("skill_AS01", "AS01 CARPET_BOMB (large effect, fills most of the cell, no background): a bomber shadow sweeps across; three lines of explosions follow with smoke trails", 200),
+               ("skill_AS04", "AS04 NAVAL_SALVO (large effect, fills most of the cell, no background): three wide muzzle flashes at the edge, then three shell impacts", 200),
+               ("skill_AS06", "AS06 ALLIED_BATTALION (large effect, fills most of the cell, no background): a row of five UN riflemen with small flag patches fade in, fire, fade out", 200)]),
+    ("vfx_5", [("skill_AS07", "AS07 ARMOR_CHARGE (large effect, fills most of the cell, no background): three tanks abreast with dust trails and shock arcs", 200),
+               ("skill_AS09", "AS09 TOTAL_ASSAULT (large effect, fills most of the cell, no background): cascading explosions inside a golden pixel ring (50%)", 200),
+               ("skill_AS10", "AS10 DEFENSE_DOME (large effect, fills most of the cell, no background): translucent steel-blue dome (fill 25%, rim 75%) with scanline pixels and an impact ripple", 200),
+               ("skill_AS11", "AS11 ENCIRCLE (large effect, fills most of the cell, no background): a contracting ring (75%) with inward arrows, then an implosion flash", 200),
+               ("skill_AS12", "AS12 JOINT_STRIKE (large effect, fills most of the cell, no background): bomber shadow, shell trail and volley glow merge into one white flash", 200)]),
 ]
 
 
@@ -371,7 +374,9 @@ def fx_prompt(rows):
         "CANVAS: 1:1 square split into an invisible grid of 6 columns x 5 rows of equal cells. "
         "Each row is one effect animated in 6 frames, left to right, with a clear start-to-end progression; rows from top to bottom in the order listed. "
         "Each effect is centered in its cell with the same ground-contact point in every frame of its row; small effects use about half of the cell, "
-        "large ones fill most of it; nothing crosses a cell border. " + GRID_RULE,
+        "large ones fill most of it; nothing crosses a cell border. "
+        "NO BACKGROUND SCENERY, even for large effects: draw only the effect itself (aircraft, shells, explosions, smoke, glow, soldiers) "
+        "on transparency; never paint ground, sea, sky, clouds, maps or terrain behind it. " + GRID_RULE,
         "ROWS:\n" + listing,
     ])
 
@@ -456,6 +461,7 @@ CARD_ART_M = [
     ("M06", "frosted boots in deep snow with icicles"),
     ("M07", "broken radio with a cut wire"),
     ("M08", "mixed-up order papers flying in confusion"),
+    ("M00", "dark storm clouds over a muddy battlefield (spare generic bad-luck art)"),
 ]
 
 

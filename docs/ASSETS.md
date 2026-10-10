@@ -65,7 +65,7 @@ public/assets/
   props/    tree_leaf_L  tree_pine_L  tree_dead_L  tree_snow_L  burnt_truck_L
             grass  reed  bush  flag  drum_fire  wire  sandbag  rock            (.png)
   cards/    frame_common  frame_rare  frame_legend  frame_minus  card_back       (120×168)
-            P01 ~ P16  M01 ~ M08                                                 (104×104 일러스트)
+            P01 ~ P16  M01 ~ M08  M00(예비)                                      (104×104 일러스트)
   fx/       bomb_fall  explosion_s  explosion_l  bomber  bomber_shadow  timebomb  burst_shell
             support_volley  hit_spark  naval_shell  tank_charge  supply_drop  mines  crit_ring
             muzzle  dust  skill_AS01 · AS03 · AS04 · AS06 · AS07 · AS09 · AS10 · AS11 · AS12
@@ -101,7 +101,12 @@ docs/mockup/
 | `postprocess.py` | 원본 → 게임 규격 변환(노트북에도 내장). 로컬: `python3 tools/art/postprocess.py --raw raw --out out` |
 | `selftest.py` | 변환 규격 자체 검증 |
 
-변환이 하는 일: 칸 자르기 → 투명 배경이 없으면 배경색 제거 → 기준 동작의 몸체 크기로 배율을 정해 모든 프레임에 같은 변환(보병 몸체 62px, 발 50,92) → BOX 축소·알파 하드닝(이펙트는 5단계)·시트당 팔레트 제한 → 4×4 시트 저장, 미리보기·경고(`report.json`).
+변환이 하는 일
+1. 투명 배경이 없으면 배경색 제거 → 그림 사이 빈 곳을 따라 칸 자르기 → 칸 테두리에 걸린 이웃 칸 조각 제거
+2. 위치 정렬: AI는 행·열을 균등하게 그리지 않으므로 행마다 발 기준선을, 프레임마다 몸통 중심을 맞춤(걷기 중 미끄러짐·동작 전환 시 들썩임 방지)
+3. 기준 동작의 몸체 크기로 배율 결정(보병 62px, 발 50,92). 넘치는 프레임이 있으면 최대 10%만 줄이고 나머지는 끝을 잘라 유닛 간 크기 유지
+4. BOX 축소·알파 하드닝(이펙트는 5단계)·시트당 팔레트 제한 → 4×4 시트 저장
+5. 미리보기와 경고(`report.json`): 이웃 조각 제거, 프레임 잘림, 이펙트 배경 칠함, 일러스트 배치 어긋남(다시 생성 권장), 타일 이음매
 
 `game_assets.zip`을 풀면 `public/assets/...` 구조입니다. GitHub 웹에서 저장소 루트에 폴더째 업로드(main 커밋)하면 다음 실행부터 자동 반영됩니다.
 

@@ -41,6 +41,7 @@ NPC_TARGET = (100, "h", 60)
 PALETTE = {"unit": 48, "tile": 32, "prop": 48, "fx": 64, "icon": 24, "card": 48, "overlay": 32, "map": 64}
 SOFT_PROPS = {"burnt_truck", "drum_fire"}  # 연기·불꽃이 있어 알파 5단계 유지
 ALPHA_STEPS = np.array([0, 64, 128, 191, 255], dtype=np.int16)
+MAX_SHRINK = 0.10  # 프레임에 넘칠 때 목표 크기에서 줄일 수 있는 최대 비율
 
 
 # ------------------------------------------------------------------ 기본 연산
@@ -290,8 +291,94 @@ def to_sheet(frames: list[np.ndarray], fs: int) -> np.ndarray:
     return sheet
 
 
-def fit_frames(cells: list[np.ndarray], fs: int, metric: str, target: float, anchor_bottom: bool, ref_cells=None, warn=None):
-    """같은 배율·같은 기준점으로 여러 칸을 fs×fs 프레임에 배치한다."""
+def shift(cell: np.ndarray, dx: int, dy: int) -> np.ndarray:
+    """빈 칸을 채우며 평행 이동(밖으로 나간 부분은 잘림)"""
+    if dx == 0 and dy == 0:
+        return cell
+    h, w = cell.shape[:2]
+    out = np.zeros_like(cell)
+    sx0, sx1 = max(0, -dx), min(w, w - dx)
+    sy0, sy1 = max(0, -dy), min(h, h - dy)
+    if sx0 < sx1 and sy0 < sy1:
+        out[sy0 + dy:sy1 + dy, sx0 + dx:sx1 + dx] = cell[sy0:sy1, sx0:sx1]
+    return out
+
+
+def mass_center_x(cell: np.ndarray, thr: int = 128):
+    """불투명 픽셀의 가로 중앙값 위치(질량의 절반이 되는 x). 총·섬광처럼 한쪽으로 튀어나온 부분에 덜 흔들린다"""
+    cols = (cell[..., 3] >= thr).sum(axis=0)
+    total = cols.sum()
+    if total == 0:
+        return None
+    return float(np.searchsorted(np.cumsum(cols), total / 2))
+
+
+def base_center_x(cell: np.ndarray, band: float = 0.12, thr: int = 128):
+    """밑동(아래쪽 band 비율) 가로 중심. 흔들리는 나무·깃발의 뿌리·기둥 위치"""
+    b = bbox(cell, thr)
+    if b is None:
+        return None
+    y0 = max(b[1], b[3] - max(2, int((b[3] - b[1]) * band)))
+    xs = np.nonzero((cell[y0:b[3], :, 3] >= thr).any(axis=0))[0]
+    return (xs.min() + xs.max() + 1) / 2
+
+
+def align_unit_rows(rows: list[list[np.ndarray]], ref_row: int):
+    """AI는 행·열을 균등하지 않게 그린다(아래 행일수록 발이 올라가고, 열마다 좌우 위치가 다름).
+    - 세로: 행마다 발 기준선(프레임 bbox 아래쪽의 중앙값)을 기준 행과 같게 맞춘다(행 안의 움직임은 보존)
+    - 가로: 프레임마다 몸의 질량 중심을 칸 가운데로 맞춘다(걷기 중 앞뒤로 미끄러지는 현상 제거)
+    반환: 정렬된 행들, 기준선 y, 가운데 x, 최대 보정량(dx, dy)"""
+    h, w = rows[ref_row][0].shape[:2]
+    cx = w / 2
+
+    def ground(row):
+        bs = [bbox(c)[3] for c in row if bbox(c)]
+        return float(np.median(bs)) if bs else None
+
+    ref_g = ground(rows[ref_row])
+    if ref_g is None:
+        ref_g = next((g for g in (ground(r) for r in rows) if g is not None), h * 0.9)
+    out, max_dx, max_dy = [], 0, 0
+    for row in rows:
+        g = ground(row)
+        dy = int(round(ref_g - g)) if g is not None else 0
+        new = []
+        for c in row:
+            m = mass_center_x(c)
+            dx = int(round(cx - m)) if m is not None else 0
+            max_dx, max_dy = max(max_dx, abs(dx)), max(max_dy, abs(dy))
+            new.append(shift(c, dx, dy))
+        out.append(new)
+    return out, ref_g, cx, max_dx, max_dy
+
+
+def seam_ratio(arr: np.ndarray, thr: int = 60) -> float:
+    """꽉 찬 그림 안에 다른 그림과의 직선 경계가 있는지: 가로·세로로 끊김 없이 이어진 급격한 색 변화의 최대 길이 비율.
+    정상 일러스트는 0.45 이하, 칸 배치가 어긋나 두 그림이 섞이면 0.6 이상(실측)."""
+    rgb = arr[..., :3].astype(np.int32)
+    best = 0.0
+    for axis in (1, 0):
+        d = np.abs(np.diff(rgb, axis=axis)).sum(axis=2)
+        if axis == 0:
+            d = d.T
+        big = d > thr
+        n, length = big.shape[1], big.shape[0]
+        for c in range(int(n * 0.08), int(n * 0.92)):
+            col = big[:, c]
+            if col.sum() < length * 0.5:
+                continue
+            run = cur = 0
+            for v in col:
+                cur = cur + 1 if v else 0
+                run = max(run, cur)
+            best = max(best, run / length)
+    return best
+
+
+def fit_frames(cells: list[np.ndarray], fs: int, metric: str, target: float, anchor_bottom: bool, ref_cells=None, warn=None,
+               anchor_x=None, anchor_y=None):
+    """같은 배율·같은 기준점으로 여러 칸을 fs×fs 프레임에 배치한다.
+    anchor_x/anchor_y(칸 좌표)를 주면 그 점이 프레임의 (가운데, 기준선)에 온다. 없으면 기준 칸들의 bbox로 정한다."""
     ref = ref_cells if ref_cells is not None else cells
     rb = union([bbox(c) for c in ref]) or union([bbox(c) for c in cells])
     if rb is None:
@@ -301,8 +388,8 @@ def fit_frames(cells: list[np.ndarray], fs: int, metric: str, target: float, anc
         s = min(fs * target / rw, fs * target / rh)
     else:
         s = target / (rh if metric == "h" else rw)
-    cx = (rb[0] + rb[2]) / 2
-    ay_src = rb[3] if anchor_bottom else (rb[1] + rb[3]) / 2
+    cx = anchor_x if anchor_x is not None else (rb[0] + rb[2]) / 2
+    ay_src = anchor_y if anchor_y is not None else (rb[3] if anchor_bottom else (rb[1] + rb[3]) / 2)
     ax_dst = fs / 2
     ay_dst = fs * BASELINE if anchor_bottom else fs / 2
     # 모든 프레임이 프레임 안에 들어오는지 확인하고 넘치면 배율을 줄인다
@@ -316,9 +403,15 @@ def fit_frames(cells: list[np.ndarray], fs: int, metric: str, target: float, anc
         ]
         smax = 1 / max(max(need), 1e-6)
         if s > smax:
-            if warn is not None and s > smax * 1.08:
-                warn.append(f"프레임에 넘쳐 배율 {s:.3f}→{smax:.3f}로 축소(일부 프레임의 동작 범위가 큼)")
-            s = smax
+            # 넘치는 만큼 줄이되 최대 MAX_SHRINK까지만: 총구 끝·섬광 몇 프레임 때문에 유닛 전체가 작아지면
+            # 유닛마다 크기가 들쭉날쭉해진다. 그 이상은 프레임 끝에서 잘리게 둔다.
+            s_new = max(smax, s * (1 - MAX_SHRINK))
+            if warn is not None:
+                if s_new > smax:
+                    warn.append(f"동작 범위가 커서 {MAX_SHRINK:.0%} 축소, 일부 프레임의 끝(총구·섬광 등)이 프레임 밖으로 잘림")
+                elif s > smax * 1.03:
+                    warn.append(f"프레임에 넘쳐 배율 {s:.3f}→{smax:.3f}로 축소")
+            s = s_new
     out = []
     for c in cells:
         h, w = c.shape[:2]
@@ -345,8 +438,17 @@ def process_unit(img, post, out_root, report):
             report["warnings"].append(f"{a}: 빈 프레임 {empty}개")
 
     fs, metric, target = NPC_TARGET if post["faction"] == "npc" else UNIT_TARGET[post["tag"]]
-    all_cells = [c for row in cells.values() for c in row]
-    frames, s = fit_frames(all_cells, fs, metric, target, True, ref_cells=cells[spec["ref"]], warn=report["warnings"])
+    ref_i = spec["actions"].index(spec["ref"])
+    aligned, ground, cx, mdx, mdy = align_unit_rows(list(cells.values()), ref_i)
+    report["info"].append(f"위치 보정: 프레임 좌우 최대 {mdx}px, 행 발높이 최대 {mdy}px (원본 픽셀)")
+    all_cells = [c for row in aligned for c in row]
+    frames, s = fit_frames(all_cells, fs, metric, target, True, ref_cells=aligned[ref_i], warn=report["warnings"],
+                           anchor_x=cx, anchor_y=ground)
+    # 반올림 오차 보정: 기준 동작의 발 기준선을 정확히 y = fs*BASELINE에 맞춘다
+    ref_bottoms = [b[3] for b in (bbox(f) for f in frames[ref_i * nframes:(ref_i + 1) * nframes]) if b]
+    if ref_bottoms:
+        dy = int(round(fs * BASELINE)) - int(np.median(ref_bottoms))
+        frames = [shift(f, 0, dy) for f in frames]
     frames = [harden_alpha(f, "hard") for f in frames]
     # 유닛 전체에 한 팔레트: 프레임을 이어 붙여 양자화 후 다시 나눈다
     strip = quantize(np.concatenate(frames, axis=1), PALETTE["unit"])
@@ -394,10 +496,17 @@ def process_strips(img, post, out_root, report, kind):
             continue
         fs = row["frame"]
         if kind == "prop":
-            frames, _ = fit_frames(cells, fs, row["fit"], row["px"], True, warn=report["warnings"])
+            # 흔들림 애니메이션에서 밑동(뿌리·기둥)이 프레임마다 같은 자리에 있게 맞춘다
+            w = cells[0].shape[1]
+            cells = [shift(c, int(round(w / 2 - bx)), 0) if (bx := base_center_x(c)) is not None else c for c in cells]
+            frames, _ = fit_frames(cells, fs, row["fit"], row["px"], True, warn=report["warnings"], anchor_x=w / 2)
             mode = "steps" if row["name"] in SOFT_PROPS else "hard"
             folder = "props"
         else:
+            opaque = np.mean([(c[..., 3] >= 250).mean() / max(1e-6, (c[..., 3] > 0).mean()) for c in cells if (c[..., 3] > 0).any()])
+            covered = np.mean([(c[..., 3] >= 250).mean() for c in cells])
+            if covered > 0.35 and opaque > 0.85:
+                report["warnings"].append(f"{row['name']}: 배경(지형·바다·하늘)이 칠해진 것 같음 → 다시 생성 권장")
             frames, _ = fit_frames(cells, fs, "contain", 0.96, False, warn=report["warnings"])
             mode = "steps"
             folder = "fx"
@@ -451,6 +560,10 @@ def process_grid(img, post, out_root, report):
             small = resize(part, part.shape[1] * s, part.shape[0] * s)
             paste(out, small, (w - small.shape[1]) // 2, (h - small.shape[0]) // 2)
         out = quantize(harden_alpha(out, mode), pal)
+        if mode == "none":
+            sr = seam_ratio(out)
+            if sr >= 0.55:
+                report["warnings"].append(f"{name}: 다른 그림과의 경계선이 보임(배치 어긋남, {sr:.2f}) → 다시 생성 권장")
         rel = f"{post['folder']}/{name}.png"
         save_rgba(out, os.path.join(out_root, rel))
         outs.append((rel, [out]))
@@ -543,7 +656,7 @@ def build_preview(outs, scale=2, max_w=1600) -> np.ndarray:
 # ------------------------------------------------------------------ 진입점
 
 def process_item(item: dict, raw_path: str, out_dir: str) -> dict:
-    report = {"name": item["name"], "ok": False, "outputs": [], "warnings": []}
+    report = {"name": item["name"], "ok": False, "outputs": [], "warnings": [], "info": []}
     try:
         img = load_rgba(raw_path)
         if item.get("transparent", True) and item["post"]["kind"] not in ("tiles", "map"):
