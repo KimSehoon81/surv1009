@@ -26,12 +26,16 @@ MD_GUIDE = """# 압록강 서바이벌 — 그래픽 자동 생성 (112장)
 2. 괜찮으면 `LIMIT = 0`(제한 없음)으로 바꾸고 다시 모두 실행합니다. 이미 만든 그림은 건너뜁니다.
 3. 끝나면 `game_assets.zip`이 내려받아집니다. 압축을 풀면 `public/assets/...` 구조이므로 GitHub 저장소 루트에 그대로 올리면 게임이 자동으로 사용합니다.
 
+**변환 규칙이 바뀌었을 때(노트북 새 버전)**: `CONVERT_ONLY`를 체크하고 모두 실행하면, Drive에 있는 원본을 다시 생성하지 않고 변환만 새로 합니다.
+
 **마음에 안 드는 그림 다시 만들기**: `REGENERATE`에 항목 이름을 쉼표로 적고 실행합니다(예: `ally_A01,enemy_E04`). 프롬프트가 바뀐 항목만 다시 만들려면 `changed`.
 
 **단계**: `P1`(스테이지 1, 23장) → `P2`(스테이지 1~5) → `P3`(나머지). 필요한 것부터 만들어 비용을 나눠 쓸 수 있습니다.
 """
 
 CELL_SETTINGS = '''#@title 1) 설정 { display-mode: "form" }
+#@markdown 체크하면 새로 만들지 않고, 이미 만든 원본(Drive의 raw)을 최신 변환 규칙으로 다시 변환만 함(API 키·비용 불필요)
+CONVERT_ONLY = False  #@param {type:"boolean"}
 PHASE = "P1"  #@param ["P1", "P2", "P3", "ALL"]
 #@markdown 특정 항목만 만들 때(쉼표 구분, 예: ally_A01,enemy_E01). 비우면 PHASE 전체
 ONLY = ""  #@param {type:"string"}
@@ -87,10 +91,11 @@ def _get_key():
             pass
     return getpass.getpass("OpenAI API 키를 붙여넣고 Enter: ").strip()
 
-API_KEY = _get_key()
-os.environ["OPENAI_API_KEY"] = API_KEY  # 다시 실행해도 묻지 않게(이 런타임 안에서만)
-if not API_KEY.startswith("sk-"):
-    print("경고: API 키 형식이 sk-로 시작하지 않습니다. 확인해 주세요.")
+API_KEY = "" if CONVERT_ONLY else _get_key()
+if API_KEY:
+    os.environ["OPENAI_API_KEY"] = API_KEY  # 다시 실행해도 묻지 않게(이 런타임 안에서만)
+    if not API_KEY.startswith("sk-"):
+        print("경고: API 키 형식이 sk-로 시작하지 않습니다. 확인해 주세요.")
 HEADERS = {"Authorization": "Bearer " + API_KEY}
 '''
 
@@ -114,8 +119,9 @@ def list_image_models():
         print("모델 목록을 가져오지 못했습니다:", e)
         return []
 
-available = list_image_models()
-print("이 계정의 이미지 모델:", ", ".join(available) or "(확인 불가)")
+available = [] if CONVERT_ONLY else list_image_models()
+if not CONVERT_ONLY:
+    print("이 계정의 이미지 모델:", ", ".join(available) or "(확인 불가)")
 if MODEL != "auto":
     USE_MODEL = MODEL
     if available and MODEL not in available:
@@ -155,6 +161,9 @@ for it in selected:
         todo.append(it)
 if LIMIT > 0:
     todo = todo[:LIMIT]
+if CONVERT_ONLY:
+    todo = []
+    print("변환만 모드: 새 그림은 만들지 않습니다.")
 
 # 대략적인 비용(장당 달러, 1024x1024 기준). 실제 청구액은 OpenAI 사용량 페이지에서 확인
 PRICE = {"low": 0.006, "medium": 0.013, "high": 0.053} if "2.5" in USE_MODEL else {"low": 0.011, "medium": 0.042, "high": 0.167}
@@ -281,7 +290,7 @@ if todo:
             except Exception as e:
                 log(f"[{i}/{len(todo)}] 실패 {it['no']} {it['name']} - {e}")
                 failed.append((it["name"], str(e)))
-else:
+elif not CONVERT_ONLY:
     log("새로 만들 그림이 없습니다. (LIMIT, PHASE, ONLY, REGENERATE 설정 확인)")
 log(f"\\n이번 실행: 성공 {len(made)}장, 실패 {len(failed)}장")
 for name, err in failed:

@@ -18,6 +18,7 @@ Colab 노트북(generate_images.ipynb)에 이 파일 내용이 그대로 들어�
 
 
 import json
+import math
 import os
 import sys
 
@@ -93,6 +94,122 @@ def cell_boxes(w: int, h: int, cols: int, rows: int) -> list[list[tuple[int, int
 def crop(arr: np.ndarray, box: tuple[int, int, int, int]) -> np.ndarray:
     x0, y0, x1, y1 = box
     return arr[y0:y1, x0:x1]
+
+
+def _best_cut(profile: np.ndarray, nominal: float, window: float) -> int:
+    """nominal 근처(±window)에서 불투명 픽셀이 가장 적은 줄. 동률이면 nominal에 가장 가까운 줄"""
+    lo = max(1, int(nominal - window))
+    hi = min(len(profile) - 1, int(nominal + window))
+    seg = profile[lo:hi + 1]
+    cand = np.nonzero(seg == seg.min())[0] + lo
+    return int(cand[np.argmin(np.abs(cand - nominal))])
+
+
+def smart_boxes(arr: np.ndarray, cols: int, rows: int, search: float = 0.3):
+    """그림 사이 빈 곳을 따라 자른 격자.
+    AI는 행·열을 정확한 균등 간격으로 그리지 않아서(조금씩 밀림) 균등 분할로 자르면 이웃 칸의 발끝·총구가 잘려 들어온다.
+    균등 분할선 근처(칸 크기의 ±search)에서 그림이 가장 적은 줄을 골라 자른다. 열은 행마다 따로 찾는다."""
+    h, w = arr.shape[:2]
+    opaque = arr[..., 3] >= 64
+    ch, cw = h / rows, w / cols
+    rprof = opaque.sum(axis=1)
+    ys = [0] + [_best_cut(rprof, k * ch, ch * search) for k in range(1, rows)] + [h]
+    boxes = []
+    for r in range(rows):
+        cprof = opaque[ys[r]:ys[r + 1]].sum(axis=0)
+        xs = [0] + [_best_cut(cprof, k * cw, cw * search) for k in range(1, cols)] + [w]
+        boxes.append([(xs[c], ys[r], xs[c + 1], ys[r + 1]) for c in range(cols)])
+    return boxes
+
+
+def components(mask: np.ndarray):
+    """8-연결 성분 라벨링(런 길이 기반, 의존성 없음). 성분별 {area, box(x0,y0,x1,y1), runs[(y,s,e)]}"""
+    parent: list[int] = []
+    runs: list[tuple[int, int, int]] = []
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    prev: list[int] = []
+    m8 = mask.astype(np.int8)
+    for y in range(mask.shape[0]):
+        if not mask[y].any():
+            prev = []
+            continue
+        d = np.diff(np.concatenate(([0], m8[y], [0])))
+        cur = []
+        for st, en in zip(np.nonzero(d == 1)[0], np.nonzero(d == -1)[0]):
+            idx = len(runs)
+            runs.append((y, int(st), int(en)))
+            parent.append(idx)
+            cur.append(idx)
+            for p in prev:
+                _, ps, pe = runs[p]
+                if ps <= en and pe >= st:  # 대각선 포함 인접
+                    ra, rb = find(idx), find(p)
+                    if ra != rb:
+                        parent[ra] = rb
+        prev = cur
+    comps: dict[int, dict] = {}
+    for i, (y, st, en) in enumerate(runs):
+        c = comps.setdefault(find(i), {"area": 0, "box": [st, y, en, y + 1], "runs": []})
+        c["area"] += en - st
+        b = c["box"]
+        b[0], b[1], b[2], b[3] = min(b[0], st), min(b[1], y), max(b[2], en), max(b[3], y + 1)
+        c["runs"].append((y, st, en))
+    return list(comps.values())
+
+
+def remove_edge_fragments(cell: np.ndarray, ratio: float = 0.15) -> tuple[np.ndarray, int]:
+    """칸 테두리에 닿아 있고 가장 큰 덩어리의 ratio 미만인 조각(이웃 칸에서 넘어온 것)을 지운다.
+    테두리에 닿지 않는 작은 조각(먼지·섬광·탄피)은 남긴다."""
+    comps = components(cell[..., 3] >= 64)
+    if len(comps) < 2:
+        return cell, 0
+    h, w = cell.shape[:2]
+    largest = max(c["area"] for c in comps)
+    out, removed = cell, 0
+    for c in comps:
+        x0, y0, x1, y1 = c["box"]
+        if c["area"] < largest * ratio and (x0 == 0 or y0 == 0 or x1 == w or y1 == h):
+            if removed == 0:
+                out = cell.copy()
+            for y, st, en in c["runs"]:
+                out[y, st:en] = 0
+            # 반투명 가장자리(알파 64 미만)도 같이 지운다
+            out[max(0, y0 - 1):min(h, y1 + 1), max(0, x0 - 1):min(w, x1 + 1)][out[max(0, y0 - 1):min(h, y1 + 1), max(0, x0 - 1):min(w, x1 + 1), 3] < 64] = 0
+            removed += 1
+    return out, removed
+
+
+def extract_cells(arr: np.ndarray, cols: int, rows: int, search: float = 0.3, clean: bool = True):
+    """smart_boxes로 자르고 조각을 정리한 칸들을, 균등 격자 기준 좌표계를 유지한 같은 크기 캔버스에 담아 돌려준다.
+    (자르는 선은 칸마다 달라도 좌표 원점은 균등 격자 그대로여야 프레임 간 위치·발 기준선이 흔들리지 않는다)"""
+    h, w = arr.shape[:2]
+    ch, cw = h / rows, w / cols
+    pw, ph = int(math.ceil(cw * search)) + 1, int(math.ceil(ch * search)) + 1
+    W, H = int(math.ceil(cw)) + 2 * pw, int(math.ceil(ch)) + 2 * ph
+    boxes = smart_boxes(arr, cols, rows, search)
+    grid, removed = [], 0
+    for r in range(rows):
+        row = []
+        for c in range(cols):
+            x0, y0, x1, y1 = boxes[r][c]
+            part = arr[y0:y1, x0:x1]
+            if clean:
+                part, n = remove_edge_fragments(part)
+                removed += n
+            ox, oy = int(round(c * cw)) - pw, int(round(r * ch)) - ph
+            cell = np.zeros((H, W, 4), np.uint8)
+            dx0, dy0 = max(0, x0 - ox), max(0, y0 - oy)
+            dx1, dy1 = min(W, x1 - ox), min(H, y1 - oy)
+            cell[dy0:dy1, dx0:dx1] = part[dy0 - (y0 - oy):dy1 - (y0 - oy), dx0 - (x0 - ox):dx1 - (x0 - ox)]
+            row.append(cell)
+        grid.append(row)
+    return grid, removed
 
 
 def bbox(arr: np.ndarray, thr: int = 128):
@@ -173,11 +290,6 @@ def to_sheet(frames: list[np.ndarray], fs: int) -> np.ndarray:
     return sheet
 
 
-def touches_border(cell: np.ndarray, margin: int = 1) -> bool:
-    a = cell[..., 3] >= 128
-    return bool(a[:margin].any() or a[-margin:].any() or a[:, :margin].any() or a[:, -margin:].any())
-
-
 def fit_frames(cells: list[np.ndarray], fs: int, metric: str, target: float, anchor_bottom: bool, ref_cells=None, warn=None):
     """같은 배율·같은 기준점으로 여러 칸을 fs×fs 프레임에 배치한다."""
     ref = ref_cells if ref_cells is not None else cells
@@ -223,11 +335,10 @@ def process_unit(img, post, out_root, report):
     spec = UNIT_SPEC[post["faction"]]
     cols, rows = spec["grid"]
     nframes = cols
-    boxes = cell_boxes(img.shape[1], img.shape[0], cols, rows)
-    cells = {a: [crop(img, boxes[r][c]) for c in range(nframes)] for r, a in enumerate(spec["actions"])}
-    border_hits = sum(touches_border(c) for row in cells.values() for c in row)
-    if border_hits:
-        report["warnings"].append(f"칸 경계에 닿은 프레임 {border_hits}개 (그림이 이웃 칸을 침범했을 수 있음)")
+    grid, removed = extract_cells(img, cols, rows)
+    cells = {a: grid[r][:nframes] for r, a in enumerate(spec["actions"])}
+    if removed:
+        report["warnings"].append(f"이웃 칸에서 넘어온 조각 {removed}개 제거")
     for a, row in cells.items():
         empty = sum(bbox(c) is None for c in row)
         if empty:
@@ -272,10 +383,12 @@ def process_tiles(img, post, out_root, report):
 
 def process_strips(img, post, out_root, report, kind):
     """props·fx: 6열 x 5행, 행마다 하나의 6프레임 애니메이션"""
-    boxes = cell_boxes(img.shape[1], img.shape[0], 6, 5)
+    grid, removed = extract_cells(img, 6, 5)
+    if removed:
+        report["warnings"].append(f"이웃 칸에서 넘어온 조각 {removed}개 제거")
     outs = []
     for r, row in enumerate(post["rows"]):
-        cells = [crop(img, boxes[r][c]) for c in range(6)]
+        cells = grid[r]
         if all(bbox(c, 32) is None for c in cells):
             report["warnings"].append(f"{row['name']}: 행이 비어 있음")
             continue
@@ -309,15 +422,21 @@ def _cover(cell, w, h):
 
 def process_grid(img, post, out_root, report):
     """아이콘·오버레이·카드 일러스트: cols x rows 격자, 칸마다 하나의 이미지"""
-    boxes = cell_boxes(img.shape[1], img.shape[0], post["cols"], post["rows"])
     w, h = post["w"], post["h"]
     mode = post.get("alpha", "hard")
     fill = post.get("fill", "contain")
+    # 꽉 찬 그림(일러스트·오버레이)은 균등 분할, 투명 배경 아이콘은 빈 곳을 따라 자르고 조각 정리
+    boxes = cell_boxes(img.shape[1], img.shape[0], post["cols"], post["rows"])
+    smart = None
+    if fill != "stretch":
+        smart, removed = extract_cells(img, post["cols"], post["rows"])
+        if removed:
+            report["warnings"].append(f"이웃 칸에서 넘어온 조각 {removed}개 제거")
     pal = PALETTE["card"] if mode == "none" else PALETTE["overlay"] if mode == "steps" else PALETTE["icon"]
     outs = []
     for i, name in enumerate(post["names"]):
         r, c = divmod(i, post["cols"])
-        cell = crop(img, boxes[r][c])
+        cell = smart[r][c] if smart else crop(img, boxes[r][c])
         if fill == "stretch":
             m = max(1, int(min(cell.shape[:2]) * 0.02))  # 이웃 칸이 번진 가장자리 제거
             out = _cover(cell[m:-m, m:-m], w, h)

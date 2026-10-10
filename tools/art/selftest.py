@@ -38,6 +38,27 @@ def unit_sheet(cols, rows, body_ratio, bg=None, wide=False, overflow=False):
     return im
 
 
+def drift_sheet(shift=0.04, overlap=False):
+    """사용자 보고 재현: AI가 행을 아래로 밀려 그려서 발끝이 다음 칸으로 넘어간 적 시트(5x5).
+    overlap=True면 행 사이 빈 틈 없이 다음 행 머리와 겹쳐 그린다(조각 제거로 처리돼야 함)."""
+    im = Image.new("RGBA", (1024, 1024), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    cw = ch = 1024 / 5
+    body = 0.85 if overlap else 0.6
+    for r in range(5):
+        for c in range(5):
+            cx = c * cw + cw / 2
+            base = r * ch + ch * (0.92 + shift)  # 발이 칸 아래로 shift만큼 넘어감
+            d.rectangle([cx - 25, base - ch * body, cx + 25, base - 12], fill=(140, 110, 70, 255), outline=(42, 26, 16, 255), width=3)
+            d.rectangle([cx - 28, base - 12, cx + 28, base], fill=(70, 40, 25, 255))  # 장화
+    return im
+
+
+def single_run(frame):
+    ys = np.nonzero((frame[..., 3] > 0).any(axis=1))[0]
+    return len(ys) > 0 and (ys[-1] - ys[0] + 1) == len(ys)
+
+
 def fx_sheet():
     im = Image.new("RGBA", (1024, 1024), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
@@ -104,6 +125,8 @@ def main():
         # 몸체를 작게 그리고 섬광이 칸 끝까지 뻗은 경우 → 목표 크기로 키우면 프레임을 넘친다
         unit_sheet(5, 5, 0.3, overflow=True).save(os.path.join(raw, "enemy_E05.png"))
         unit_sheet(5, 5, 0.6).save(os.path.join(raw, "npc_N01.png"))
+        drift_sheet(0.12).save(os.path.join(raw, "enemy_E02.png"))
+        drift_sheet(0.05, overlap=True).save(os.path.join(raw, "enemy_E03.png"))
         tiles_sheet().save(os.path.join(raw, "tiles_1.png"))
         fx_sheet().save(os.path.join(raw, "vfx_1.png"))
         unit_sheet(6, 5, 0.7).save(os.path.join(raw, "props_1.png"))
@@ -133,6 +156,16 @@ def main():
         ub = pp.union([pp.bbox(sheet[(i // 4) * 200:(i // 4 + 1) * 200, (i % 4) * 200:(i % 4 + 1) * 200]) for i in range(5)])
         check(ub is not None and abs((ub[2] - ub[0]) - 140) <= 3, f"차량 너비(동작 전체) 140px 근처 (실제 {ub[2] - ub[0] if ub else None})")
         check(any("넘쳐" in w for w in reps["enemy_E05"]["warnings"]), "프레임 넘침 시 배율 축소 경고")
+        for uid in ("E02", "E03"):
+            frames = []
+            for act in ("move", "attack", "defend", "crit", "hit"):
+                sh = pp.load_rgba(os.path.join(A, "enemies", f"{uid}_{act}.png"))
+                frames += [sh[(i // 4) * 100:(i // 4 + 1) * 100, (i % 4) * 100:(i % 4 + 1) * 100] for i in range(5)]
+            label = "행 밀림" if uid == "E02" else "행 겹침"
+            check(all(single_run(f) for f in frames), f"{label}: 이웃 행 발끝 조각 없음(25프레임)")
+            # 마지막 행(hit)은 합성 이미지에서 캔버스 아래로 잘리므로 제외, 합성 좌표 반올림 오차 1px 허용
+            bottoms = {pp.bbox(f)[3] for f in frames[:20] if pp.bbox(f)}
+            check(max(bottoms) - min(bottoms) <= 1, f"{label}: 동작 간 발 기준선 일치 ({sorted(bottoms)})")
         _, al = foot_and_height(os.path.join(A, "npcs", "N01_give.png"), 100)
         check(len(reps["npc_N01"]["outputs"]) == 3, "NPC 3동작 출력")
         t = Image.open(os.path.join(A, "tiles", "T01.png"))
