@@ -334,9 +334,9 @@ def props_prompt(rows):
 
 # (출력 파일명, 설명, 프레임 크기)
 FX_SETS = [
-    ("vfx_1", [("bomb_fall", "V01 BOMB_FALL: 1-2 pulsing red dashed warning ring on the ground (50%); 3-5 finned bomb descending, scale 160% to 100%, shrinking ground shadow (50%), thin speed lines; 6 touchdown, white flash", 100),
-               ("explosion_l", "V02 EXPLOSION_L: 1 white core flash; 2 orange fireball grows with a yellow core; 3 fireball peak with a pixel shockwave ring (50%); 4 fireball breaks into smoke and debris; 5 gray smoke plume rises (75%) with embers; 6 smoke thins (25%), scorched crater decal remains (50%)", 200),
-               ("explosion_s", "V03 EXPLOSION_S: the same 6-step progression as the big explosion, but smaller and faster", 100),
+    ("vfx_1", [("bomb_fall", "V01 BOMB_FALL: NO ground warning ring (the game draws the ally-teal marker itself); 1-2 small finned bomb high above with a thin falling streak; 3-5 bomb descending, scale 160% to 100%, shrinking ground shadow (50%), thin speed lines; 6 touchdown, white flash", 100),
+               ("explosion_l", "V02 EXPLOSION_L: frame 1 is the BRIGHTEST and LARGEST: a pure white-to-yellow core filling about 60% of the cell, no outline; 2 orange fireball with a yellow core; 3 fireball breaks into smoke and debris; 4 gray smoke plume rises (75%) with embers; 5 smoke thins (50%); 6 last wisps (25%). NO crater, NO ground decal, NO shockwave ring (the game draws those)", 200),
+               ("explosion_s", "V03 EXPLOSION_S: the same 6-step progression as EXPLOSION_L but smaller and faster, frame 1 brightest and largest, NO crater or ground decal", 100),
                ("bomber", "V04 BOMBER: twin-engine propeller bomber seen from directly above, flying toward the bottom, propellers spinning, 6-frame loop", 200),
                ("bomber_shadow", "V04 BOMBER_SHADOW: the identical bomber silhouette as a flat black shape at 50% opacity, same 6-frame animation", 200)]),
     ("vfx_2", [("timebomb", "V05 TIMEBOMB: 1 charge placed with a dust puff; 2 red LED slow blink; 3 medium blink; 4 fast blink with sparks; 5 white flash; 6 first blast frame", 100),
@@ -359,7 +359,15 @@ FX_SETS = [
                ("skill_AS10", "AS10 DEFENSE_DOME (large effect, fills most of the cell, no background): translucent steel-blue dome (fill 25%, rim 75%) with scanline pixels and an impact ripple", 200),
                ("skill_AS11", "AS11 ENCIRCLE (large effect, fills most of the cell, no background): a contracting ring (75%) with inward arrows, then an implosion flash", 200),
                ("skill_AS12", "AS12 JOINT_STRIKE (large effect, fills most of the cell, no background): bomber shadow, shell trail and volley glow merge into one white flash", 200)]),
+    ("vfx_6", [("scorch_decal", "V16 SCORCH_DECAL: six STILL variants (not an animation), each a top-down scorch mark flattened 2:1 on the ground, dark brown-gray, stepped alpha 50-75%, no fire, no smoke", 100),
+               ("dirt_spray", "V17 DIRT_SPRAY: a cone of dirt clods and dust bursting toward the RIGHT, rising then falling over 6 frames (the game rotates it)", 100),
+               ("dust_ring", "V18 DUST_RING: a flat 2:1 ground-level dust ring expanding outward and thinning (25-50%), for big impacts and tanks", 200),
+               ("embers", "V19 EMBERS: a few small glowing orange embers flickering and drifting upward, 6-frame loop", 100),
+               ("flare_smoke", "V20 FLARE_SMOKE: teal-green signal smoke rising from a small canister on the ground, 6-frame loop", 100)]),
 ]
+
+# 이펙트 시트 단계: 기본 P1(D05~D16), 대형 스킬 시트만 P3
+FX_PHASE = {"vfx_5": "P3"}
 
 
 def fx_prompt(rows):
@@ -589,8 +597,8 @@ def build_items():
     add("icons_upgrades", "P1", icons_prompt("upgrade icons", UPGRADE_ICONS, 4, 4),
         {"kind": "grid", "cols": 4, "rows": 4, "names": [f"icon_upgrade_{n}" for n, _ in UPGRADE_ICONS], "folder": "ui", "w": 32, "h": 32})
     add("icons_skills", "P1", icons_prompt("skill icons", SKILL_ICONS, 4, 3), {"kind": "grid", "cols": 4, "rows": 3, "names": [n for n, _ in SKILL_ICONS], "folder": "skills", "w": 32, "h": 32})
-    for i, (name, rows) in enumerate(FX_SETS):
-        add(name, "P1" if i < 4 else "P3", fx_prompt(rows), {"kind": "fx", "rows": [{"name": n, "frame": s} for n, _d, s in rows]})
+    for name, rows in FX_SETS:
+        add(name, FX_PHASE.get(name, "P1"), fx_prompt(rows), {"kind": "fx", "rows": [{"name": n, "frame": s} for n, _d, s in rows]})
     add("props_1", "P2", props_prompt(PROP_SETS[0][1]), {"kind": "props", "rows": [{"name": n, "frame": f, "fit": m, "px": px} for n, _d, f, m, px in PROP_SETS[0][1]]})
 
     # P2

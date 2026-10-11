@@ -2,7 +2,7 @@
 
 6·25전쟁 배경 레트로 2D 도트 뱀파이어 서바이벌류 + 성공 30% 확률형 전략카드 조합 스킬 게임.
 
-- 게임 PRD: `docs/PRD_v0.1.md` (전체를 읽지 말 것. 필요한 절만 grep으로 찾아 읽기)
+- 게임 PRD: `docs/PRD.md` (전체를 읽지 말 것. 필요한 절만 grep으로 찾아 읽기)
 - 일일 작업계획: `docs/WORKPLAN.md` (그날 Day 절만 읽기)
 - Day별 실행 프롬프트: `docs/PROMPTS.md` (`/day`일 때 그날 절만 읽기)
 - 진척도 대시보드: `docs/PROGRESS.md` (매 세션 시작·종료 시 읽고 갱신)
@@ -21,6 +21,8 @@ Phaser 3 + TypeScript + Vite, 테스트 Vitest. 논리 해상도 960×540, 정�
 - `src/assets/manifest.ts`: 에셋 키 → 경로. 파일이 없으면 자리표시자 텍스처 생성. 그래픽은 사용자가 별도 제작하므로 **에셋 부재로 작업을 멈추지 않음**
 - 적 행동은 behavior 부품 조합(data), 스킬·조합 연출은 타임라인 JSON + 효과 handler. 개별 캐릭터·적을 위한 코드 분기 금지
 - 대량 개체는 오브젝트 풀 + 공간 해시. 파티클 300, 데미지 숫자 40 상한(PRD §4.4)
+- 타격감·소리는 이름으로만 호출: `feel.hit('crit', ...)`(src/data/feel.json 프리셋, sfx 키로 소리 동시 재생), 그 밖의 소리는 `audio.play('이름')`(src/data/sfx.json). 효과음은 합성음이 기본이라 파일이 없어도 멈추지 않음
+- 조작 원칙(PRD §3): 생각은 멈춘 화면에서, 전투 중에는 키 하나로. 입력은 controls.json 액션 이름으로만, 고급 스킬 키는 Q·E·R·F
 
 ## 명령
 

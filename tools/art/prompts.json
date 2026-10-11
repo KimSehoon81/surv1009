@@ -392,7 +392,7 @@
   "phase": "P1",
   "size": "1024x1024",
   "transparent": true,
-  "prompt": "Create ONE skill-effect animation sheet containing FIVE effects for a retro 2D survival game set in the 1950 Korean War.\nART STYLE: hand-pixeled 16-bit arcade sprite art in the spirit of late-1990s 2D run-and-gun games. It must look like a LOW-RESOLUTION sprite enlarged with nearest-neighbor: every art pixel is a crisp, uniform square block (about 2x2 image pixels), aligned to one pixel grid across the whole image. 1-pixel dark outline on solid objects only (not on smoke or glow); cel shading with 3-4 flat tones per material; light from the upper left; small bright highlights; limited palette of about 32 colors for the whole sheet. Bold, dramatic cartoon timing. Forbidden: anti-aliasing, soft gradients, blur, glow bloom, painterly texture, 3D render, photo, text, letters, numbers, logos, watermark, signature.\nNo blood or gore.\nTRANSPARENCY: real transparent background (PNG alpha), never a painted checkerboard. Use pixel-art stepped opacity in hard-edged blocks, about 5 levels (0, 25, 50, 75, 100%): solid objects and blast cores 100%, glow halos 50%, smoke 25-75%, ground shadows and warning rings 25-50%. If true transparency is impossible, use one flat pure magenta #FF00FF background instead.\nCANVAS: 1:1 square split into an invisible grid of 6 columns x 5 rows of equal cells. Each row is one effect animated in 6 frames, left to right, with a clear start-to-end progression; rows from top to bottom in the order listed. Each effect is centered in its cell with the same ground-contact point in every frame of its row; small effects use about half of the cell, large ones fill most of it; nothing crosses a cell border. NO BACKGROUND SCENERY, even for large effects: draw only the effect itself (aircraft, shells, explosions, smoke, glow, soldiers) on transparency; never paint ground, sea, sky, clouds, maps or terrain behind it. All rows and columns are exactly equal in size and evenly spaced; leave a clear empty gap between neighboring drawings. The grid is invisible: no grid lines, borders, numbers or labels anywhere.\nROWS:\nROW 1: V01 BOMB_FALL: 1-2 pulsing red dashed warning ring on the ground (50%); 3-5 finned bomb descending, scale 160% to 100%, shrinking ground shadow (50%), thin speed lines; 6 touchdown, white flash\nROW 2: V02 EXPLOSION_L: 1 white core flash; 2 orange fireball grows with a yellow core; 3 fireball peak with a pixel shockwave ring (50%); 4 fireball breaks into smoke and debris; 5 gray smoke plume rises (75%) with embers; 6 smoke thins (25%), scorched crater decal remains (50%)\nROW 3: V03 EXPLOSION_S: the same 6-step progression as the big explosion, but smaller and faster\nROW 4: V04 BOMBER: twin-engine propeller bomber seen from directly above, flying toward the bottom, propellers spinning, 6-frame loop\nROW 5: V04 BOMBER_SHADOW: the identical bomber silhouette as a flat black shape at 50% opacity, same 6-frame animation",
+  "prompt": "Create ONE skill-effect animation sheet containing FIVE effects for a retro 2D survival game set in the 1950 Korean War.\nART STYLE: hand-pixeled 16-bit arcade sprite art in the spirit of late-1990s 2D run-and-gun games. It must look like a LOW-RESOLUTION sprite enlarged with nearest-neighbor: every art pixel is a crisp, uniform square block (about 2x2 image pixels), aligned to one pixel grid across the whole image. 1-pixel dark outline on solid objects only (not on smoke or glow); cel shading with 3-4 flat tones per material; light from the upper left; small bright highlights; limited palette of about 32 colors for the whole sheet. Bold, dramatic cartoon timing. Forbidden: anti-aliasing, soft gradients, blur, glow bloom, painterly texture, 3D render, photo, text, letters, numbers, logos, watermark, signature.\nNo blood or gore.\nTRANSPARENCY: real transparent background (PNG alpha), never a painted checkerboard. Use pixel-art stepped opacity in hard-edged blocks, about 5 levels (0, 25, 50, 75, 100%): solid objects and blast cores 100%, glow halos 50%, smoke 25-75%, ground shadows and warning rings 25-50%. If true transparency is impossible, use one flat pure magenta #FF00FF background instead.\nCANVAS: 1:1 square split into an invisible grid of 6 columns x 5 rows of equal cells. Each row is one effect animated in 6 frames, left to right, with a clear start-to-end progression; rows from top to bottom in the order listed. Each effect is centered in its cell with the same ground-contact point in every frame of its row; small effects use about half of the cell, large ones fill most of it; nothing crosses a cell border. NO BACKGROUND SCENERY, even for large effects: draw only the effect itself (aircraft, shells, explosions, smoke, glow, soldiers) on transparency; never paint ground, sea, sky, clouds, maps or terrain behind it. All rows and columns are exactly equal in size and evenly spaced; leave a clear empty gap between neighboring drawings. The grid is invisible: no grid lines, borders, numbers or labels anywhere.\nROWS:\nROW 1: V01 BOMB_FALL: NO ground warning ring (the game draws the ally-teal marker itself); 1-2 small finned bomb high above with a thin falling streak; 3-5 bomb descending, scale 160% to 100%, shrinking ground shadow (50%), thin speed lines; 6 touchdown, white flash\nROW 2: V02 EXPLOSION_L: frame 1 is the BRIGHTEST and LARGEST: a pure white-to-yellow core filling about 60% of the cell, no outline; 2 orange fireball with a yellow core; 3 fireball breaks into smoke and debris; 4 gray smoke plume rises (75%) with embers; 5 smoke thins (50%); 6 last wisps (25%). NO crater, NO ground decal, NO shockwave ring (the game draws those)\nROW 3: V03 EXPLOSION_S: the same 6-step progression as EXPLOSION_L but smaller and faster, frame 1 brightest and largest, NO crater or ground decal\nROW 4: V04 BOMBER: twin-engine propeller bomber seen from directly above, flying toward the bottom, propellers spinning, 6-frame loop\nROW 5: V04 BOMBER_SHADOW: the identical bomber silhouette as a flat black shape at 50% opacity, same 6-frame animation",
   "post": {
    "kind": "fx",
    "rows": [
@@ -553,6 +553,39 @@
   "no": 24
  },
  {
+  "name": "vfx_6",
+  "phase": "P1",
+  "size": "1024x1024",
+  "transparent": true,
+  "prompt": "Create ONE skill-effect animation sheet containing FIVE effects for a retro 2D survival game set in the 1950 Korean War.\nART STYLE: hand-pixeled 16-bit arcade sprite art in the spirit of late-1990s 2D run-and-gun games. It must look like a LOW-RESOLUTION sprite enlarged with nearest-neighbor: every art pixel is a crisp, uniform square block (about 2x2 image pixels), aligned to one pixel grid across the whole image. 1-pixel dark outline on solid objects only (not on smoke or glow); cel shading with 3-4 flat tones per material; light from the upper left; small bright highlights; limited palette of about 32 colors for the whole sheet. Bold, dramatic cartoon timing. Forbidden: anti-aliasing, soft gradients, blur, glow bloom, painterly texture, 3D render, photo, text, letters, numbers, logos, watermark, signature.\nNo blood or gore.\nTRANSPARENCY: real transparent background (PNG alpha), never a painted checkerboard. Use pixel-art stepped opacity in hard-edged blocks, about 5 levels (0, 25, 50, 75, 100%): solid objects and blast cores 100%, glow halos 50%, smoke 25-75%, ground shadows and warning rings 25-50%. If true transparency is impossible, use one flat pure magenta #FF00FF background instead.\nCANVAS: 1:1 square split into an invisible grid of 6 columns x 5 rows of equal cells. Each row is one effect animated in 6 frames, left to right, with a clear start-to-end progression; rows from top to bottom in the order listed. Each effect is centered in its cell with the same ground-contact point in every frame of its row; small effects use about half of the cell, large ones fill most of it; nothing crosses a cell border. NO BACKGROUND SCENERY, even for large effects: draw only the effect itself (aircraft, shells, explosions, smoke, glow, soldiers) on transparency; never paint ground, sea, sky, clouds, maps or terrain behind it. All rows and columns are exactly equal in size and evenly spaced; leave a clear empty gap between neighboring drawings. The grid is invisible: no grid lines, borders, numbers or labels anywhere.\nROWS:\nROW 1: V16 SCORCH_DECAL: six STILL variants (not an animation), each a top-down scorch mark flattened 2:1 on the ground, dark brown-gray, stepped alpha 50-75%, no fire, no smoke\nROW 2: V17 DIRT_SPRAY: a cone of dirt clods and dust bursting toward the RIGHT, rising then falling over 6 frames (the game rotates it)\nROW 3: V18 DUST_RING: a flat 2:1 ground-level dust ring expanding outward and thinning (25-50%), for big impacts and tanks\nROW 4: V19 EMBERS: a few small glowing orange embers flickering and drifting upward, 6-frame loop\nROW 5: V20 FLARE_SMOKE: teal-green signal smoke rising from a small canister on the ground, 6-frame loop",
+  "post": {
+   "kind": "fx",
+   "rows": [
+    {
+     "name": "scorch_decal",
+     "frame": 100
+    },
+    {
+     "name": "dirt_spray",
+     "frame": 100
+    },
+    {
+     "name": "dust_ring",
+     "frame": 200
+    },
+    {
+     "name": "embers",
+     "frame": 100
+    },
+    {
+     "name": "flare_smoke",
+     "frame": 100
+    }
+   ]
+  },
+  "no": 25
+ },
+ {
   "name": "props_1",
   "phase": "P2",
   "size": "1024x1024",
@@ -593,7 +626,7 @@
     }
    ]
   },
-  "no": 25
+  "no": 26
  },
  {
   "name": "map_korea",
@@ -606,7 +639,7 @@
    "w": 360,
    "h": 540
   },
-  "no": 26
+  "no": 27
  },
  {
   "name": "tiles_2",
@@ -623,7 +656,7 @@
     "T08"
    ]
   },
-  "no": 27
+  "no": 28
  },
  {
   "name": "tiles_3",
@@ -640,7 +673,7 @@
     "T12"
    ]
   },
-  "no": 28
+  "no": 29
  },
  {
   "name": "ally_A04",
@@ -654,7 +687,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 29
+  "no": 30
  },
  {
   "name": "ally_A05",
@@ -668,7 +701,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 30
+  "no": 31
  },
  {
   "name": "ally_A06",
@@ -682,7 +715,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 31
+  "no": 32
  },
  {
   "name": "ally_A07",
@@ -696,7 +729,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 32
+  "no": 33
  },
  {
   "name": "ally_A08",
@@ -710,7 +743,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 33
+  "no": 34
  },
  {
   "name": "ally_A09",
@@ -724,7 +757,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 34
+  "no": 35
  },
  {
   "name": "ally_A10",
@@ -738,7 +771,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 35
+  "no": 36
  },
  {
   "name": "ally_A11",
@@ -752,7 +785,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 36
+  "no": 37
  },
  {
   "name": "ally_A12",
@@ -766,7 +799,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 37
+  "no": 38
  },
  {
   "name": "ally_A13",
@@ -780,7 +813,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 38
+  "no": 39
  },
  {
   "name": "ally_A14",
@@ -794,7 +827,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 39
+  "no": 40
  },
  {
   "name": "ally_A15",
@@ -808,7 +841,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 40
+  "no": 41
  },
  {
   "name": "enemy_E06",
@@ -822,7 +855,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 41
+  "no": 42
  },
  {
   "name": "enemy_E07",
@@ -836,7 +869,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 42
+  "no": 43
  },
  {
   "name": "enemy_E08",
@@ -850,7 +883,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 43
+  "no": 44
  },
  {
   "name": "enemy_E09",
@@ -864,7 +897,7 @@
    "faction": "enemy",
    "tag": "L"
   },
-  "no": 44
+  "no": 45
  },
  {
   "name": "enemy_E10",
@@ -878,7 +911,7 @@
    "faction": "enemy",
    "tag": "B"
   },
-  "no": 45
+  "no": 46
  },
  {
   "name": "enemy_E11",
@@ -892,7 +925,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 46
+  "no": 47
  },
  {
   "name": "enemy_E12",
@@ -906,7 +939,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 47
+  "no": 48
  },
  {
   "name": "enemy_E13",
@@ -920,7 +953,7 @@
    "faction": "enemy",
    "tag": "L"
   },
-  "no": 48
+  "no": 49
  },
  {
   "name": "enemy_E14",
@@ -934,7 +967,7 @@
    "faction": "enemy",
    "tag": "L"
   },
-  "no": 49
+  "no": 50
  },
  {
   "name": "enemy_E15",
@@ -948,7 +981,7 @@
    "faction": "enemy",
    "tag": "B"
   },
-  "no": 50
+  "no": 51
  },
  {
   "name": "enemy_E16",
@@ -962,7 +995,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 51
+  "no": 52
  },
  {
   "name": "enemy_E17",
@@ -976,7 +1009,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 52
+  "no": 53
  },
  {
   "name": "enemy_E18",
@@ -990,7 +1023,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 53
+  "no": 54
  },
  {
   "name": "enemy_E19",
@@ -1004,7 +1037,7 @@
    "faction": "enemy",
    "tag": "L"
   },
-  "no": 54
+  "no": 55
  },
  {
   "name": "enemy_E20",
@@ -1018,7 +1051,7 @@
    "faction": "enemy",
    "tag": "B"
   },
-  "no": 55
+  "no": 56
  },
  {
   "name": "enemy_E21",
@@ -1032,7 +1065,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 56
+  "no": 57
  },
  {
   "name": "enemy_E22",
@@ -1046,7 +1079,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 57
+  "no": 58
  },
  {
   "name": "enemy_E23",
@@ -1060,7 +1093,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 58
+  "no": 59
  },
  {
   "name": "enemy_E24",
@@ -1074,7 +1107,7 @@
    "faction": "enemy",
    "tag": "L"
   },
-  "no": 59
+  "no": 60
  },
  {
   "name": "enemy_E25",
@@ -1088,7 +1121,7 @@
    "faction": "enemy",
    "tag": "B"
   },
-  "no": 60
+  "no": 61
  },
  {
   "name": "npc_N03",
@@ -1102,7 +1135,7 @@
    "faction": "npc",
    "tag": "S"
   },
-  "no": 61
+  "no": 62
  },
  {
   "name": "npc_N04",
@@ -1116,7 +1149,7 @@
    "faction": "npc",
    "tag": "S"
   },
-  "no": 62
+  "no": 63
  },
  {
   "name": "npc_N05",
@@ -1130,7 +1163,7 @@
    "faction": "npc",
    "tag": "S"
   },
-  "no": 63
+  "no": 64
  },
  {
   "name": "tiles_4",
@@ -1147,7 +1180,7 @@
     "T16"
    ]
   },
-  "no": 64
+  "no": 65
  },
  {
   "name": "tiles_5",
@@ -1164,7 +1197,7 @@
     "T20"
    ]
   },
-  "no": 65
+  "no": 66
  },
  {
   "name": "props_2",
@@ -1207,7 +1240,7 @@
     }
    ]
   },
-  "no": 66
+  "no": 67
  },
  {
   "name": "props_3",
@@ -1238,7 +1271,7 @@
     }
    ]
   },
-  "no": 67
+  "no": 68
  },
  {
   "name": "ally_A16",
@@ -1252,7 +1285,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 68
+  "no": 69
  },
  {
   "name": "ally_A17",
@@ -1266,7 +1299,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 69
+  "no": 70
  },
  {
   "name": "ally_A18",
@@ -1280,7 +1313,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 70
+  "no": 71
  },
  {
   "name": "ally_A19",
@@ -1294,7 +1327,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 71
+  "no": 72
  },
  {
   "name": "ally_A20",
@@ -1308,7 +1341,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 72
+  "no": 73
  },
  {
   "name": "ally_A21",
@@ -1322,7 +1355,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 73
+  "no": 74
  },
  {
   "name": "ally_A22",
@@ -1336,7 +1369,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 74
+  "no": 75
  },
  {
   "name": "ally_A23",
@@ -1350,7 +1383,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 75
+  "no": 76
  },
  {
   "name": "ally_A24",
@@ -1364,7 +1397,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 76
+  "no": 77
  },
  {
   "name": "ally_A25",
@@ -1378,7 +1411,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 77
+  "no": 78
  },
  {
   "name": "ally_A26",
@@ -1392,7 +1425,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 78
+  "no": 79
  },
  {
   "name": "ally_A27",
@@ -1406,7 +1439,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 79
+  "no": 80
  },
  {
   "name": "ally_A28",
@@ -1420,7 +1453,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 80
+  "no": 81
  },
  {
   "name": "ally_A29",
@@ -1434,7 +1467,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 81
+  "no": 82
  },
  {
   "name": "ally_A30",
@@ -1448,7 +1481,7 @@
    "faction": "ally",
    "tag": "S"
   },
-  "no": 82
+  "no": 83
  },
  {
   "name": "enemy_E26",
@@ -1462,7 +1495,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 83
+  "no": 84
  },
  {
   "name": "enemy_E27",
@@ -1476,7 +1509,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 84
+  "no": 85
  },
  {
   "name": "enemy_E28",
@@ -1490,7 +1523,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 85
+  "no": 86
  },
  {
   "name": "enemy_E29",
@@ -1504,7 +1537,7 @@
    "faction": "enemy",
    "tag": "L"
   },
-  "no": 86
+  "no": 87
  },
  {
   "name": "enemy_E30",
@@ -1518,7 +1551,7 @@
    "faction": "enemy",
    "tag": "B"
   },
-  "no": 87
+  "no": 88
  },
  {
   "name": "enemy_E31",
@@ -1532,7 +1565,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 88
+  "no": 89
  },
  {
   "name": "enemy_E32",
@@ -1546,7 +1579,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 89
+  "no": 90
  },
  {
   "name": "enemy_E33",
@@ -1560,7 +1593,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 90
+  "no": 91
  },
  {
   "name": "enemy_E34",
@@ -1574,7 +1607,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 91
+  "no": 92
  },
  {
   "name": "enemy_E35",
@@ -1588,7 +1621,7 @@
    "faction": "enemy",
    "tag": "B"
   },
-  "no": 92
+  "no": 93
  },
  {
   "name": "enemy_E36",
@@ -1602,7 +1635,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 93
+  "no": 94
  },
  {
   "name": "enemy_E37",
@@ -1616,7 +1649,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 94
+  "no": 95
  },
  {
   "name": "enemy_E38",
@@ -1630,7 +1663,7 @@
    "faction": "enemy",
    "tag": "L"
   },
-  "no": 95
+  "no": 96
  },
  {
   "name": "enemy_E39",
@@ -1644,7 +1677,7 @@
    "faction": "enemy",
    "tag": "L"
   },
-  "no": 96
+  "no": 97
  },
  {
   "name": "enemy_E40",
@@ -1658,7 +1691,7 @@
    "faction": "enemy",
    "tag": "B"
   },
-  "no": 97
+  "no": 98
  },
  {
   "name": "enemy_E41",
@@ -1672,7 +1705,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 98
+  "no": 99
  },
  {
   "name": "enemy_E42",
@@ -1686,7 +1719,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 99
+  "no": 100
  },
  {
   "name": "enemy_E43",
@@ -1700,7 +1733,7 @@
    "faction": "enemy",
    "tag": "L"
   },
-  "no": 100
+  "no": 101
  },
  {
   "name": "enemy_E44",
@@ -1714,7 +1747,7 @@
    "faction": "enemy",
    "tag": "L"
   },
-  "no": 101
+  "no": 102
  },
  {
   "name": "enemy_E45",
@@ -1728,7 +1761,7 @@
    "faction": "enemy",
    "tag": "B"
   },
-  "no": 102
+  "no": 103
  },
  {
   "name": "enemy_E46",
@@ -1742,7 +1775,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 103
+  "no": 104
  },
  {
   "name": "enemy_E47",
@@ -1756,7 +1789,7 @@
    "faction": "enemy",
    "tag": "S"
   },
-  "no": 104
+  "no": 105
  },
  {
   "name": "enemy_E48",
@@ -1770,7 +1803,7 @@
    "faction": "enemy",
    "tag": "L"
   },
-  "no": 105
+  "no": 106
  },
  {
   "name": "enemy_E49",
@@ -1784,7 +1817,7 @@
    "faction": "enemy",
    "tag": "L"
   },
-  "no": 106
+  "no": 107
  },
  {
   "name": "enemy_E50",
@@ -1798,7 +1831,7 @@
    "faction": "enemy",
    "tag": "B"
   },
-  "no": 107
+  "no": 108
  },
  {
   "name": "npc_N06",
@@ -1812,7 +1845,7 @@
    "faction": "npc",
    "tag": "S"
   },
-  "no": 108
+  "no": 109
  },
  {
   "name": "npc_N07",
@@ -1826,7 +1859,7 @@
    "faction": "npc",
    "tag": "S"
   },
-  "no": 109
+  "no": 110
  },
  {
   "name": "npc_N08",
@@ -1840,7 +1873,7 @@
    "faction": "npc",
    "tag": "S"
   },
-  "no": 110
+  "no": 111
  },
  {
   "name": "npc_N09",
@@ -1854,7 +1887,7 @@
    "faction": "npc",
    "tag": "S"
   },
-  "no": 111
+  "no": 112
  },
  {
   "name": "npc_N10",
@@ -1868,6 +1901,6 @@
    "faction": "npc",
    "tag": "S"
   },
-  "no": 112
+  "no": 113
  }
 ]

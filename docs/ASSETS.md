@@ -1,7 +1,7 @@
 # 그래픽·사운드 에셋 납품 가이드
 
 그래픽은 사용자가 별도로 준비합니다. 이 문서는 **어떤 파일을, 어떤 규격으로, 어디에, 언제까지** 넣으면 되는지 정리합니다.
-기준: `docs/PRD_v0.1.md` §9·§10, 작업 일정: `docs/WORKPLAN.md`
+기준: `docs/PRD.md` §9·§10, 작업 일정: `docs/WORKPLAN.md`
 
 ## 1. 원칙
 
@@ -68,8 +68,9 @@ public/assets/
             P01 ~ P16  M01 ~ M08  M00(예비)                                      (104×104 일러스트)
   fx/       bomb_fall  explosion_s  explosion_l  bomber  bomber_shadow  timebomb  burst_shell
             support_volley  hit_spark  naval_shell  tank_charge  supply_drop  mines  crit_ring
-            muzzle  dust  skill_AS01 · AS03 · AS04 · AS06 · AS07 · AS09 · AS10 · AS11 · AS12
-  skills/   AS01.png ~ AS12.png   (QWER 슬롯 아이콘 32×32)
+            muzzle  dust  scorch_decal  dirt_spray  dust_ring(200)  embers  flare_smoke
+            skill_AS01 · AS03 · AS04 · AS06 · AS07 · AS09 · AS10 · AS11 · AS12
+  skills/   AS01.png ~ AS12.png   (고급 스킬 Q·E·R·F 슬롯 아이콘 32×32)
   ui/       tag_infantry  tag_artillery  tag_armor  tag_air  tag_navy  tag_intel  tag_engineer  tag_medical  tag_allied
             overlay_smoke  overlay_static  overlay_snow  overlay_night  overlay_crack  overlay_success  (120×168)
             icon_upgrade_*  star_xp  seal  bullet  shell  merit  tp  op  lock  flag_ally        (32×32)
@@ -87,9 +88,11 @@ docs/mockup/
 
 | PHASE | 장수 | 내용 | 쓰이는 Day |
 | --- | --- | --- | --- |
-| P1 | 23 | 타일 T01~T04, 아군 A01~A03, 적 E01~E05, NPC N01·N02, 카드 프레임·일러스트·병과 아이콘·오버레이, UI·업그레이드·스킬 아이콘, 이펙트 4시트 | D02~D16 |
+| P1 | 24 | 타일 T01~T04, 아군 A01~A03, 적 E01~E05, NPC N01·N02, 카드 프레임·일러스트·병과 아이콘·오버레이, UI·업그레이드·스킬 아이콘, 이펙트 5시트(vfx_1~4, vfx_6) | D02~D16 |
 | P2 | 39 | 작전지도, 타일 T05~T12, 소품 1시트, 아군 A04~A15, 적 E06~E25, NPC N03~N05 | D17~D29 |
 | P3 | 50 | 타일 T13~T20, 소품 2시트, 아군 A16~A30, 적 E26~E50, NPC N06~N10, 대형 스킬 이펙트 | D30~D37 |
+
+**다시 만들 것(2026-10-11 회의)**: `vfx_1`(explosion_l·explosion_s: 1프레임이 가장 크고 밝은 흰-노랑 코어, 크레이터 없음 / bomb_fall: 붉은 바닥 링 없음 — 링은 게임이 청록으로 그림)과 새 `vfx_6`(그을음 데칼·흙 튐·먼지 고리·잔불·신호 연기). 노트북에서 `REGENERATE = "vfx_1,vfx_6"`으로 이 두 장만 다시 만들 수 있습니다. 섬광·충격파 링·빛 웅덩이·경고 마커는 코드가 그리므로 시트가 필요 없습니다.
 
 ## 6. 자동 생성 파이프라인 (`tools/art`)
 
@@ -114,8 +117,13 @@ docs/mockup/
 
 ## 7. 사운드 (선택)
 
-없으면 합성 칩튠 효과음을 씁니다(D15). 넣고 싶다면 `public/assets/audio/`에 OGG 또는 MP3로:
-`bgm_stage01.ogg ~ bgm_stage10.ogg`, `bgm_boss.ogg`, `bgm_menu.ogg`, `sfx_hit.ogg`, `sfx_crit.ogg`, `sfx_explode.ogg`, `sfx_shot.ogg`, `sfx_card_flip.ogg`, `sfx_card_success.ogg`, `sfx_card_fail.ogg`, `sfx_beep.ogg`, `sfx_plane.ogg`, `sfx_ui.ogg`
+없어도 됩니다. 효과음은 게임이 코드로 합성합니다(`src/data/sfx.json`의 sources, 파일 0개). 더 좋은 소리로 바꾸고 싶을 때만 `public/assets/audio/`에 **sources와 같은 이름**으로 OGG(+ Safari용 MP3)를 넣으면 그 파일이 우선합니다(D15부터).
+
+- 효과음 이름: `shot` `hit` `crit` `kill` `boom` `explode` `hurt` `block` `pickup` (D08·D10에서 카드 판정·UI·스킬 소리가 추가됨)
+- BGM: `bgm_stage01` ~ `bgm_stage10`, `bgm_boss`, `bgm_menu` (없으면 무음)
+- 앞 무음 5ms 이하, 피크 −1dB 안팎. 같은 소리 3가지 변형이 있으면 `hit_1`, `hit_2`, `hit_3`
+- 만드는 방법: BGM은 상업 이용 가능한 요금제의 AI 음악 생성기(칩튠 + 군악 스네어) 또는 BeepBox. 효과음 겹(폭발 꼬리 등)은 CC0(Kenney 등)만. 생성 날짜·요금제·약관을 크레딧 표에 기록, 비상업(NC) 라이선스 금지
+- 표현 원칙: 비명·고통 음성 없음, 실제 군가·국가·당시 방송 음원 금지
 
 ## 8. 표현 원칙 체크 (PRD §1)
 
