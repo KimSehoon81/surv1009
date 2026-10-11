@@ -1,0 +1,215 @@
+{
+  "$comment": "타격감 수치(PRD §4.4, 60fps 기준 프레임). 호출부는 프리셋 이름만 쓴다(feel.hit('crit', ...)). normal·crit·kill_big은 §4.4 표 그대로, kill·player_hit·block은 표 밖 보조 프리셋. hitstopMinGapMs=직전 히트스톱이 끝난 뒤 이 시간(실시간 ms) 안에는 같은 프리셋 히트스톱 생략(연사 무기에서 화면이 계속 끊기지 않게, PRD 밖 값). intensity=접근성 강도 배율 0~1(설정 화면 D29가 바꿈). knockbackMulByTier=적 등급별 넉백 배율",
+  "intensity": {
+    "shake": 1,
+    "flash": 1
+  },
+  "presets": {
+    "normal": {
+      "hitstopFrames": 2,
+      "hitstopMinGapMs": 100,
+      "shakePx": 1,
+      "shakeMs": 80,
+      "flashColor": "#ffffff",
+      "flashFrames": 2,
+      "knockbackPx": 4,
+      "knockbackMs": 110,
+      "number": "normal",
+      "sparks": 4,
+      "fx": "hit_spark",
+      "fxScale": 0.32,
+      "squash": true
+    },
+    "crit": {
+      "hitstopFrames": 5,
+      "shakePx": 3,
+      "shakeMs": 150,
+      "flashColor": "#ffe14d",
+      "flashFrames": 3,
+      "knockbackPx": 10,
+      "knockbackMs": 150,
+      "number": "crit",
+      "sparks": 10,
+      "fx": "crit_ring",
+      "fxScale": 0.45,
+      "zoomPunch": 0.02,
+      "squash": true
+    },
+    "kill": {
+      "smoke": 3,
+      "fx": "dust",
+      "fxScale": 0.4,
+      "combo": true
+    },
+    "kill_big": {
+      "hitstopFrames": 10,
+      "slowmoScale": 0.3,
+      "slowmoMs": 500,
+      "shakePx": 6,
+      "shakeMs": 400,
+      "screenFlashFrames": 4,
+      "number": "kill",
+      "fx": "explosion_s",
+      "fxScale": 1.6,
+      "debris": 12,
+      "smoke": 8,
+      "crater": 1,
+      "zoomPunch": 0.04,
+      "combo": true
+    },
+    "player_hit": {
+      "hitstopFrames": 3,
+      "shakePx": 2,
+      "shakeMs": 120,
+      "number": "player",
+      "vignette": true
+    },
+    "block": {
+      "shakePx": 1,
+      "shakeMs": 80,
+      "number": "block",
+      "sparks": 5
+    }
+  },
+  "killPresetByTier": {
+    "normal": "kill",
+    "elite": "kill_big",
+    "boss": "kill_big"
+  },
+  "knockbackMulByTier": {
+    "normal": 1,
+    "elite": 0.5,
+    "boss": 0
+  },
+  "zoomPunch": {
+    "inMs": 50,
+    "outMs": 200
+  },
+  "screenFlash": {
+    "color": "#ffffff",
+    "maxAlpha": 0.7
+  },
+  "vignette": {
+    "color": "#c81e1e",
+    "maxAlpha": 0.45,
+    "ms": 420
+  },
+  "squash": {
+    "x": 1.18,
+    "y": 0.84,
+    "ms": 70
+  },
+  "fxCap": 32,
+  "fxFps": {
+    "hit_spark": 30,
+    "crit_ring": 24,
+    "dust": 18,
+    "explosion_s": 16,
+    "explosion_l": 16
+  },
+  "numbers": {
+    "cap": 40,
+    "scale": 2,
+    "lifeMs": 650,
+    "jumpPx": 16,
+    "popScale": 1.5,
+    "popMs": 90,
+    "fadeFromK": 0.6,
+    "spreadPx": 8,
+    "styles": {
+      "normal": { "color": "#ffffff", "scale": 1 },
+      "crit": { "color": "#ffe14d", "scale": 1.6, "jitterPx": 1, "jitterMs": 220 },
+      "kill": { "color": "#ff9040", "scale": 2.5, "text": "KILL", "lifeMs": 900 },
+      "player": { "color": "#ff5050", "scale": 1 },
+      "block": { "color": "#9fc4ff", "scale": 1 }
+    }
+  },
+  "combo": {
+    "windowMs": 2500,
+    "minShow": 3,
+    "x": 944,
+    "y": 64,
+    "scale": 3,
+    "color": "#ffe14d"
+  },
+  "muzzle": {
+    "fx": "muzzle",
+    "crop": [50, 25, 50, 56],
+    "scale": 0.42,
+    "fps": 36,
+    "casing": 1
+  },
+  "particles": {
+    "cap": 300,
+    "kinds": {
+      "spark": {
+        "texture": "spark",
+        "tints": ["#fff6c0", "#ffd040", "#ffffff"],
+        "speed": [90, 230],
+        "lifeMs": [120, 260],
+        "drag": 6,
+        "scale": [1, 0.4],
+        "alpha": [1, 0],
+        "spread": 2.4,
+        "depth": "Spark",
+        "alignToVelocity": true
+      },
+      "smoke": {
+        "texture": "smoke",
+        "tints": ["#8a8478", "#6e6a62", "#a49c8c"],
+        "speed": [10, 45],
+        "lifeMs": [500, 900],
+        "drag": 2,
+        "gravity": -20,
+        "scale": [0.6, 1.6],
+        "alpha": [0.7, 0],
+        "spread": 6.283,
+        "depth": "Smoke"
+      },
+      "debris": {
+        "texture": "debris",
+        "tints": ["#4a3a28", "#2e2a24", "#6a5a40"],
+        "speed": [60, 170],
+        "lifeMs": [600, 900],
+        "drag": 1.5,
+        "vz": [90, 170],
+        "gravityZ": 480,
+        "bounce": 0.3,
+        "scale": [1, 1],
+        "alpha": [1, 0],
+        "fadeFromK": 0.6,
+        "spread": 6.283,
+        "spin": 14,
+        "depth": "Spark"
+      },
+      "casing": {
+        "texture": "casing",
+        "tints": ["#d8a840"],
+        "speed": [30, 60],
+        "lifeMs": [700, 900],
+        "drag": 2,
+        "vz": [50, 80],
+        "z0": 40,
+        "gravityZ": 480,
+        "bounce": 0.35,
+        "scale": [1, 1],
+        "alpha": [1, 0],
+        "fadeFromK": 0.7,
+        "spread": 0.9,
+        "spin": 20,
+        "depth": "Spark"
+      },
+      "crater": {
+        "texture": "crater",
+        "tints": ["#ffffff"],
+        "speed": [0, 0],
+        "lifeMs": [4000, 4000],
+        "scale": [1, 1],
+        "alpha": [0.85, 0],
+        "fadeFromK": 0.7,
+        "spread": 0,
+        "depth": "Decal"
+      }
+    }
+  }
+}

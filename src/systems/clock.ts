@@ -2,7 +2,9 @@
 // 일시정지·레벨업 정지·히트스톱·카드 판정 슬로모(0.3배)·보스 처치 슬로모가 모두 여기서 합성되어야
 // 서로 덮어쓰거나 풀어버리는 충돌이 생기지 않는다. Phaser 의존 없음(테스트 가능).
 
-export const FRAME_MS = 1000 / 60;
+import { FRAME_MS } from '../core/feel';
+
+export { FRAME_MS };
 
 /** 탭 전환 등으로 delta가 튀어도 한 번에 진행되는 최대 실시간(ms) */
 export const MAX_REAL_DELTA_MS = 100;
@@ -27,6 +29,7 @@ export class GameClock {
   private hitstopRemainingMs = 0;
   private elapsedMs = 0;
   private lastScale = 1;
+  private lastEffectDelta = 0;
 
   /** 이름 붙은 배율 적용. 여러 개가 동시에 있으면 가장 느린 값(최솟값)이 이긴다 */
   setScale(key: string, scale: number, durationMs = Infinity): void {
@@ -91,6 +94,7 @@ export class GameClock {
     let s = 1;
     for (const entry of this.modifiers.values()) if (entry.scale < s) s = entry.scale;
     const scaled = flowingMs * s;
+    this.lastEffectDelta = real * s;
     this.lastScale = stopMs > 0 && flowingMs === 0 ? 0 : s;
 
     for (const [key, entry] of this.modifiers) {
@@ -101,6 +105,21 @@ export class GameClock {
 
     this.elapsedMs += scaled;
     return scaled;
+  }
+
+  /**
+   * 이펙트(입자·데미지 숫자·이펙트 시트)용 delta: 일시정지·슬로모는 따르지만 히트스톱은 무시한다.
+   * 히트스톱 동안 개체는 멈춰도 터지는 섬광·파편은 퍼져야 "멈춘 순간"이 읽힌다(10프레임 대형 처치에서 특히).
+   */
+  get effectDeltaMs(): number {
+    return this.lastEffectDelta;
+  }
+
+  /** 이펙트 재생 배율(히트스톱 제외) */
+  get effectScale(): number {
+    let s = 1;
+    for (const entry of this.modifiers.values()) if (entry.scale < s) s = entry.scale;
+    return s;
   }
 
   snapshot(): ClockSnapshot {
@@ -120,5 +139,6 @@ export class GameClock {
     this.hitstopRemainingMs = 0;
     this.elapsedMs = 0;
     this.lastScale = 1;
+    this.lastEffectDelta = 0;
   }
 }

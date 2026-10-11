@@ -5,6 +5,7 @@ import type { Agent, BehaviorSpec } from '../core/behaviors';
 import type { EnemyScale } from '../core/scaling';
 import type { Rng } from '../core/rng';
 import { createAnimState, triggerAction, updateAnimState, type AnimState } from '../core/animState';
+import { createKnockback, type Knockback } from '../core/feel';
 import type { UnitAnims } from '../systems/anims';
 
 export type EnemyId = keyof typeof enemyData.enemies;
@@ -31,6 +32,8 @@ export class Enemy implements Agent {
   alive = false;
   /** 이 시각(전투 시계)까지 피격 경직: 이동하지 않음 */
   stunUntilMs = 0;
+  /** 피격 넉백(이동은 EnemySystem.update에서 전투 시계로) */
+  readonly kb: Knockback = createKnockback();
   private anims!: UnitAnims;
   private anim!: AnimState;
   private lastKey = '';
@@ -68,6 +71,7 @@ export class Enemy implements Agent {
     this.phase = rng.next();
     this.alive = true;
     this.stunUntilMs = 0;
+    this.kb.ms = 0;
     this.anims = anims;
     this.anim = createAnimState(anims.rules, nowMs);
     this.lastKey = '';

@@ -7,7 +7,8 @@ import type { Enemy } from '../entities/Enemy';
 
 /** 투사체가 적을 맞혔을 때(직선) / 착지했을 때(곡사) 전투 로직에 알린다 */
 export interface ProjectileHooks {
-  onHit(e: Enemy, damageMult: number): void;
+  /** (dirX, dirY): 투사체 진행 방향(넉백·스파크 방향) */
+  onHit(e: Enemy, damageMult: number, dirX: number, dirY: number): void;
   onLand(x: number, y: number, radius: number, damageMult: number, fx: string | undefined, fxScale: number): void;
 }
 
@@ -155,7 +156,7 @@ export class ProjectileSystem {
         const r = p.radius + e.radius;
         if (d2 > r * r) return;
         p.hit.add(e);
-        hooks.onHit(e, p.damageMult);
+        hooks.onHit(e, p.damageMult, p.vx, p.vy);
         if (p.pierceLeft-- <= 0) {
           done = true;
           return true;

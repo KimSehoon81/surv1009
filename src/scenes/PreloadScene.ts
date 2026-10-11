@@ -2,6 +2,8 @@ import * as Phaser from 'phaser';
 import floorData from '../data/floor.json';
 import characters from '../data/characters.json';
 import spawnData from '../data/spawn.json';
+import feelData from '../data/feel.json';
+import weaponData from '../data/weapons.json';
 import { manifest, type AssetSpec } from '../assets/manifest';
 import { ensureTextures, queueAssets } from '../systems/assetLoader';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
@@ -14,7 +16,10 @@ function battleAssets(): AssetSpec[] {
   const enemyIds = [...new Set(spawnData.S1.spawns.map((s) => s.enemy))];
   const units = [...Object.keys(characters.characters), ...enemyIds].flatMap((id) => manifest.unitSheets(id));
   const ui = ['bullet', 'star_xp', 'icon_upgrade_weapon_grenade'].map((n) => manifest.image('ui', n, 32, 32));
-  const fx = ['explosion_s'].map((n) => manifest.fx(n));
+  // 이펙트: 무기·타격감 프리셋·총구 섬광이 참조하는 시트 전부
+  const named = (o: object) => Object.values(o as Record<string, { fx?: string }>).map((v) => v.fx);
+  const fxNames = new Set([...named(weaponData.weapons), ...named(feelData.presets), feelData.muzzle.fx]);
+  const fx = [...fxNames].filter((n): n is string => typeof n === 'string').map((n) => manifest.fx(n));
   return [...units, ...ui, ...fx, manifest.tile(floorData.S1.base), manifest.tile(floorData.S1.patch)];
 }
 

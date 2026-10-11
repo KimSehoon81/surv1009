@@ -523,6 +523,7 @@ def process_strips(img, post, out_root, report, kind):
             if flags and sum(flags) * 2 > len(flags):
                 report["warnings"].append(f"{row['name']}: 배경(지형·바다·하늘)이 칠해진 것 같음 → 다시 생성 권장")
             frames, _ = fit_frames(cells, fs, "contain", 0.96, False, warn=report["warnings"])
+            report["warnings"].extend(fx_layout_warnings(row["name"], frames, fs))
             mode = "steps"
             folder = "fx"
         frames = [harden_alpha(f, mode) for f in frames]
@@ -533,6 +534,29 @@ def process_strips(img, post, out_root, report, kind):
         save_rgba(to_sheet(frames, fs), os.path.join(out_root, rel))
         outs.append((rel, frames))
     return outs
+
+
+def fx_layout_warnings(name, frames, fs):
+    """이펙트 시트 배치 오류: 한 칸에 위아래로 두 개가 그려짐(실측: explosion_s), 첫 프레임이 거의 빔(explosion_l)"""
+    out = []
+    counts = [int((f[..., 3] > 0).sum()) for f in frames]
+    stacked = 0
+    for f, n in zip(frames, counts):
+        if n == 0:
+            continue
+        rows = (f[..., 3] > 0).sum(axis=1)
+        ys = np.nonzero(rows)[0]
+        for a, b in zip(ys[:-1], ys[1:]):
+            if b - a > fs * 0.08:
+                above = rows[: a + 1].sum()
+                if 0.15 <= above / n <= 0.85:
+                    stacked += 1
+                break
+    if stacked * 2 > len(frames):
+        out.append(f"{name}: 칸마다 이펙트가 위아래로 두 개 그려진 것 같음 → 다시 생성 권장")
+    if counts and max(counts) > 0 and counts[0] < max(counts) * 0.02:
+        out.append(f"{name}: 첫 프레임이 거의 비어 있음(재생 시작이 늦어 보임) → 다시 생성 권장")
+    return out
 
 
 def _cover(cell, w, h):

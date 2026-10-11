@@ -2,6 +2,7 @@ import type * as Phaser from 'phaser';
 import { Pool } from '../core/pool';
 import { SpatialHash } from '../core/spatialHash';
 import { steer } from '../core/behaviors';
+import { stepKnockback } from '../core/feel';
 import { enemyScale } from '../core/scaling';
 import { accumulate, ringPoint, spawnRadius } from '../core/spawnLogic';
 import type { Rng } from '../core/rng';
@@ -99,6 +100,10 @@ export class EnemySystem {
     // 1) 이동
     for (let i = list.length - 1; i >= 0; i--) {
       const e = list[i] as Enemy;
+      if (e.kb.ms > 0) {
+        const k = stepKnockback(e.kb, dtMs);
+        e.setPosition(e.x + k.dx, e.y + k.dy);
+      }
       if (dtMs > 0 && nowMs >= e.stunUntilMs) {
         e.ageMs += dtMs;
         const dir = steer(e, e.behaviors, ctx);

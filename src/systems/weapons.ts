@@ -1,8 +1,14 @@
 import weaponData from '../data/weapons.json';
+import combat from '../data/combat.json';
 import type { SpatialHash } from '../core/spatialHash';
 import type { Enemy } from '../entities/Enemy';
 import type { Player } from '../entities/Player';
 import type { ProjectileSystem } from './projectiles';
+
+export interface WeaponHooks {
+  /** 총알 발사 순간. (x, y): 총구 끝 월드 좌표 */
+  onFire?(x: number, y: number, facing: number): void;
+}
 
 export type WeaponId = keyof typeof weaponData.weapons;
 type WeaponDef = (typeof weaponData.weapons)[WeaponId];
@@ -41,7 +47,7 @@ export class WeaponSystem {
     if (i >= 0) this.equipped.splice(i, 1);
   }
 
-  update(dtMs: number, nowMs: number, player: Player, grid: SpatialHash<Enemy>, projectiles: ProjectileSystem): void {
+  update(dtMs: number, nowMs: number, player: Player, grid: SpatialHash<Enemy>, projectiles: ProjectileSystem, hooks: WeaponHooks = {}): void {
     if (dtMs <= 0) return;
     const stats = player.stats;
     for (const w of this.equipped) {
@@ -57,7 +63,9 @@ export class WeaponSystem {
       w.cooldownMs += cooldown;
       player.faceTowards(target.x);
       if (w.def.type === 'projectile') {
-        const muzzleX = player.x + player.facing * 12;
+        // 총구 끝(발 기준 오프셋). 총알은 총구 높이에서 나가 목표 몸통으로 향한다(발 기준 좌표로 환산해 전달)
+        const muzzleX = player.x + player.facing * combat.muzzleOffsetX;
+        const muzzleY = player.y + combat.muzzleOffsetY;
         projectiles.fireBullet(
           {
             sprite: w.def.sprite,
@@ -69,11 +77,12 @@ export class WeaponSystem {
             rangePx: range,
           },
           muzzleX,
-          player.y,
+          muzzleY + combat.bodyOffsetY,
           target.x,
           target.y,
         );
         player.fireAnim(nowMs);
+        hooks.onFire?.(muzzleX, muzzleY, player.facing);
       } else if (w.def.type === 'lob') {
         const def = w.def as Record<string, unknown>;
         projectiles.lob(

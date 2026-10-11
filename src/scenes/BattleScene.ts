@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import floorData from '../data/floor.json';
 import spawnData from '../data/spawn.json';
 import combat from '../data/combat.json';
+import feelData from '../data/feel.json';
 import { createRng, type Rng } from '../core/rng';
 import { computeHit } from '../core/combat';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
@@ -16,7 +17,7 @@ import { FxSystem } from '../systems/fx';
 import { InputMap } from '../systems/input';
 import { PickupSystem } from '../systems/pickups';
 import { ProjectileSystem, type ProjectileHooks } from '../systems/projectiles';
-import { WeaponSystem, isWeaponId } from '../systems/weapons';
+import { WeaponSystem, isWeaponId, type WeaponHooks } from '../systems/weapons';
 import { Player, isCharacterId, type CharacterId } from '../entities/Player';
 import type { Enemy } from '../entities/Enemy';
 import { SceneKey } from './keys';
@@ -46,6 +47,7 @@ export class BattleScene extends Phaser.Scene {
   readonly run = { xp: 0, kills: 0, damageTaken: 0, blocks: 0, defeated: false };
   private invincible = false;
   private hooks!: ProjectileHooks;
+  private weaponHooks!: WeaponHooks;
 
   constructor() {
     super(SceneKey.Battle);
@@ -69,14 +71,16 @@ export class BattleScene extends Phaser.Scene {
       pullSpeed: combat.magnetPullSpeed,
       accel: combat.magnetAccel,
     });
-    this.fx = new FxSystem(this);
-    this.feel = new Feel();
+    this.fx = new FxSystem(this, feelData.fxCap);
+    this.feel = new Feel(this, this.clock, this.fx, rng.fork('feel'));
     this.weapons = new WeaponSystem();
     this.equipStartingWeapons();
     this.hooks = {
-      onHit: (e, mult) => this.damageEnemy(e, mult),
+      onHit: (e, mult, dx, dy) => this.damageEnemy(e, mult, dx, dy),
       onLand: (x, y, radius, mult, fxName, fxScale) => this.explode(x, y, radius, mult, fxName, fxScale),
     };
+
+    this.weaponHooks = { onFire: (x, y, facing) => this.feel.muzzle(x, y, facing, this.player.y) };
 
     this.hpBar = this.add.graphics().setDepth(Depth.Ui - 1);
     this.cameras.main.startFollow(this.player.sprite, true);
@@ -101,7 +105,8 @@ export class BattleScene extends Phaser.Scene {
         `enemies ${this.enemies.alive}${this.enemies.stress ? ' [STRESS]' : ''} pool ${this.enemies.pool.capacity} (created ${this.enemies.pool.created})`,
         `weapons ${this.weapons.equipped.map((w) => w.id).join(',')} shots ${this.projectiles.active} fx ${this.fx.active}`,
         `xp ${this.run.xp} kills ${this.run.kills} gems ${this.pickups.active} taken ${this.run.damageTaken} blocks ${this.run.blocks}`,
-        params.debug ? 'J공격 K방어 L스킬 U치명 O느림 C캐릭터 V수류탄 I무적 F2적300 Esc정지' : '',
+        `feel particles ${this.feel.particles.active}/${this.feel.particles.cap} numbers ${this.feel.numbers.active} combo ${this.feel.combo.count}`,
+        params.debug ? 'J공격 K방어 L스킬 U치명 O느림 C캐릭터 V수류탄 I무적 B대형처치 F2적300 Esc정지' : '',
       ].filter(Boolean);
     });
 
@@ -130,13 +135,13 @@ export class BattleScene extends Phaser.Scene {
     const target = { x: p.x, y: p.y, radius: combat.playerRadius };
     this.enemies.update(dt, now, scale, target, cam);
     if (!this.run.defeated) {
-      this.weapons.update(dt, now, p, this.enemies.grid, this.projectiles);
+      this.weapons.update(dt, now, p, this.enemies.grid, this.projectiles, this.weaponHooks);
       this.projectiles.update(dt, this.enemies.grid, this.hooks);
       this.contactDamage(now);
       this.run.xp += this.pickups.update(dt, p.x, p.y, p.stats.magnet);
     }
-    this.fx.update(scale);
-    this.feel.update(time);
+    this.fx.update(this.clock.effectScale);
+    this.feel.update(time, this.clock.effectDeltaMs);
     // 피격 무적 중 깜빡임
     p.sprite.setAlpha(now < p.invulnUntilMs && Math.floor(now / 80) % 2 === 0 ? 0.45 : 1);
     this.drawHpBar();
@@ -145,8 +150,8 @@ export class BattleScene extends Phaser.Scene {
     this.controls.endFrame();
   }
 
-  /** 투사체·폭발이 적을 맞혔을 때(PRD §4.3: 0.15초 경직 + 흰색 점멸) */
-  private damageEnemy(e: Enemy, damageMult: number): void {
+  /** 투사체·폭발이 적을 맞혔을 때(PRD §4.3: 0.15초 경직, §4.4: 타격감). (dirX, dirY)는 타격 방향 */
+  private damageEnemy(e: Enemy, damageMult: number, dirX: number, dirY: number): void {
     if (!e.alive) return;
     const now = this.clock.timeMs;
     const s = this.player.stats;
@@ -155,17 +160,32 @@ export class BattleScene extends Phaser.Scene {
       this.combatRng,
     );
     e.hp -= res.damage;
-    this.feel.enemyHit(e.sprite, res.crit, combat.flashMs, this.time.now);
+    const bodyY = e.y - combat.bodyOffsetY;
+    this.feel.hit(res.crit ? 'crit' : 'normal', e.x, bodyY, {
+      sprite: e.sprite,
+      knockback: e.kb,
+      tier: e.def.tier,
+      dirX,
+      dirY,
+      amount: res.damage,
+      groundY: e.y,
+    });
     if (res.crit) this.player.trigger('crit', now);
     if (e.hp <= 0) {
-      this.pickups.drop(e.x, e.y, e.def.xp, now);
-      this.feel.forget(e.sprite);
-      this.enemies.kill(e);
-      this.run.kills++;
+      this.finishEnemy(e);
       return;
     }
     e.stunUntilMs = now + combat.enemyHitStunMs;
     e.trigger('hit', now);
+  }
+
+  /** 처치: 보급품 + 등급별 처치 연출(일반 kill, 정예·보스 kill_big) */
+  private finishEnemy(e: Enemy, tier: string = e.def.tier): void {
+    this.pickups.drop(e.x, e.y, e.def.xp, this.clock.timeMs);
+    this.feel.kill(tier, e.x, e.y - combat.bodyOffsetY, { groundY: e.y });
+    this.feel.forget(e.sprite);
+    this.enemies.kill(e);
+    this.run.kills++;
   }
 
   /** 곡사 착지: 범위 안 모든 적에게 피해 + 폭발 이펙트 */
@@ -176,7 +196,7 @@ export class BattleScene extends Phaser.Scene {
       const r = radius + e.radius;
       if (e.alive && d2 <= r * r) hit.push(e);
     });
-    for (const e of hit) this.damageEnemy(e, mult);
+    for (const e of hit) this.damageEnemy(e, mult, e.x - x, e.y - y);
   }
 
   /** 적과 몸이 닿으면 피해. 무적 시간 동안은 다시 맞지 않는다. 방어 판정 성공 시 −50% + 방어 동작 */
@@ -197,7 +217,8 @@ export class BattleScene extends Phaser.Scene {
     p.hp = Math.max(0, p.hp - res.damage);
     p.invulnUntilMs = now + combat.playerInvulnMs;
     this.run.damageTaken += res.damage;
-    this.feel.playerHit(p.sprite, res.blocked, combat.playerHurtFlashMs, this.time.now);
+    this.feel.flash(p.sprite, res.blocked ? 0x9fc4ff : 0xff4040, combat.playerHurtFlashMs);
+    this.feel.hit(res.blocked ? 'block' : 'player_hit', p.x, p.y - combat.bodyOffsetY, { amount: res.damage, groundY: p.y });
     if (res.blocked) {
       this.run.blocks++;
       p.trigger('defend', now);
@@ -241,6 +262,11 @@ export class BattleScene extends Phaser.Scene {
     if (this.controls.justDown('debugWeapon')) {
       if (this.weapons.has('grenade')) this.weapons.remove('grenade');
       else this.weapons.add('grenade');
+    }
+    if (this.controls.justDown('debugBigKill')) {
+      // 정예·보스가 아직 없으므로 가장 가까운 적을 대형 처치 연출로 쓰러뜨려 kill_big 프리셋을 확인
+      const e = this.enemies.grid.nearest(p.x, p.y, 600, (n) => n.alive);
+      if (e) this.finishEnemy(e, 'boss');
     }
     if (this.controls.justDown('debugStress')) {
       this.enemies.setStress(!this.enemies.stress, { x: p.x, y: p.y, radius: combat.playerRadius }, now);

@@ -58,3 +58,57 @@ export class Pool<T> {
     return this.live.length + this.free.length;
   }
 }
+
+/**
+ * 상한이 있는 풀(데미지 숫자 40·입자 300, PRD §4.4). 상한에 닿으면 새로 만들지 않고
+ * 가장 오래전에 꺼낸 활성 항목을 돌려준다(recycled=true: 호출부가 상태를 덮어써 재시작).
+ */
+export class CappedPool<T> {
+  private readonly pool: Pool<T>;
+  private readonly born = new Map<T, number>();
+  private serial = 0;
+
+  constructor(
+    factory: () => T,
+    readonly cap: number,
+  ) {
+    this.pool = new Pool(factory, cap);
+  }
+
+  acquire(): { item: T; recycled: boolean } {
+    let item: T;
+    let recycled = false;
+    if (this.pool.size < this.cap) {
+      item = this.pool.acquire();
+    } else {
+      let oldest = Infinity;
+      item = this.pool.active[0] as T;
+      for (const it of this.pool.active) {
+        const b = this.born.get(it) ?? 0;
+        if (b < oldest) {
+          oldest = b;
+          item = it;
+        }
+      }
+      recycled = true;
+    }
+    this.born.set(item, this.serial++);
+    return { item, recycled };
+  }
+
+  release(item: T): boolean {
+    return this.pool.release(item);
+  }
+
+  get active(): readonly T[] {
+    return this.pool.active;
+  }
+
+  get size(): number {
+    return this.pool.size;
+  }
+
+  get created(): number {
+    return this.pool.created;
+  }
+}

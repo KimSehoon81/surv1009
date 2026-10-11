@@ -90,3 +90,19 @@ describe('GameClock', () => {
     expect(c.tick(16)).toBe(16);
   });
 });
+
+describe('이펙트 delta', () => {
+  it('히트스톱은 무시하고 일시정지·슬로모는 따른다', () => {
+    const c = new GameClock();
+    c.hitstop(5);
+    expect(c.tick(16)).toBe(0);
+    expect(c.effectDeltaMs).toBe(16);
+    c.setScale('slowmo', 0.3, 500);
+    c.tick(16);
+    expect(c.effectDeltaMs).toBeCloseTo(4.8);
+    expect(c.effectScale).toBe(0.3);
+    c.pause();
+    c.tick(16);
+    expect(c.effectDeltaMs).toBe(0);
+  });
+});
