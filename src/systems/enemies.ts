@@ -100,7 +100,8 @@ export class EnemySystem {
     // 1) 이동
     for (let i = list.length - 1; i >= 0; i--) {
       const e = list[i] as Enemy;
-      if (e.kb.ms > 0) {
+      const frozen = nowMs < e.freezeUntilMs;
+      if (e.kb.ms > 0 && !frozen) {
         const k = stepKnockback(e.kb, dtMs);
         e.setPosition(e.x + k.dx, e.y + k.dy);
       }
@@ -119,7 +120,7 @@ export class EnemySystem {
           e.setPosition(p.x, p.y);
         }
       }
-      e.updateAnim(true, nowMs, timeScale);
+      e.updateAnim(true, nowMs, frozen ? 0 : timeScale);
     }
 
     // 2) 공간 해시 다시 채우기

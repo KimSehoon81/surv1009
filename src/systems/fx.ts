@@ -2,8 +2,12 @@ import type * as Phaser from 'phaser';
 import { manifest } from '../assets/manifest';
 import { Pool } from '../core/pool';
 import { Depth } from '../config/depth';
+import { FRAME_MS } from '../core/feel';
+import feelData from '../data/feel.json';
 
 const DEFAULT_FPS = 16;
+/** 시트별 재생 속도와 첫 프레임 추가 유지(착탄 섬광이 한 프레임에 묻히지 않게) */
+const TIMING = feelData.fxTiming as Record<string, { fps: number; hold0F?: number }>;
 
 /** 한 번 재생하고 사라지는 이펙트 시트(폭발·스파크 등). 스프라이트는 풀에서 재사용, 동시 개수 상한 */
 export class FxSystem {
@@ -16,16 +20,17 @@ export class FxSystem {
     this.pool = new Pool(() => scene.add.sprite(0, 0, '__DEFAULT').setActive(false).setVisible(false), 24);
   }
 
-  private animKey(name: string, fps: number): string {
+  private animKey(name: string): string {
     const spec = manifest.fx(name);
-    const key = `${spec.key}_play${fps}`;
+    const t = TIMING[name];
+    const fps = t?.fps ?? DEFAULT_FPS;
+    const key = `${spec.key}_play`;
     if (!this.scene.anims.exists(key)) {
-      this.scene.anims.create({
-        key,
-        frames: this.scene.anims.generateFrameNumbers(spec.key, { start: 0, end: spec.frames - 1 }),
-        frameRate: fps,
-        repeat: 0,
-      });
+      const frames = this.scene.anims.generateFrameNumbers(spec.key, { start: 0, end: spec.frames - 1 });
+      // Phaser 프레임 duration은 기본 프레임 시간에 더해지는 값
+      const first = frames[0];
+      if (first && t?.hold0F) first.duration = t.hold0F * FRAME_MS;
+      this.scene.anims.create({ key, frames, frameRate: fps, repeat: 0 });
     }
     return key;
   }
@@ -52,8 +57,8 @@ export class FxSystem {
     return key;
   }
 
-  play(name: string, x: number, y: number, scale = 1, depth: number = Depth.Explosion, fps = DEFAULT_FPS, capped = false): Phaser.GameObjects.Sprite | null {
-    return this.playAnim(this.animKey(name, fps), x, y, scale, depth, capped);
+  play(name: string, x: number, y: number, scale = 1, depth: number = Depth.Explosion, capped = false): Phaser.GameObjects.Sprite | null {
+    return this.playAnim(this.animKey(name), x, y, scale, depth, capped);
   }
 
   /**
@@ -72,7 +77,7 @@ export class FxSystem {
     return s;
   }
 
-  /** 전투 시계 배율을 이펙트 재생 속도에 반영(일시정지·히트스톱이면 멈춤) */
+  /** 이펙트 재생 속도 = clock.effectScale(일시정지·슬로모는 따르고 히트스톱은 무시: 정지 순간에도 섬광은 핀다) */
   update(timeScale: number): void {
     for (const s of this.pool.active) s.anims.timeScale = timeScale;
   }

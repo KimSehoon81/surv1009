@@ -52,12 +52,6 @@ export function stepKnockback(kb: Knockback, dtMs: number): { dx: number; dy: nu
   return { dx: kb.dirX * d, dy: kb.dirY * d };
 }
 
-/** 흔들림 px → Phaser camera.shake 강도(뷰포트 비율). mul은 접근성 강도 배율 0~1 */
-export function shakeIntensity(px: number, viewW: number, viewH: number, mul = 1): { x: number; y: number } {
-  const p = Math.max(0, px) * Math.min(1, Math.max(0, mul));
-  return { x: viewW > 0 ? p / viewW : 0, y: viewH > 0 ? p / viewH : 0 };
-}
-
 export interface NumberAnimConfig {
   jumpPx: number;
   popScale: number;
@@ -136,4 +130,127 @@ export function punchRestartElapsed(current: number, amount: number, inMs: numbe
   if (amount <= 0 || current <= 0) return 0;
   const r = Math.min(1, current / amount);
   return inMs * (1 - Math.sqrt(1 - r));
+}
+
+/**
+ * 화면 흔들림 + 방향 킥(PRD §6.2 "착탄마다 흔들림 누적"). Phaser camera.shake는 약한 흔들림이 강한 흔들림을
+ * 덮어쓰지 못해 누적이 안 되므로 직접 계산해 카메라 오프셋으로 준다. 오프셋은 정수 px(도트가 번지지 않게).
+ */
+export class Shaker {
+  private readonly shakes: { px: number; start: number; ms: number; stack: boolean }[] = [];
+  private kick: { x: number; y: number; px: number; start: number; ms: number } | null = null;
+
+  /** capPx: 누적 흔들림 상한, maxEntries: 동시에 기억하는 흔들림 수 */
+  constructor(
+    private readonly capPx = 8,
+    private readonly maxEntries = 8,
+  ) {}
+
+  /** stack=true(연속 착탄)끼리는 겹칠수록 커지고, false(일반 타격)는 가장 강한 하나만 반영 */
+  addShake(px: number, ms: number, now: number, stack = false): void {
+    if (px <= 0 || ms <= 0) return;
+    this.prune(now);
+    if (this.shakes.length >= this.maxEntries) {
+      // 가장 약하게 남은 것을 뺀다
+      let weakest = 0;
+      let weakestAmp = Infinity;
+      this.shakes.forEach((s, i) => {
+        const a = s.px * (1 - (now - s.start) / s.ms);
+        if (a < weakestAmp) {
+          weakestAmp = a;
+          weakest = i;
+        }
+      });
+      this.shakes.splice(weakest, 1);
+    }
+    this.shakes.push({ px, start: now, ms, stack });
+  }
+
+  /** 맞은 방향으로 화면을 순간 밀었다가(px) ms 동안 되돌림 */
+  addKick(dirX: number, dirY: number, px: number, ms: number, now: number): void {
+    const len = Math.hypot(dirX, dirY);
+    if (len === 0 || px <= 0 || ms <= 0) return;
+    const current = this.kick ? this.kickPx(now) : 0;
+    if (current > px) return;
+    this.kick = { x: dirX / len, y: dirY / len, px, start: now, ms };
+  }
+
+  /** 현재 흔들림 진폭(px): 전체 중 가장 강한 것과, 누적형(stack)의 "가장 강한 것 + 나머지 합의 절반" 중 큰 값. capPx 상한 */
+  amplitude(now: number): number {
+    let maxAll = 0;
+    let maxStack = 0;
+    let sumStack = 0;
+    for (const s of this.shakes) {
+      const t = (now - s.start) / s.ms;
+      if (t < 0 || t >= 1) continue;
+      const a = s.px * (1 - t);
+      if (a > maxAll) maxAll = a;
+      if (s.stack) {
+        sumStack += a;
+        if (a > maxStack) maxStack = a;
+      }
+    }
+    return Math.min(this.capPx, Math.max(maxAll, maxStack + (sumStack - maxStack) * 0.5));
+  }
+
+  private kickPx(now: number): number {
+    if (!this.kick) return 0;
+    const t = (now - this.kick.start) / this.kick.ms;
+    if (t < 0 || t >= 1) return 0;
+    return this.kick.px * (1 - t) * (1 - t);
+  }
+
+  /** 이번 프레임 카메라 오프셋(정수 px). rand: 0~1 난수, mul: 접근성 강도 0~1 */
+  sample(now: number, rand: () => number, mul = 1): { x: number; y: number } {
+    const m = Math.min(1, Math.max(0, mul));
+    if (m === 0) return { x: 0, y: 0 };
+    const a = this.amplitude(now) * m;
+    const k = this.kickPx(now) * m;
+    const kx = this.kick ? this.kick.x * k : 0;
+    const ky = this.kick ? this.kick.y * k : 0;
+    const x = Math.round(kx + (a > 0 ? (rand() * 2 - 1) * a : 0));
+    const y = Math.round(ky + (a > 0 ? (rand() * 2 - 1) * a : 0));
+    return { x: x === 0 ? 0 : x, y: y === 0 ? 0 : y };
+  }
+
+  private prune(now: number): void {
+    for (let i = this.shakes.length - 1; i >= 0; i--) {
+      const s = this.shakes[i];
+      if (s && now - s.start >= s.ms) this.shakes.splice(i, 1);
+    }
+  }
+
+  reset(): void {
+    this.shakes.length = 0;
+    this.kick = null;
+  }
+}
+
+/**
+ * 전역 정지 예산(새는 양동이): 길게 보면 정지 시간이 전체의 ratio 이하가 되게 한다.
+ * capMs는 한 번에 몰아 쓸 수 있는 양.
+ */
+export class StopBudget {
+  private level = 0;
+  private last = -Infinity;
+
+  constructor(
+    private readonly ratio: number,
+    private readonly capMs: number,
+  ) {}
+
+  /** ms만큼 정지해도 되면 기록하고 true. force(대형 처치 등)는 예산과 상관없이 허용하되 기록은 한다 */
+  request(now: number, ms: number, force = false): boolean {
+    // 경과 시간(정지 구간 포함)의 ratio만큼 비워진다 → 긴 구간에서 정지 비율이 ratio에 수렴
+    if (this.last !== -Infinity) this.level = Math.max(0, this.level - (now - this.last) * this.ratio);
+    this.last = now;
+    if (!force && this.level + ms > this.capMs) return false;
+    this.level += ms;
+    return true;
+  }
+}
+
+/** 이번 프레임에 "전체 연출"을 줄지: 우선순위가 alwaysFrom 이상이면 항상, 아니면 프레임당 budget개까지 */
+export function lodAllows(usedThisFrame: number, budget: number, priority: number, alwaysFrom: number): boolean {
+  return priority >= alwaysFrom || usedThisFrame < budget;
 }

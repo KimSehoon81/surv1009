@@ -1,4 +1,4 @@
-import type * as Phaser from 'phaser';
+import * as Phaser from 'phaser';
 import { CappedPool } from '../core/pool';
 import { fadeAlpha, parseColor } from '../core/feel';
 import type { Rng } from '../core/rng';
@@ -23,6 +23,14 @@ export interface ParticleKindData {
   fadeFromK?: number;
   spin?: number;
   alignToVelocity?: boolean;
+  /** 'add'면 가산 혼합(섬광·빛 웅덩이) */
+  blend?: 'add';
+  /** 텍스처 프레임 수: 수명 비율에 따라 0→n-1로 넘김(링 확장 등) */
+  frames?: number;
+  /** 세로 배율(지면에 눕힌 타원) */
+  flat?: number;
+  /** true면 지면 높이에서 시작(타격 높이 무시) */
+  ground?: boolean;
 }
 
 interface Kind {
@@ -93,6 +101,7 @@ export class ParticleSystem {
     const kind = this.kinds.get(kindName);
     if (!kind || count <= 0) return;
     const d = kind.data;
+    if (d.ground) height = 0;
     const base = dirX === 0 && dirY === 0 ? this.rng.next() * Math.PI * 2 : Math.atan2(dirY, dirX);
     for (let i = 0; i < count; i++) {
       const { item: p } = this.pool.acquire();
@@ -110,7 +119,8 @@ export class ParticleSystem {
       p.spin = d.spin ? (this.rng.next() - 0.5) * 2 * d.spin : 0;
       p.bounced = false;
       p.img
-        .setTexture(kind.texture)
+        .setTexture(kind.texture, d.frames ? 0 : undefined)
+        .setBlendMode(d.blend === 'add' ? Phaser.BlendModes.ADD : Phaser.BlendModes.NORMAL)
         .setTint(kind.tints[Math.floor(this.rng.next() * kind.tints.length)] ?? 0xffffff)
         .setDepth(kind.depth)
         .setRotation(d.alignToVelocity ? a : 0)
@@ -166,9 +176,10 @@ export class ParticleSystem {
     const d = p.kind.data;
     const k = p.ageMs / p.lifeMs;
     const s = at(d.scale, 0, 1) + (at(d.scale, 1, 1) - at(d.scale, 0, 1)) * k;
+    if (d.frames) p.img.setFrame(Math.min(d.frames - 1, Math.floor(k * d.frames)));
     p.img
       .setPosition(p.x, p.y - p.z)
-      .setScale(s)
+      .setScale(s, s * (d.flat ?? 1))
       .setAlpha(fadeAlpha(k, at(d.alpha, 0, 1), at(d.alpha, 1, 0), d.fadeFromK ?? 0));
   }
 
@@ -225,6 +236,45 @@ export function ensureParticleTextures(scene: Phaser.Scene): void {
     ctx.fillRect(0, 0, 3, 2);
   });
   make('smoke', 12, 12, (ctx) => disc(ctx, 6, 6, 6, 6, '#ffffff', true));
+  // 프레임이 있는 텍스처: 가로로 이어 그리고 프레임 등록
+  const makeFrames = (name: string, fw: number, fh: number, n: number, draw: (ctx: CanvasRenderingContext2D, i: number, ox: number) => void) => {
+    const key = PARTICLE_TEXTURE_PREFIX + name;
+    if (scene.textures.exists(key)) return;
+    const tex = scene.textures.createCanvas(key, fw * n, fh);
+    if (!tex) throw new Error(`입자 텍스처 생성 실패: ${key}`);
+    for (let i = 0; i < n; i++) {
+      draw(tex.getContext(), i, i * fw);
+      tex.add(i, 0, i * fw, 0, fw, fh);
+    }
+    tex.refresh();
+  };
+  // 섬광: 꽉 찬 원판 → 작은 원판 → 디더 원판(가산 혼합으로 착탄 코어를 밝힘)
+  makeFrames('flash', 24, 24, 3, (ctx, i, ox) => {
+    const r = [11, 9, 7][i] ?? 7;
+    disc(ctx, ox + 12, 12, r, r, '#ffffff', i === 2);
+  });
+  // 빛 웅덩이: 지면에 눕힌 넓은 타원(가산, 바닥 데칼층)
+  make('glow', 48, 24, (ctx) => {
+    disc(ctx, 24, 12, 24, 12, 'rgba(255,255,255,0.5)', true);
+    disc(ctx, 24, 12, 16, 8, '#ffffff');
+  });
+  // 지면 충격파 링: 바닥에 눕힌 정수 픽셀 타원을 단계적으로 키운 6프레임(확대하지 않고 그려 도트 굵기가 고름)
+  const ringR = [8, 16, 24, 32, 40, 48];
+  makeFrames('ring', 100, 50, ringR.length, (ctx, i, ox) => {
+    const rx = ringR[i] ?? 8;
+    const ry = rx / 2;
+    const th = i < 2 ? 2 : 1;
+    const inside = (x: number, y: number) => ((x + 0.5 - 50) / rx) ** 2 + ((y + 0.5 - 25) / ry) ** 2 <= 1;
+    ctx.fillStyle = '#ffffff';
+    for (let y = 0; y < 50; y++) {
+      for (let x = 0; x < 100; x++) {
+        if (!inside(x, y)) continue;
+        let edge = false;
+        for (let k = 1; k <= th && !edge; k++) edge = !inside(x - k, y) || !inside(x + k, y) || !inside(x, y - k) || !inside(x, y + k);
+        if (edge) ctx.fillRect(ox + x, y, 1, 1);
+      }
+    }
+  });
   make('crater', 30, 14, (ctx) => {
     disc(ctx, 15, 7, 15, 7, 'rgba(70,58,40,0.55)', true);
     disc(ctx, 15, 7.5, 11, 5, 'rgba(32,26,20,0.85)');

@@ -37,6 +37,8 @@ export class Enemy implements Agent {
   stunUntilMs = 0;
   /** 피격 넉백(이동은 EnemySystem.update에서 전투 시계로) */
   readonly kb: Knockback = createKnockback();
+  /** 국소 정지(일반 타격 2프레임): 이 시각(전투 시계)까지 넉백·애니메이션이 멈춤 */
+  freezeUntilMs = 0;
   private anims!: UnitAnims;
   private anim!: AnimState;
   private lastKey = '';
@@ -45,6 +47,11 @@ export class Enemy implements Agent {
   constructor(scene: Phaser.Scene) {
     this.sprite = scene.add.sprite(0, 0, manifest.sheetKey('E01', 'move'), 0).setOrigin(manifest.anchor.x, manifest.anchor.y);
     this.sprite.setActive(false).setVisible(false);
+  }
+
+  /** 등급(normal/elite/boss): 처치 연출·넉백 배율 */
+  get tier(): string {
+    return this.def.tier;
   }
 
   get x(): number {
@@ -75,6 +82,7 @@ export class Enemy implements Agent {
     this.alive = true;
     this.stunUntilMs = 0;
     this.kb.ms = 0;
+    this.freezeUntilMs = 0;
     this.anims = anims;
     this.anim = createAnimState(anims.rules, nowMs);
     this.lastKey = '';

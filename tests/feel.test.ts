@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import feel from '../src/data/feel.json';
+import sfx from '../src/data/sfx.json';
 import {
   Combo,
   createKnockback,
@@ -10,19 +11,22 @@ import {
   parseColor,
   punchCurve,
   punchRestartElapsed,
-  shakeIntensity,
+  Shaker,
+  StopBudget,
+  lodAllows,
   startKnockback,
   stepKnockback,
 } from '../src/core/feel';
 import { CappedPool } from '../src/core/pool';
 import { Depth, LAYER_ORDER } from '../src/config/depth';
 
-type Preset = Record<string, number | string | boolean | undefined>;
-const presets = feel.presets as Record<string, Preset>;
+type Preset = Record<string, unknown>;
+const presets = feel.presets as unknown as Record<string, Preset>;
 
 describe('PRD §4.4 프리셋 수치', () => {
-  it('히트스톱 2/5/10프레임, 대형 처치 슬로모 0.3배 0.5초', () => {
-    expect(presets.normal?.hitstopFrames).toBe(2);
+  it('히트스톱 2(맞은 적만 국소)/5/10프레임, 대형 처치 슬로모 0.3배 0.5초', () => {
+    expect(presets.normal?.localStopFrames).toBe(2);
+    expect(presets.normal?.hitstopFrames).toBeUndefined();
     expect(presets.crit?.hitstopFrames).toBe(5);
     expect(presets.kill_big?.hitstopFrames).toBe(10);
     expect(presets.kill_big?.slowmoScale).toBe(0.3);
@@ -56,8 +60,11 @@ describe('PRD §4.4 프리셋 수치', () => {
     const styles = Object.keys(feel.numbers.styles);
     for (const [name, p] of Object.entries(presets)) {
       if (p.number !== undefined) expect(styles, name).toContain(p.number);
-      if (p.fx !== undefined) expect(Object.keys(feel.fxFps), name).toContain(p.fx);
+      if (p.fx !== undefined) expect(Object.keys(feel.fxTiming), name).toContain(p.fx);
+      if (p.sfx !== undefined) expect(Object.keys(sfx.cues), name).toContain(p.sfx);
+      for (const kind of Object.keys((p.emit as Record<string, number> | undefined) ?? {})) expect(Object.keys(feel.particles.kinds), name).toContain(kind);
     }
+    expect(Object.keys(sfx.cues)).toContain(feel.muzzle.sfx);
     for (const target of Object.values(feel.killPresetByTier)) expect(Object.keys(presets)).toContain(target);
     for (const kind of ['spark', 'smoke', 'debris', 'crater', 'casing']) expect(Object.keys(feel.particles.kinds)).toContain(kind);
     for (const k of Object.values(feel.particles.kinds)) expect(Object.keys(Depth)).toContain(k.depth);
@@ -99,10 +106,49 @@ describe('화면 연출 계산', () => {
     expect(framesToMs(-1)).toBe(0);
   });
 
-  it('흔들림 px를 뷰포트 비율로, 강도 배율 적용', () => {
-    expect(shakeIntensity(3, 960, 540)).toEqual({ x: 3 / 960, y: 3 / 540 });
-    expect(shakeIntensity(6, 960, 540, 0.5).x).toBeCloseTo(3 / 960);
-    expect(shakeIntensity(6, 960, 540, 0)).toEqual({ x: 0, y: 0 });
+  it('흔들림: 시간이 지나면 0, 정수 px, 강도 0이면 없음', () => {
+    const sh = new Shaker(8);
+    sh.addShake(3, 150, 0);
+    expect(sh.amplitude(0)).toBe(3);
+    expect(sh.amplitude(75)).toBeCloseTo(1.5);
+    expect(sh.amplitude(150)).toBe(0);
+    const o = sh.sample(10, () => 0.99, 1);
+    expect(Number.isInteger(o.x) && Number.isInteger(o.y)).toBe(true);
+    expect(Math.abs(o.x)).toBeLessThanOrEqual(3);
+    expect(sh.sample(10, () => 0.99, 0)).toEqual({ x: 0, y: 0 });
+  });
+
+  it('흔들림 누적: 일반 타격은 가장 강한 하나만, 연속 착탄(stack)은 겹칠수록 커지고 상한', () => {
+    const plain = new Shaker(8);
+    for (let i = 0; i < 5; i++) plain.addShake(2, 200, 0);
+    expect(plain.amplitude(0)).toBe(2);
+    const stack = new Shaker(8);
+    for (let i = 0; i < 3; i++) stack.addShake(2, 200, 0, true);
+    expect(stack.amplitude(0)).toBe(4); // 2 + (6-2)/2
+    for (let i = 0; i < 8; i++) stack.addShake(2, 200, 0, true);
+    expect(stack.amplitude(0)).toBe(8);
+  });
+
+  it('방향 킥: 타격 방향으로 밀었다가 돌아옴', () => {
+    const sh = new Shaker(8);
+    sh.addKick(1, 0, 3, 100, 0);
+    expect(sh.sample(0, () => 0.5, 1)).toEqual({ x: 3, y: 0 });
+    expect(sh.sample(100, () => 0.5, 1)).toEqual({ x: 0, y: 0 });
+  });
+
+  it('정지 예산: 길게 보면 정지가 20%를 넘지 않음, 대형 처치(force)는 예외', () => {
+    const b = new StopBudget(0.2, 200);
+    let stopped = 0;
+    // 1초 동안 매 프레임 치명타 정지(83ms) 요청
+    for (let t = 0; t < 10000; t += 16) if (b.request(t, 83)) stopped += 83;
+    expect(stopped / 10000).toBeLessThanOrEqual(0.2 + 0.03);
+    expect(b.request(10000, 167, true)).toBe(true);
+  });
+
+  it('LOD: 프레임 예산 안이거나 우선순위가 높으면 전체 연출', () => {
+    expect(lodAllows(0, 6, 10, 50)).toBe(true);
+    expect(lodAllows(6, 6, 10, 50)).toBe(false);
+    expect(lodAllows(99, 6, 50, 50)).toBe(true);
   });
 
   it('데미지 숫자: 위로 튀고 크게 떴다 줄고 끝에 사라짐', () => {

@@ -1,20 +1,23 @@
-import * as Phaser from 'phaser';
+import type * as Phaser from 'phaser';
 import feelData from '../data/feel.json';
 import {
   Combo,
   FRAME_MS,
+  Shaker,
+  StopBudget,
   framesToMs,
   hitstopAllowed,
+  lodAllows,
   parseColor,
   punchCurve,
   punchRestartElapsed,
-  shakeIntensity,
   startKnockback,
   type Knockback,
 } from '../core/feel';
 import type { Rng } from '../core/rng';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { Depth } from '../config/depth';
+import { NO_AUDIO, type AudioSink } from './audio';
 import { MAX_REAL_DELTA_MS, type GameClock } from './clock';
 import { DamageNumbers, type NumbersData } from './damageNumbers';
 import type { FxSystem } from './fx';
@@ -23,8 +26,24 @@ import { PIXEL_FONT } from '../ui/pixelFont';
 
 /** feel.json 프리셋. 없는 항목은 연출하지 않는다 */
 export interface FeelPreset {
+  /** 전역 히트스톱(화면 전체 정지). 치명 이상만 */
   hitstopFrames?: number;
   hitstopMinGapMs?: number;
+  /** 정지 예산(초당 20%)과 상관없이 정지(대형 처치) */
+  hitstopForce?: boolean;
+  /** 국소 정지: 맞은 개체만 n프레임 멈춤(일반 타격) */
+  localStopFrames?: number;
+  /** 흔들림 누적(연속 착탄): true면 겹칠수록 커짐 */
+  shakeStack?: boolean;
+  /** 방향 킥: 타격 방향으로 화면을 순간 밈 */
+  kickPx?: number;
+  kickMs?: number;
+  /** 입자 종류별 개수(feel.json particles.kinds 이름) */
+  emit?: Record<string, number>;
+  /** 효과음 이름(sfx.json cues) */
+  sfx?: string;
+  /** 연출 우선순위: lod.alwaysFrom 이상은 프레임 예산과 상관없이 전체 연출 */
+  lod?: number;
   slowmoScale?: number;
   slowmoMs?: number;
   shakePx?: number;
@@ -47,13 +66,21 @@ export interface FeelPreset {
   combo?: boolean;
 }
 
+/** 맞은 개체(적). 넉백·국소 정지는 개체 쪽 update가 전투 시계로 처리한다 */
+export interface FeelTarget {
+  readonly sprite: Phaser.GameObjects.Sprite;
+  readonly kb: Knockback;
+  /** 이 시각(전투 시계)까지 국소 정지 */
+  freezeUntilMs: number;
+  /** 등급(넉백 배율) */
+  readonly tier: string;
+}
+
 export interface HitOptions {
-  /** 점멸·찌그러짐 대상 */
+  /** 맞은 적 */
+  target?: FeelTarget;
+  /** 점멸만 할 스프라이트(플레이어 등) */
   sprite?: Phaser.GameObjects.Sprite;
-  /** 넉백을 받을 개체의 상태(이동은 개체 쪽 update에서 전투 시계로) */
-  knockback?: Knockback;
-  /** 맞은 쪽 등급(넉백 배율) */
-  tier?: string;
   /** 타격 방향(넉백·스파크 방향) */
   dirX?: number;
   dirY?: number;
@@ -66,7 +93,7 @@ export interface HitOptions {
 const PRESETS = feelData.presets as Record<string, FeelPreset>;
 const KILL_BY_TIER = feelData.killPresetByTier as Record<string, string>;
 const KB_BY_TIER = feelData.knockbackMulByTier as Record<string, number>;
-const FX_FPS = feelData.fxFps as Record<string, number>;
+const LOD = feelData.lod;
 
 export function feelPreset(name: string): FeelPreset | undefined {
   return PRESETS[name];
@@ -87,8 +114,13 @@ export class Feel {
   private readonly flashes = new Map<Phaser.GameObjects.Sprite, number>();
   private readonly squashes = new Map<Phaser.GameObjects.Sprite, { until: number; sx: number; sy: number }>();
   private hitstopEndsReal = -Infinity;
-  private shakeUntil = -Infinity;
-  private shakePx = 0;
+  private readonly shaker = new Shaker(feelData.shake.capPx);
+  private readonly stopBudget = new StopBudget(feelData.stopBudget.ratio, feelData.stopBudget.capMs);
+  private readonly shakeRng: Rng;
+  private audio: AudioSink = NO_AUDIO;
+  /** 이번 프레임에 전체 연출을 준 타격 수(LOD) */
+  private fullUsed = 0;
+  private paused = false;
   private zoomStart = -Infinity;
   private zoomAmount = 0;
   private screenFlashStart = -Infinity;
@@ -107,6 +139,7 @@ export class Feel {
     private readonly fx: FxSystem,
     rng: Rng,
   ) {
+    this.shakeRng = rng.fork('shake');
     ensureParticleTextures(scene);
     ensureVignetteTexture(scene, feelData.vignette.color);
     this.particles = new ParticleSystem(scene, feelData.particles.cap, feelData.particles.kinds as Record<string, ParticleKindData>, rng.fork('particles'));
@@ -134,6 +167,18 @@ export class Feel {
     this.muzzleAnim = fx.cropAnim(feelData.muzzle.fx, feelData.muzzle.crop, feelData.muzzle.fps);
   }
 
+  /** 소리 출력 연결(없으면 무음). 같은 hit 호출에서 화면과 소리를 함께 내 프레임이 어긋나지 않게 한다 */
+  setAudio(sink: AudioSink): void {
+    this.audio = sink;
+  }
+
+  /** 카메라에 보이는지(여백 포함). 화면 밖 타격은 시각 연출을 생략한다 */
+  private onScreen(x: number, y: number): boolean {
+    const v = this.scene.cameras.main.worldView;
+    const m = LOD.offscreenMarginPx;
+    return x >= v.x - m && x <= v.right + m && y >= v.y - m && y <= v.bottom + m;
+  }
+
   /** 프리셋 하나를 (x, y)에서 재생. y는 연출 기준점(보통 몸통 높이) */
   hit(name: string, x: number, y: number, opt: HitOptions = {}): void {
     const p = PRESETS[name];
@@ -141,33 +186,57 @@ export class Feel {
     const now = this.now;
     const groundY = opt.groundY ?? y;
     const height = groundY - y;
+    const visible = this.onScreen(x, y);
+    // 프레임당 전체 연출 수 제한(대량 타격 때 가독성·성능). 우선순위 높은 연출은 항상
+    const full = visible && lodAllows(this.fullUsed, LOD.budget, p.lod ?? 0, LOD.alwaysFrom);
+    if (full) this.fullUsed++;
+    const dirX = opt.dirX ?? 0;
+    const dirY = opt.dirY ?? 0;
 
+    // 시간: 전역 정지는 예산 안에서만, 슬로모는 정지가 끝난 뒤부터 센다
+    let stopMs = 0;
     if (p.hitstopFrames && hitstopAllowed(now, this.hitstopEndsReal, p.hitstopMinGapMs)) {
-      this.clock.hitstop(p.hitstopFrames);
-      this.hitstopEndsReal = Math.max(this.hitstopEndsReal, now + framesToMs(p.hitstopFrames));
+      const ms = framesToMs(p.hitstopFrames);
+      if (this.stopBudget.request(now, ms, p.hitstopForce)) {
+        this.clock.hitstop(p.hitstopFrames);
+        this.hitstopEndsReal = Math.max(this.hitstopEndsReal, now + ms);
+        stopMs = ms;
+      }
     }
-    if (p.slowmoScale !== undefined && p.slowmoMs) this.clock.setScale('slowmo', p.slowmoScale, p.slowmoMs);
-    if (p.shakePx && p.shakeMs) this.shake(p.shakePx, p.shakeMs);
-    if (p.zoomPunch) this.zoomPunch(p.zoomPunch);
-    if (p.screenFlashFrames) this.flashScreen(framesToMs(p.screenFlashFrames));
+    if (p.slowmoScale !== undefined && p.slowmoMs) this.clock.setScale('slowmo', p.slowmoScale, p.slowmoMs + stopMs);
+    if (opt.target && p.localStopFrames) {
+      opt.target.freezeUntilMs = Math.max(opt.target.freezeUntilMs, this.clock.timeMs + framesToMs(p.localStopFrames));
+    }
+
+    if (visible) {
+      if (p.shakePx && p.shakeMs) this.shaker.addShake(p.shakePx, p.shakeMs, now, p.shakeStack);
+      if (p.kickPx && p.kickMs) this.shaker.addKick(dirX, dirY, p.kickPx, p.kickMs, now);
+      if (p.zoomPunch) this.zoomPunch(p.zoomPunch);
+      if (p.screenFlashFrames) this.flashScreen(framesToMs(p.screenFlashFrames));
+    }
     if (p.vignette) this.vignetteStart = now;
 
-    if (opt.sprite) {
-      if (p.flashColor && p.flashFrames) this.flash(opt.sprite, parseColor(p.flashColor), framesToMs(p.flashFrames));
-      if (p.squash) this.squash(opt.sprite);
+    const sprite = opt.target?.sprite ?? opt.sprite;
+    if (sprite) {
+      if (p.flashColor && p.flashFrames) this.flash(sprite, parseColor(p.flashColor), framesToMs(p.flashFrames));
+      if (p.squash && visible) this.squash(sprite);
     }
-    if (opt.knockback && p.knockbackPx && p.knockbackMs) {
-      const mul = KB_BY_TIER[opt.tier ?? 'normal'] ?? 1;
-      startKnockback(opt.knockback, opt.dirX ?? 0, opt.dirY ?? 0, p.knockbackPx * mul, p.knockbackMs);
+    if (opt.target && p.knockbackPx && p.knockbackMs) {
+      const mul = KB_BY_TIER[opt.target.tier] ?? 1;
+      startKnockback(opt.target.kb, dirX, dirY, p.knockbackPx * mul, p.knockbackMs);
     }
-    if (p.number) this.numbers.show(p.number, x, y - 6, opt.amount);
-    if (p.sparks) this.particles.emit('spark', x, groundY, p.sparks, height, -(opt.dirX ?? 0), -(opt.dirY ?? 0));
-    if (p.smoke) this.particles.emit('smoke', x, groundY, p.smoke, height);
-    if (p.debris) this.particles.emit('debris', x, groundY, p.debris, height);
-    if (p.crater) this.particles.emit('crater', x, groundY, p.crater);
-    // 타격 장식 이펙트만 동시 상한을 받는다(총구 섬광·무기 폭발은 상한 밖)
-    if (p.fx) this.fx.play(p.fx, x, y, p.fxScale ?? 1, Depth.Explosion, FX_FPS[p.fx], true);
-    if (p.combo) this.addCombo();
+    if (p.number && visible) this.numbers.show(p.number, x, y - 6, opt.amount);
+    if (full) {
+      if (p.sparks) this.particles.emit('spark', x, groundY, p.sparks, height, -dirX, -dirY);
+      if (p.smoke) this.particles.emit('smoke', x, groundY, p.smoke, height);
+      if (p.debris) this.particles.emit('debris', x, groundY, p.debris, height);
+      if (p.crater) this.particles.emit('crater', x, groundY, p.crater);
+      if (p.emit) for (const [kind, n] of Object.entries(p.emit)) this.particles.emit(kind, x, groundY, n, height);
+      // 타격 장식 이펙트만 동시 상한을 받는다(총구 섬광·무기 폭발은 상한 밖)
+      if (p.fx) this.fx.play(p.fx, x, y, p.fxScale ?? 1, Depth.Explosion, true);
+    }
+    const combo = p.combo ? this.addCombo() : 0;
+    if (p.sfx) this.audio.play(p.sfx, x, y, { combo });
   }
 
   /** 처치: 적 등급으로 프리셋 선택(일반 → kill, 정예·보스 → kill_big) */
@@ -180,19 +249,13 @@ export class Feel {
     const s = this.fx.playAnim(this.muzzleAnim, x, y, feelData.muzzle.scale, Depth.Spark);
     // flipX는 같은 사각형 안에서 좌우만 뒤집으므로 기준점도 반대편 끝으로
     s?.setOrigin(facing < 0 ? 1 : 0, 0.5).setFlipX(facing < 0);
+    this.audio.play(feelData.muzzle.sfx, x, y);
     if (feelData.muzzle.casing > 0) this.particles.emit('casing', x - facing * 20, groundY, feelData.muzzle.casing, 0, -facing, -0.6);
   }
 
-  shake(px: number, ms: number): void {
-    const now = this.now;
-    const mul = this.intensity.shake;
-    if (mul <= 0) return;
-    // 약한 흔들림이 진행 중인 강한 흔들림을 끊지 않게
-    if (now < this.shakeUntil && px < this.shakePx) return;
-    const i = shakeIntensity(px, LOGICAL_WIDTH, LOGICAL_HEIGHT, mul);
-    this.scene.cameras.main.shake(ms, new Phaser.Math.Vector2(i.x, i.y), true);
-    this.shakeUntil = now + ms;
-    this.shakePx = px;
+  /** 흔들림 추가(stack이면 겹칠수록 커짐). 실제 오프셋은 update에서 정수 px로 카메라에 준다 */
+  shake(px: number, ms: number, stack = false): void {
+    this.shaker.addShake(px, ms, this.now, stack);
   }
 
   zoomPunch(amount: number): void {
@@ -225,10 +288,10 @@ export class Feel {
     this.squashes.set(sprite, { until: this.now + feelData.squash.ms - FRAME_MS / 2, sx, sy });
   }
 
-  private addCombo(): void {
+  private addCombo(): number {
     const n = this.combo.add(this.clock.timeMs);
-    if (n < feelData.combo.minShow) return;
-    this.comboText.setText(`${n} COMBO`).setVisible(true).setScale(feelData.combo.scale * 1.3);
+    if (n >= feelData.combo.minShow) this.comboText.setText(`${n} COMBO`).setVisible(true).setScale(feelData.combo.scale * 1.3);
+    return n;
   }
 
   /** 풀로 돌아간 스프라이트의 점멸·찌그러짐을 원래대로 */
@@ -246,6 +309,8 @@ export class Feel {
    * 끝에서 갱신하면 이번 프레임의 타격이 직전 프레임 시각을 써서 점멸이 한 프레임 짧아진다.
    */
   beginFrame(realDeltaMs: number, hardPaused: boolean): void {
+    this.paused = hardPaused;
+    this.fullUsed = 0;
     if (!hardPaused) this.now += Math.min(Math.max(0, realDeltaMs), MAX_REAL_DELTA_MS);
   }
 
@@ -264,8 +329,12 @@ export class Feel {
         this.squashes.delete(sprite);
       }
     }
+    const cam = this.scene.cameras.main;
     const z = feelData.zoomPunch;
-    this.scene.cameras.main.setZoom(1 + this.zoomAmount * punchCurve(now - this.zoomStart, z.inMs, z.outMs));
+    cam.setZoom(1 + this.zoomAmount * punchCurve(now - this.zoomStart, z.inMs, z.outMs));
+    // 흔들림·킥: 정지 중에는 0(시계가 멈춰 같은 진폭으로 계속 떨리지 않게)
+    const off = this.paused ? { x: 0, y: 0 } : this.shaker.sample(now, () => this.shakeRng.next(), this.intensity.shake);
+    cam.setFollowOffset(-off.x, -off.y);
 
     const sf = (now - this.screenFlashStart) / Math.max(1, this.screenFlashMs);
     const flashAlpha = sf >= 0 && sf < 1 ? feelData.screenFlash.maxAlpha * this.intensity.flash * (1 - sf) : 0;
@@ -294,7 +363,8 @@ export class Feel {
     this.combo.expire(Infinity);
     this.comboText.setVisible(false);
     this.zoomAmount = 0;
-    this.scene.cameras.main.setZoom(1);
+    this.shaker.reset();
+    this.scene.cameras.main.setZoom(1).setFollowOffset(0, 0);
   }
 }
 

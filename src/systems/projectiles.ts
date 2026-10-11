@@ -10,7 +10,7 @@ import { MAX_ENEMY_RADIUS, type Enemy } from '../entities/Enemy';
 export interface ProjectileHooks {
   /** (dirX, dirY): 투사체 진행 방향(넉백·스파크 방향) */
   onHit(e: Enemy, damageMult: number, dirX: number, dirY: number): void;
-  onLand(x: number, y: number, radius: number, damageMult: number, fx: string | undefined, fxScale: number): void;
+  onLand(x: number, y: number, radius: number, damageMult: number, fx: string | undefined, fxScale: number, impact: string | undefined): void;
 }
 
 interface Projectile {
@@ -37,6 +37,7 @@ interface Projectile {
   aoe: number;
   fx: string | undefined;
   fxScale: number;
+  impact: string | undefined;
 }
 
 export interface BulletSpec {
@@ -58,6 +59,8 @@ export interface LobSpec {
   damageMult: number;
   fx: string | undefined;
   fxScale: number;
+  /** 착지 지점 연출 프리셋(feel.json) */
+  impact: string | undefined;
 }
 
 
@@ -73,7 +76,7 @@ export class ProjectileSystem {
       () => ({
         sprite: scene.add.image(0, 0, '__DEFAULT').setActive(false).setVisible(false).setDepth(Depth.Projectile),
         lob: false, x: 0, y: 0, vx: 0, vy: 0, lifeMs: 0, radius: 4, pierceLeft: 0, damageMult: 1, hit: new Set<Enemy>(),
-        sx: 0, sy: 0, tx: 0, ty: 0, t: 0, flightMs: 1, arc: 0, aoe: 0, fx: undefined, fxScale: 1,
+        sx: 0, sy: 0, tx: 0, ty: 0, t: 0, flightMs: 1, arc: 0, aoe: 0, fx: undefined, fxScale: 1, impact: undefined,
       }),
       96,
     );
@@ -123,6 +126,7 @@ export class ProjectileSystem {
     p.damageMult = spec.damageMult;
     p.fx = spec.fx;
     p.fxScale = spec.fxScale;
+    p.impact = spec.impact;
     p.sprite.setPosition(fromX, fromY - this.bodyOffsetY);
   }
 
@@ -139,7 +143,7 @@ export class ProjectileSystem {
         const h = Math.sin(k * Math.PI) * p.arc;
         p.sprite.setPosition(gx, gy - this.bodyOffsetY * (1 - k) - h).setRotation(k * Math.PI * 4);
         if (k >= 1) {
-          hooks.onLand(p.tx, p.ty, p.aoe, p.damageMult, p.fx, p.fxScale);
+          hooks.onLand(p.tx, p.ty, p.aoe, p.damageMult, p.fx, p.fxScale, p.impact);
           this.release(p);
         }
         continue;

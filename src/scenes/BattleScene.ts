@@ -12,6 +12,7 @@ import { params } from '../config/params';
 import { GameClock } from '../systems/clock';
 import { DebugOverlay } from '../systems/debugOverlay';
 import { EnemySystem } from '../systems/enemies';
+import { AudioSystem } from '../systems/audio';
 import { Feel } from '../systems/feel';
 import { Floor, type FloorConfig } from '../systems/floor';
 import { FxSystem } from '../systems/fx';
@@ -39,6 +40,7 @@ export class BattleScene extends Phaser.Scene {
   private pickups!: PickupSystem;
   private fx!: FxSystem;
   private feel!: Feel;
+  audio!: AudioSystem;
   private combatRng!: Rng;
   private hpBar!: Phaser.GameObjects.Graphics;
   private debug!: DebugOverlay;
@@ -76,11 +78,13 @@ export class BattleScene extends Phaser.Scene {
     });
     this.fx = new FxSystem(this, feelData.fxCap);
     this.feel = new Feel(this, this.clock, this.fx, rng.fork('feel'));
+    this.audio = new AudioSystem(this, rng.fork('audio'));
+    this.feel.setAudio(this.audio);
     this.weapons = new WeaponSystem();
     this.equipStartingWeapons();
     this.hooks = {
       onHit: (e, mult, dx, dy) => this.damageEnemy(e, mult, dx, dy),
-      onLand: (x, y, radius, mult, fxName, fxScale) => this.explode(x, y, radius, mult, fxName, fxScale),
+      onLand: (x, y, radius, mult, fxName, fxScale, impact) => this.explode(x, y, radius, mult, fxName, fxScale, impact),
     };
 
     this.weaponHooks = { onFire: (x, y, facing) => this.feel.muzzle(x, y, facing, this.player.y) };
@@ -109,13 +113,24 @@ export class BattleScene extends Phaser.Scene {
         `weapons ${this.weapons.equipped.map((w) => w.id).join(',')} shots ${this.projectiles.active} fx ${this.fx.active}`,
         `xp ${this.run.xp} kills ${this.run.kills} gems ${this.pickups.active} taken ${this.run.damageTaken} blocks ${this.run.blocks}`,
         `feel particles ${this.feel.particles.active}/${this.feel.particles.cap} numbers ${this.feel.numbers.active} combo ${this.feel.combo.count}`,
+        `audio ${this.audio.enabled ? `voices ${this.audio.activeVoices} played ${this.audio.played} dropped ${this.audio.dropped}` : 'off'}`,
         params.debug ? 'J공격 K방어 L스킬 U치명 O느림 C캐릭터 V수류탄 I무적 B대형처치 F2적300 Esc정지' : '',
       ].filter(Boolean);
     });
 
+    // 창·탭을 벗어나면 자동 일시정지(돌아왔을 때 이미 맞고 있지 않게)
+    const autoPause = () => {
+      if (!this.run.defeated && !this.clock.hasScale('pause')) this.togglePause();
+    };
+    this.game.events.on(Phaser.Core.Events.BLUR, autoPause);
+    this.game.events.on(Phaser.Core.Events.HIDDEN, autoPause);
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.game.events.off(Phaser.Core.Events.BLUR, autoPause);
+      this.game.events.off(Phaser.Core.Events.HIDDEN, autoPause);
       this.controls.destroy();
       this.floor.destroy();
+      this.audio.destroy();
     });
   }
 
@@ -142,10 +157,13 @@ export class BattleScene extends Phaser.Scene {
       this.weapons.update(dt, now, p, this.enemies.grid, this.projectiles, this.weaponHooks);
       this.projectiles.update(dt, this.enemies.grid, this.hooks);
       this.contactDamage(now);
-      this.run.xp += this.pickups.update(dt, p.x, p.y, p.stats.magnet);
+      const gained = this.pickups.update(dt, p.x, p.y, p.stats.magnet);
+      if (gained > 0) this.audio.play('pickup');
+      this.run.xp += gained;
     }
     this.fx.update(this.clock.effectScale);
     this.feel.update(this.clock.effectDeltaMs);
+    this.audio.update({ paused: this.clock.hardPaused, slowmo: this.clock.hasScale('slowmo'), judge: this.clock.hasScale('judge') }, cam.midPoint.x, cam.midPoint.y);
     // 피격 무적 중 깜빡임
     p.sprite.setAlpha(now < p.invulnUntilMs && Math.floor(now / combat.invulnBlinkMs) % 2 === 0 ? combat.invulnBlinkAlpha : 1);
     this.drawHpBar();
@@ -154,8 +172,11 @@ export class BattleScene extends Phaser.Scene {
     this.controls.endFrame();
   }
 
-  /** 투사체·폭발이 적을 맞혔을 때(PRD §4.3: 0.15초 경직, §4.4: 타격감). (dirX, dirY)는 타격 방향 */
-  private damageEnemy(e: Enemy, damageMult: number, dirX: number, dirY: number): void {
+  /**
+   * 투사체·폭발이 적을 맞혔을 때(PRD §4.3: 0.15초 경직, §4.4: 타격감). (dirX, dirY)는 타격 방향.
+   * aoe(범위 공격)는 중심 연출을 explode가 한 번만 내고, 맞은 적마다는 가벼운 프리셋(aoe_hit)을 쓴다.
+   */
+  private damageEnemy(e: Enemy, damageMult: number, dirX: number, dirY: number, aoe = false): void {
     if (!e.alive) return;
     const now = this.clock.timeMs;
     const s = this.player.stats;
@@ -164,16 +185,8 @@ export class BattleScene extends Phaser.Scene {
       this.combatRng,
     );
     e.hp -= res.damage;
-    const bodyY = e.y - combat.bodyOffsetY;
-    this.feel.hit(res.crit ? 'crit' : 'normal', e.x, bodyY, {
-      sprite: e.sprite,
-      knockback: e.kb,
-      tier: e.def.tier,
-      dirX,
-      dirY,
-      amount: res.damage,
-      groundY: e.y,
-    });
+    const preset = res.crit ? (aoe ? 'aoe_crit' : 'crit') : aoe ? 'aoe_hit' : 'normal';
+    this.feel.hit(preset, e.x, e.y - combat.bodyOffsetY, { target: e, dirX, dirY, amount: res.damage, groundY: e.y });
     if (res.crit) this.player.trigger('crit', now);
     if (e.hp <= 0) {
       this.finishEnemy(e);
@@ -193,14 +206,16 @@ export class BattleScene extends Phaser.Scene {
   }
 
   /** 곡사 착지: 범위 안 모든 적에게 피해 + 폭발 이펙트 */
-  private explode(x: number, y: number, radius: number, mult: number, fxName: string | undefined, fxScale: number): void {
-    if (fxName) this.fx.play(fxName, x, y - combat.bodyOffsetY * 0.4, fxScale);
+  private explode(x: number, y: number, radius: number, mult: number, fxName: string | undefined, fxScale: number, impact: string | undefined): void {
+    const cy = y - combat.bodyOffsetY * 0.4;
+    if (fxName) this.fx.play(fxName, x, cy, fxScale);
+    if (impact) this.feel.hit(impact, x, cy, { groundY: y });
     const hit: Enemy[] = [];
     this.enemies.grid.forEachNear(x, y, radius + MAX_ENEMY_RADIUS, (e, d2) => {
       const r = radius + e.radius;
       if (e.alive && d2 <= r * r) hit.push(e);
     });
-    for (const e of hit) this.damageEnemy(e, mult, e.x - x, e.y - y);
+    for (const e of hit) this.damageEnemy(e, mult, e.x - x, e.y - y, true);
   }
 
   /** 적과 몸이 닿으면 피해. 무적 시간 동안은 다시 맞지 않는다. 방어 판정 성공 시 −50% + 방어 동작 */
@@ -222,7 +237,12 @@ export class BattleScene extends Phaser.Scene {
     p.invulnUntilMs = now + combat.playerInvulnMs;
     this.run.damageTaken += res.damage;
     this.feel.flash(p.sprite, parseColor(res.blocked ? feelData.playerFlash.block : feelData.playerFlash.hurt), combat.playerHurtFlashMs);
-    this.feel.hit(res.blocked ? 'block' : 'player_hit', p.x, p.y - combat.bodyOffsetY, { amount: res.damage, groundY: p.y });
+    this.feel.hit(res.blocked ? 'block' : 'player_hit', p.x, p.y - combat.bodyOffsetY, {
+      amount: res.damage,
+      groundY: p.y,
+      dirX: p.x - e.x,
+      dirY: p.y - e.y,
+    });
     if (res.blocked) {
       this.run.blocks++;
       p.trigger('defend', now);

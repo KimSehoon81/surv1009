@@ -97,6 +97,7 @@ export class WeaponSystem {
             damageMult: w.def.damageMult,
             fx: typeof def.fx === 'string' ? def.fx : undefined,
             fxScale: num(w.def, 'fxScale') ?? 1,
+            impact: typeof def.impact === 'string' ? def.impact : undefined,
           },
           player.x,
           player.y,
