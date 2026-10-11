@@ -22,7 +22,8 @@ function battleAssets(): AssetSpec[] {
   const ui = [...new Set(['star_xp', 'icon_upgrade_reroll', ...weaponSprites, ...upgradeIcons])].map((n) => manifest.image('ui', n, 32, 32));
   // 이펙트: 무기·타격감 프리셋·총구 섬광이 참조하는 시트 전부
   const named = (o: object) => Object.values(o as Record<string, { fx?: string }>).map((v) => v.fx);
-  const fxNames = new Set([...named(weaponData.weapons), ...named(feelData.presets), feelData.muzzle.fx]);
+  const sheets = Object.values(feelData.particles.kinds as Record<string, { sheet?: string }>).map((k) => k.sheet);
+  const fxNames = new Set([...named(weaponData.weapons), ...named(feelData.presets), feelData.muzzle.fx, ...sheets]);
   const fx = [...fxNames].filter((n): n is string => typeof n === 'string').map((n) => manifest.fx(n));
   return [...units, ...ui, ...fx, manifest.tile(floorData.S1.base), manifest.tile(floorData.S1.patch)];
 }

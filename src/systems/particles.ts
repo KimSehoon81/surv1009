@@ -3,6 +3,7 @@ import { CappedPool } from '../core/pool';
 import { fadeAlpha, parseColor } from '../core/feel';
 import type { Rng } from '../core/rng';
 import { Depth } from '../config/depth';
+import { manifest } from '../assets/manifest';
 
 /** feel.json particles.kinds 한 항목 */
 export interface ParticleKindData {
@@ -31,10 +32,16 @@ export interface ParticleKindData {
   flat?: number;
   /** true면 지면 높이에서 시작(타격 높이 무시) */
   ground?: boolean;
+  /** 코드 텍스처 대신 이펙트 시트(public/assets/fx) 사용 */
+  sheet?: string;
+  /** 시트 프레임 중 하나를 무작위로(그을음 변형 등). frames(수명 따라 넘김)와 함께 쓰지 않음 */
+  randomFrame?: boolean;
 }
 
 interface Kind {
   texture: string;
+  /** 시트 프레임 수(randomFrame용) */
+  sheetFrames: number;
   tints: number[];
   data: ParticleKindData;
   depth: number;
@@ -74,7 +81,14 @@ export class ParticleSystem {
     for (const [name, data] of Object.entries(kinds)) {
       const depth = (Depth as Record<string, number>)[data.depth];
       if (depth === undefined) throw new Error(`입자 ${name}: 알 수 없는 depth ${data.depth}`);
-      this.kinds.set(name, { texture: PARTICLE_TEXTURE_PREFIX + data.texture, tints: data.tints.map(parseColor), data, depth });
+      const sheet = data.sheet ? manifest.fx(data.sheet) : null;
+      this.kinds.set(name, {
+        texture: sheet ? sheet.key : PARTICLE_TEXTURE_PREFIX + data.texture,
+        sheetFrames: sheet ? sheet.frames : 1,
+        tints: data.tints.map(parseColor),
+        data,
+        depth,
+      });
     }
     const first = this.kinds.values().next().value as Kind;
     this.pool = new CappedPool<Particle>(
@@ -119,7 +133,7 @@ export class ParticleSystem {
       p.spin = d.spin ? (this.rng.next() - 0.5) * 2 * d.spin : 0;
       p.bounced = false;
       p.img
-        .setTexture(kind.texture, d.frames ? 0 : undefined)
+        .setTexture(kind.texture, d.randomFrame ? Math.floor(this.rng.next() * kind.sheetFrames) : d.frames || d.sheet ? 0 : undefined)
         .setBlendMode(d.blend === 'add' ? Phaser.BlendModes.ADD : Phaser.BlendModes.NORMAL)
         .setTint(kind.tints[Math.floor(this.rng.next() * kind.tints.length)] ?? 0xffffff)
         .setDepth(kind.depth)
@@ -274,10 +288,5 @@ export function ensureParticleTextures(scene: Phaser.Scene): void {
         if (edge) ctx.fillRect(ox + x, y, 1, 1);
       }
     }
-  });
-  make('crater', 30, 14, (ctx) => {
-    disc(ctx, 15, 7, 15, 7, 'rgba(70,58,40,0.55)', true);
-    disc(ctx, 15, 7.5, 11, 5, 'rgba(32,26,20,0.85)');
-    disc(ctx, 14, 6.5, 6, 2.5, 'rgba(18,14,10,0.9)');
   });
 }
