@@ -1,0 +1,16 @@
+{
+  "$comment": "조합 레시피(PRD §5.3). tags는 필요한 태그의 다중집합. 매칭 해석: 제출 카드(마이너스 제외) 태그 안에 들어가는 레시피 중 카드를 가장 많이 쓰는 것, 같으면 priority가 큰 것. 레시피에 쓰이지 않은 카드는 성공 시 자기 단일 효과를 내고 소모(PRD §5.1 v0.2). cooldownMs가 있는 레시피는 그동안 매칭에서 빠짐(연합군 총공세 60초)",
+  "combos": [
+    { "id": "precision_bomb", "name": "정밀 폭격", "tags": ["air", "intel"], "priority": 5 },
+    { "id": "bomber_wing", "name": "폭격기 편대", "tags": ["air", "air"], "priority": 4 },
+    { "id": "timebomb", "name": "시한폭탄", "tags": ["engineer", "artillery"], "priority": 4 },
+    { "id": "barrage", "name": "연발탄", "tags": ["artillery", "intel"], "priority": 5 },
+    { "id": "volley_fire", "name": "일제 사격", "tags": ["infantry", "infantry", "infantry"], "priority": 3 },
+    { "id": "support_fire", "name": "지원군 사격", "tags": ["allied", "infantry"], "priority": 3 },
+    { "id": "naval_support", "name": "함포 지원", "tags": ["navy", "artillery"], "priority": 4 },
+    { "id": "tank_breakthrough", "name": "전차 돌파", "tags": ["armor", "infantry"], "priority": 4 },
+    { "id": "field_medic", "name": "야전 치료", "tags": ["medical", "infantry"], "priority": 3 },
+    { "id": "minefield", "name": "지뢰 살포", "tags": ["engineer", "armor"], "priority": 4 },
+    { "id": "allied_offensive", "name": "연합군 총공세", "tags": ["allied", "allied", "allied"], "priority": 9, "cooldownMs": 60000 }
+  ]
+}

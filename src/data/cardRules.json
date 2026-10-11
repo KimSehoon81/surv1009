@@ -1,0 +1,22 @@
+{
+  "$comment": "카드 규칙 수치(PRD §5.1·§5.4(c), v0.2). baseChance 30%, countBonus=실제 카드 수(마이너스 제외) 2장 +5%p·3장 +10%p, intelBonus=정보 태그 또는 척후 보고 대기 +10%p(1회), cap 60%, gambleBonus=마이너스를 끼운 무리수 +10%p, luckPerPoint=행운 1당 +%p(PRD 밖 값). 손패 수·드로우 속도 배율은 플레이어 능력치(handSize·drawSpeed). initialHand=시작 손패(PRD 밖 값: 첫 1분을 가볍게). 실패로 소멸한 카드와 성공으로 쓴 카드는 모두 버린 더미로 가서 덱이 비면 다시 섞임(15분 런에서 덱이 마르지 않게). opForSeal=인장에 필요한 OP(인게임 작전 숙련이 최대 2 줄임), maxSeals=최대 보관(가득이면 OP 누적 정지). minusLifeMs=마이너스 자동 발동까지, minusDiscardOp=단독 제출 폐기 비용. minusChance=드로우 때 마이너스 혼입 확률(스테이지 1 → 10 선형). pity=연속 실패 완충 사용 여부(표시 확률의 장기 평균을 유지하는 의사난수 분포)",
+  "deckSize": 20,
+  "initialHand": 3,
+  "maxSelect": 3,
+  "drawIntervalMs": 6000,
+  "baseChance": 0.3,
+  "countBonus": { "1": 0, "2": 0.05, "3": 0.1 },
+  "intelBonus": 0.1,
+  "gambleBonus": 0.1,
+  "luckPerPoint": 0.01,
+  "cap": 0.6,
+  "submitCooldownMs": 3000,
+  "opPerFail": 1,
+  "opForSeal": 10,
+  "maxSeals": 2,
+  "minusLifeMs": 12000,
+  "minusDiscardOp": 3,
+  "minusChance": { "stage1": 0.05, "stage10": 0.25 },
+  "gradeOrder": ["common", "rare", "legendary"],
+  "pity": true
+}

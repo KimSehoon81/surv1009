@@ -1,0 +1,34 @@
+{
+  "$comment": "카드 카탈로그(PRD §5.3.1). tag: infantry 보병, artillery 포병, armor 기갑, air 공군, navy 해군, intel 정보, engineer 공병, medical 의무, allied 연합, minus 마이너스. grade: common < rare < legendary(실패 시 낮은 등급부터 소멸), minus는 마이너스. effect는 단일 효과 ID(처리는 D09 효과 레지스트리), params는 그 수치. starterDeck=기본 덱 20장(P12·P14·P16은 해금 카드, PRD 밖 구성)",
+  "tags": {
+    "infantry": "보병", "artillery": "포병", "armor": "기갑", "air": "공군", "navy": "해군",
+    "intel": "정보", "engineer": "공병", "medical": "의무", "allied": "연합", "minus": "마이너스"
+  },
+  "cards": {
+    "P01": { "name": "소총 소대", "tag": "infantry", "grade": "common", "effect": "volley", "params": {} },
+    "P02": { "name": "수류탄 분대", "tag": "infantry", "grade": "common", "effect": "grenades", "params": {} },
+    "P03": { "name": "포병 관측반", "tag": "artillery", "grade": "common", "effect": "mortar", "params": {} },
+    "P04": { "name": "폭격기 요청", "tag": "air", "grade": "rare", "effect": "bomb", "params": {} },
+    "P05": { "name": "함포 지원 요청", "tag": "navy", "grade": "rare", "effect": "naval_shell", "params": {} },
+    "P06": { "name": "전차 소대", "tag": "armor", "grade": "rare", "effect": "tank_dash", "params": {} },
+    "P07": { "name": "공병 분대", "tag": "engineer", "grade": "common", "effect": "timebomb", "params": {} },
+    "P08": { "name": "야전 의무대", "tag": "medical", "grade": "common", "effect": "heal", "params": {} },
+    "P09": { "name": "유엔군 증원", "tag": "allied", "grade": "rare", "effect": "support_fire", "params": {} },
+    "P10": { "name": "척후 보고", "tag": "intel", "grade": "common", "effect": "scout", "params": {} },
+    "P11": { "name": "통신 복구", "tag": "intel", "grade": "common", "effect": "clear_disruption", "params": {} },
+    "P12": { "name": "작전계획서", "tag": "intel", "grade": "legendary", "effect": "next_upgrade_value", "params": {} },
+    "P13": { "name": "정찰 보고서", "tag": "intel", "grade": "rare", "effect": "next_upgrade_rare", "params": {} },
+    "P14": { "name": "참모 회의", "tag": "intel", "grade": "rare", "effect": "next_upgrade_count", "params": {} },
+    "P15": { "name": "재보급", "tag": "allied", "grade": "common", "effect": "rerolls", "params": {} },
+    "P16": { "name": "전공 훈장", "tag": "allied", "grade": "legendary", "effect": "xp_boost", "params": {} },
+    "M01": { "name": "오보", "tag": "minus", "grade": "minus", "effect": "misinformation", "params": {} },
+    "M02": { "name": "아군 오폭", "tag": "minus", "grade": "minus", "effect": "friendly_fire", "params": {} },
+    "M03": { "name": "보급 부족", "tag": "minus", "grade": "minus", "effect": "supply_short", "params": {} },
+    "M04": { "name": "불발탄", "tag": "minus", "grade": "minus", "effect": "dud", "params": {} },
+    "M05": { "name": "사기 저하", "tag": "minus", "grade": "minus", "effect": "low_morale", "params": {} },
+    "M06": { "name": "혹한·동상", "tag": "minus", "grade": "minus", "effect": "frostbite", "params": {} },
+    "M07": { "name": "통신 두절", "tag": "minus", "grade": "minus", "effect": "comms_down", "params": {} },
+    "M08": { "name": "지휘 혼선", "tag": "minus", "grade": "minus", "effect": "confusion", "params": {} }
+  },
+  "starterDeck": ["P01", "P01", "P02", "P02", "P03", "P03", "P04", "P04", "P05", "P06", "P07", "P07", "P08", "P08", "P09", "P10", "P10", "P11", "P13", "P15"]
+}
