@@ -66,6 +66,12 @@ export class GameClock {
     if (ms > this.hitstopRemainingMs) this.hitstopRemainingMs = ms;
   }
 
+  /** 해제할 때까지 유지되는 배율 0(일시정지·레벨업 선택 등)이 걸려 있음 */
+  get hardPaused(): boolean {
+    for (const entry of this.modifiers.values()) if (entry.scale === 0 && entry.remainingMs === Infinity) return true;
+    return false;
+  }
+
   /** 현재 배율 (tick 전 미리보기) */
   get scale(): number {
     if (this.hitstopRemainingMs > 0) return 0;
@@ -85,6 +91,13 @@ export class GameClock {
    */
   tick(realDeltaMs: number): number {
     const real = Math.min(Math.max(0, realDeltaMs), MAX_REAL_DELTA_MS);
+    // 일시정지·레벨업 선택 같은 완전 정지 중에는 슬로모·히트스톱 남은 시간도 줄지 않는다
+    // (슬로모 도중 Esc를 눌렀다 재개하면 슬로모가 이어져야 한다)
+    if (this.hardPaused) {
+      this.lastEffectDelta = 0;
+      this.lastScale = 0;
+      return 0;
+    }
 
     // 히트스톱이 프레임 중간에 끝나면 남은 실시간은 정상 배율로 흐르게 나눈다
     const stopMs = Math.min(this.hitstopRemainingMs, real);

@@ -121,3 +121,19 @@ export function punchCurve(elapsedMs: number, inMs: number, outMs: number): numb
   if (t >= outMs) return 0;
   return 1 - easeOutQuad(t / outMs);
 }
+
+/**
+ * 히트스톱을 걸지 판정. 간격(minGapMs)이 없는 프리셋은 항상 건다(시계가 최댓값만 유지하므로 중첩 없음).
+ * 간격이 있는 프리셋(연사용 일반 타격)은 직전 히트스톱이 끝난 뒤 minGapMs가 지나야 건다.
+ */
+export function hitstopAllowed(nowMs: number, lastEndMs: number, minGapMs?: number): boolean {
+  if (!minGapMs) return true;
+  return nowMs >= lastEndMs + minGapMs;
+}
+
+/** 진행 중인 줌(current)에서 더 큰 펀치(amount)로 이어 붙일 때, 곡선의 어느 시점에서 시작할지(ms). 출렁임 방지 */
+export function punchRestartElapsed(current: number, amount: number, inMs: number): number {
+  if (amount <= 0 || current <= 0) return 0;
+  const r = Math.min(1, current / amount);
+  return inMs * (1 - Math.sqrt(1 - r));
+}

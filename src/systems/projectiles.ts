@@ -3,7 +3,8 @@ import { manifest } from '../assets/manifest';
 import { Pool } from '../core/pool';
 import type { SpatialHash } from '../core/spatialHash';
 import { Depth } from '../config/depth';
-import type { Enemy } from '../entities/Enemy';
+import combat from '../data/combat.json';
+import { MAX_ENEMY_RADIUS, type Enemy } from '../entities/Enemy';
 
 /** 투사체가 적을 맞혔을 때(직선) / 착지했을 때(곡사) 전투 로직에 알린다 */
 export interface ProjectileHooks {
@@ -59,7 +60,6 @@ export interface LobSpec {
   fxScale: number;
 }
 
-const MAX_ENEMY_RADIUS = 24;
 
 /** 직선 투사체(총알)와 곡사 투사체(수류탄). 스프라이트는 풀에서 재사용 */
 export class ProjectileSystem {
@@ -101,7 +101,7 @@ export class ProjectileSystem {
     p.y = fromY - this.bodyOffsetY;
     p.vx = (dx / len) * spec.speed;
     p.vy = (dy / len) * spec.speed;
-    p.lifeMs = (spec.rangePx / spec.speed) * 1000 * 1.15;
+    p.lifeMs = (spec.rangePx / spec.speed) * 1000 * combat.bulletLifeSlack;
     p.radius = spec.radius;
     p.pierceLeft = spec.pierce;
     p.damageMult = spec.damageMult;

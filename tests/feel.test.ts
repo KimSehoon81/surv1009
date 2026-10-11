@@ -5,9 +5,11 @@ import {
   createKnockback,
   fadeAlpha,
   framesToMs,
+  hitstopAllowed,
   numberAnim,
   parseColor,
   punchCurve,
+  punchRestartElapsed,
   shakeIntensity,
   startKnockback,
   stepKnockback,
@@ -141,6 +143,28 @@ describe('화면 연출 계산', () => {
   });
 });
 
+describe('히트스톱 판정·줌 이어 붙이기', () => {
+  it('간격 없는 프리셋(치명·대형 처치)은 다른 히트스톱 중에도 건다, 간격 있는 일반 타격만 생략', () => {
+    // 처치 타격: 같은 프레임에 normal(2f)이 먼저 걸린 직후 kill_big(10f)
+    const lastEnd = 1000 + 33;
+    expect(hitstopAllowed(1000, lastEnd, undefined)).toBe(true);
+    expect(hitstopAllowed(1000, lastEnd, 100)).toBe(false);
+    expect(hitstopAllowed(1133, lastEnd, 100)).toBe(true);
+  });
+
+  it('진행 중인 줌에서 더 큰 펀치로 바꿔도 값이 내려가지 않는다', () => {
+    const inMs = 50;
+    const outMs = 200;
+    // 대형 처치 0.04 펀치가 줄어드는 중 → 0.02 치명 펀치
+    const current = 0.04 * punchCurve(220, inMs, outMs);
+    expect(current).toBeLessThan(0.02);
+    const t0 = punchRestartElapsed(current, 0.02, inMs);
+    expect(0.02 * punchCurve(t0, inMs, outMs)).toBeCloseTo(current, 6);
+    expect(0.02 * punchCurve(t0 + 16, inMs, outMs)).toBeGreaterThan(current);
+    expect(punchRestartElapsed(0, 0.02, inMs)).toBe(0);
+  });
+});
+
 describe('CappedPool', () => {
   it('상한까지는 새로, 넘으면 가장 오래 전에 꺼낸 활성 항목을 재사용', () => {
     let made = 0;
@@ -159,6 +183,23 @@ describe('CappedPool', () => {
     const f = p.acquire();
     expect(f.recycled).toBe(false);
     expect(made).toBe(3);
+    // 지금 활성 순서: d(=a) → e(=b) → f(=c). 다음 재사용은 d
+    expect(p.acquire().item).toBe(d.item);
+  });
+
+  it('반납·재획득이 섞여도 가장 오래된 활성 항목을 고른다(대량)', () => {
+    const p = new CappedPool(() => ({}), 50);
+    const live: object[] = [];
+    for (let i = 0; i < 5000; i++) {
+      if (live.length > 0 && i % 7 === 0) p.release(live.splice(i % live.length, 1)[0] as object);
+      const { item, recycled } = p.acquire();
+      if (recycled) {
+        expect(item).toBe(live[0]);
+        live.shift();
+      }
+      live.push(item);
+      expect(p.size).toBeLessThanOrEqual(50);
+    }
   });
 });
 

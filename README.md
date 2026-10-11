@@ -24,6 +24,7 @@ npm run build    # dist/ 에 배포용 빌드
 | [Day별 실행 프롬프트](docs/PROMPTS.md) | 매일 Claude Code에 붙여넣는 프롬프트 |
 | [일일 작업계획](docs/WORKPLAN.md) | 45일 작업 항목과 완료 기준 |
 | [에셋 납품 가이드](docs/ASSETS.md) | 그래픽 규격·파일명·필요 시점 |
+| [기믹 제안 백로그](docs/IDEAS.md) | 카드·적·스테이지 기믹 제안과 PRD 결정 대기 항목 |
 | [게임 PRD](docs/PRD_v0.1.md) | 게임 기획 원문 |
 
 ## 구조

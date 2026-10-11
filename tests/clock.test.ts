@@ -106,3 +106,27 @@ describe('이펙트 delta', () => {
     expect(c.effectDeltaMs).toBe(0);
   });
 });
+
+describe('완전 정지와 시한 배율', () => {
+  it('일시정지 중에는 슬로모·히트스톱 남은 시간이 줄지 않는다', () => {
+    const c = new GameClock();
+    c.setScale('slowmo', 0.3, 500);
+    c.hitstop(10);
+    c.tick(50);
+    c.pause();
+    expect(c.hardPaused).toBe(true);
+    for (let i = 0; i < 60; i++) expect(c.tick(16)).toBe(0);
+    c.resume();
+    expect(c.hardPaused).toBe(false);
+    expect(c.hasScale('slowmo')).toBe(true);
+    expect(c.snapshot().hitstopMs).toBeCloseTo(10 * FRAME_MS - 50);
+  });
+
+  it('시한이 있는 배율 0(히트스톱 성격)은 완전 정지가 아니다', () => {
+    const c = new GameClock();
+    c.setScale('freeze', 0, 100);
+    expect(c.hardPaused).toBe(false);
+    c.tick(100);
+    expect(c.hasScale('freeze')).toBe(false);
+  });
+});

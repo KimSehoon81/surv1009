@@ -5,6 +5,8 @@ import type { Enemy } from '../entities/Enemy';
 import type { Player } from '../entities/Player';
 import type { ProjectileSystem } from './projectiles';
 
+const DEFAULTS = weaponData.defaults;
+
 export interface WeaponHooks {
   /** 총알 발사 순간. (x, y): 총구 끝 월드 좌표 */
   onFire?(x: number, y: number, facing: number): void;
@@ -70,8 +72,8 @@ export class WeaponSystem {
           {
             sprite: w.def.sprite,
             scale: w.def.scale,
-            speed: num(w.def, 'projectileSpeed') ?? 400,
-            radius: num(w.def, 'radius') ?? 4,
+            speed: num(w.def, 'projectileSpeed') ?? DEFAULTS.projectileSpeed,
+            radius: num(w.def, 'radius') ?? DEFAULTS.radius,
             pierce: num(w.def, 'pierce') ?? 0,
             damageMult: w.def.damageMult,
             rangePx: range,
@@ -89,9 +91,9 @@ export class WeaponSystem {
           {
             sprite: w.def.sprite,
             scale: w.def.scale,
-            flightMs: num(w.def, 'flightMs') ?? 600,
-            arcHeight: num(w.def, 'arcHeight') ?? 40,
-            aoeRadius: num(w.def, 'aoeRadius') ?? 40,
+            flightMs: num(w.def, 'flightMs') ?? DEFAULTS.flightMs,
+            arcHeight: num(w.def, 'arcHeight') ?? DEFAULTS.arcHeight,
+            aoeRadius: num(w.def, 'aoeRadius') ?? DEFAULTS.aoeRadius,
             damageMult: w.def.damageMult,
             fx: typeof def.fx === 'string' ? def.fx : undefined,
             fxScale: num(w.def, 'fxScale') ?? 1,

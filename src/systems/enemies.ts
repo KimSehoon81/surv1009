@@ -8,7 +8,7 @@ import { accumulate, ringPoint, spawnRadius } from '../core/spawnLogic';
 import type { Rng } from '../core/rng';
 import { Depth } from '../config/depth';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
-import { Enemy, isEnemyId, type EnemyId } from '../entities/Enemy';
+import { Enemy, MAX_ENEMY_RADIUS, isEnemyId, type EnemyId } from '../entities/Enemy';
 import { registerUnitAnims, type UnitAnims } from './anims';
 
 export interface SpawnConfig {
@@ -133,7 +133,7 @@ export class EnemySystem {
         let checks = 0;
         let px = 0;
         let py = 0;
-        this.grid.forEachNear(e.x, e.y, e.radius * 2, (n, d2) => {
+        this.grid.forEachNear(e.x, e.y, e.radius + MAX_ENEMY_RADIUS, (n, d2) => {
           if (n === e) return;
           const minD = e.radius + n.radius;
           if (d2 < minD * minD) {

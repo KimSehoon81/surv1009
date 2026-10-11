@@ -66,6 +66,10 @@ export class Pool<T> {
 export class CappedPool<T> {
   private readonly pool: Pool<T>;
   private readonly born = new Map<T, number>();
+  /** 꺼낸 순서(항목·일련번호). 반납·재사용으로 낡은 칸은 꺼낼 때 건너뛴다 */
+  private readonly orderItems: T[] = [];
+  private readonly orderSerials: number[] = [];
+  private head = 0;
   private serial = 0;
 
   constructor(
@@ -81,19 +85,29 @@ export class CappedPool<T> {
     if (this.pool.size < this.cap) {
       item = this.pool.acquire();
     } else {
-      let oldest = Infinity;
-      item = this.pool.active[0] as T;
-      for (const it of this.pool.active) {
-        const b = this.born.get(it) ?? 0;
-        if (b < oldest) {
-          oldest = b;
-          item = it;
-        }
-      }
+      item = this.takeOldest();
       recycled = true;
     }
-    this.born.set(item, this.serial++);
+    this.born.set(item, this.serial);
+    this.orderItems.push(item);
+    this.orderSerials.push(this.serial);
+    this.serial++;
+    if (this.head > 1024 && this.head * 2 > this.orderItems.length) {
+      this.orderItems.splice(0, this.head);
+      this.orderSerials.splice(0, this.head);
+      this.head = 0;
+    }
     return { item, recycled };
+  }
+
+  private takeOldest(): T {
+    while (this.head < this.orderItems.length) {
+      const item = this.orderItems[this.head] as T;
+      const serial = this.orderSerials[this.head] as number;
+      this.head++;
+      if (this.pool.isActive(item) && this.born.get(item) === serial) return item;
+    }
+    throw new Error('CappedPool: 활성 항목이 없는데 상한에 닿음');
   }
 
   release(item: T): boolean {

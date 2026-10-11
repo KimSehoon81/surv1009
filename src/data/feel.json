@@ -99,6 +99,10 @@
     "y": 0.84,
     "ms": 70
   },
+  "playerFlash": {
+    "hurt": "#ff4040",
+    "block": "#9fc4ff"
+  },
   "fxCap": 32,
   "fxFps": {
     "hit_spark": 30,

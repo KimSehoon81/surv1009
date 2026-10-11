@@ -5,6 +5,7 @@ import combat from '../data/combat.json';
 import feelData from '../data/feel.json';
 import { createRng, type Rng } from '../core/rng';
 import { computeHit } from '../core/combat';
+import { parseColor } from '../core/feel';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { Depth } from '../config/depth';
 import { params } from '../config/params';
@@ -19,7 +20,7 @@ import { PickupSystem } from '../systems/pickups';
 import { ProjectileSystem, type ProjectileHooks } from '../systems/projectiles';
 import { WeaponSystem, isWeaponId, type WeaponHooks } from '../systems/weapons';
 import { Player, isCharacterId, type CharacterId } from '../entities/Player';
-import type { Enemy } from '../entities/Enemy';
+import { MAX_ENEMY_RADIUS, type Enemy } from '../entities/Enemy';
 import { SceneKey } from './keys';
 
 const CHARACTERS: CharacterId[] = ['A01', 'A02', 'A03'];
@@ -70,6 +71,8 @@ export class BattleScene extends Phaser.Scene {
       collectRadius: combat.collectRadius,
       pullSpeed: combat.magnetPullSpeed,
       accel: combat.magnetAccel,
+      maxSpeedMul: combat.magnetMaxSpeedMul,
+      minSpeedMul: combat.magnetMinSpeedMul,
     });
     this.fx = new FxSystem(this, feelData.fxCap);
     this.feel = new Feel(this, this.clock, this.fx, rng.fork('feel'));
@@ -120,9 +123,10 @@ export class BattleScene extends Phaser.Scene {
     for (const id of this.player.weapons) if (isWeaponId(id)) this.weapons.add(id);
   }
 
-  override update(time: number, delta: number): void {
+  override update(_time: number, delta: number): void {
     if (this.controls.justDown('pause') && !this.run.defeated) this.togglePause();
     const dt = this.clock.tick(delta);
+    this.feel.beginFrame(delta, this.clock.hardPaused);
     const now = this.clock.timeMs;
     const scale = this.clock.scale;
     const p = this.player;
@@ -141,9 +145,9 @@ export class BattleScene extends Phaser.Scene {
       this.run.xp += this.pickups.update(dt, p.x, p.y, p.stats.magnet);
     }
     this.fx.update(this.clock.effectScale);
-    this.feel.update(time, this.clock.effectDeltaMs);
+    this.feel.update(this.clock.effectDeltaMs);
     // 피격 무적 중 깜빡임
-    p.sprite.setAlpha(now < p.invulnUntilMs && Math.floor(now / 80) % 2 === 0 ? 0.45 : 1);
+    p.sprite.setAlpha(now < p.invulnUntilMs && Math.floor(now / combat.invulnBlinkMs) % 2 === 0 ? combat.invulnBlinkAlpha : 1);
     this.drawHpBar();
     this.floor.update(cam);
     this.debug.update(delta);
@@ -192,7 +196,7 @@ export class BattleScene extends Phaser.Scene {
   private explode(x: number, y: number, radius: number, mult: number, fxName: string | undefined, fxScale: number): void {
     if (fxName) this.fx.play(fxName, x, y - combat.bodyOffsetY * 0.4, fxScale);
     const hit: Enemy[] = [];
-    this.enemies.grid.forEachNear(x, y, radius + 24, (e, d2) => {
+    this.enemies.grid.forEachNear(x, y, radius + MAX_ENEMY_RADIUS, (e, d2) => {
       const r = radius + e.radius;
       if (e.alive && d2 <= r * r) hit.push(e);
     });
@@ -204,8 +208,8 @@ export class BattleScene extends Phaser.Scene {
     const p = this.player;
     if (now < p.invulnUntilMs || this.invincible) return;
     let attacker: Enemy | null = null;
-    this.enemies.grid.forEachNear(p.x, p.y, combat.playerRadius + 26, (e, d2) => {
-      const r = combat.playerRadius + e.radius + 2;
+    this.enemies.grid.forEachNear(p.x, p.y, combat.playerRadius + MAX_ENEMY_RADIUS + combat.contactSlackPx, (e, d2) => {
+      const r = combat.playerRadius + e.radius + combat.contactSlackPx;
       if (e.alive && d2 <= r * r) {
         attacker = e;
         return true;
@@ -217,7 +221,7 @@ export class BattleScene extends Phaser.Scene {
     p.hp = Math.max(0, p.hp - res.damage);
     p.invulnUntilMs = now + combat.playerInvulnMs;
     this.run.damageTaken += res.damage;
-    this.feel.flash(p.sprite, res.blocked ? 0x9fc4ff : 0xff4040, combat.playerHurtFlashMs);
+    this.feel.flash(p.sprite, parseColor(res.blocked ? feelData.playerFlash.block : feelData.playerFlash.hurt), combat.playerHurtFlashMs);
     this.feel.hit(res.blocked ? 'block' : 'player_hit', p.x, p.y - combat.bodyOffsetY, { amount: res.damage, groundY: p.y });
     if (res.blocked) {
       this.run.blocks++;

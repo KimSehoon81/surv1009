@@ -1,10 +1,21 @@
 import * as Phaser from 'phaser';
 import feelData from '../data/feel.json';
-import { Combo, framesToMs, parseColor, punchCurve, shakeIntensity, startKnockback, type Knockback } from '../core/feel';
+import {
+  Combo,
+  FRAME_MS,
+  framesToMs,
+  hitstopAllowed,
+  parseColor,
+  punchCurve,
+  punchRestartElapsed,
+  shakeIntensity,
+  startKnockback,
+  type Knockback,
+} from '../core/feel';
 import type { Rng } from '../core/rng';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { Depth } from '../config/depth';
-import type { GameClock } from './clock';
+import { MAX_REAL_DELTA_MS, type GameClock } from './clock';
 import { DamageNumbers, type NumbersData } from './damageNumbers';
 import type { FxSystem } from './fx';
 import { ParticleSystem, ensureParticleTextures, type ParticleKindData } from './particles';
@@ -87,7 +98,8 @@ export class Feel {
   private readonly vignette: Phaser.GameObjects.Image;
   private readonly comboText: Phaser.GameObjects.BitmapText;
   private readonly muzzleAnim: string;
-  private nowReal = 0;
+  /** 연출 시계(ms): 실시간으로 흐르되 완전 정지(일시정지·레벨업 선택) 중에는 멈춘다. beginFrame에서 갱신 */
+  private now = 0;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -126,11 +138,11 @@ export class Feel {
   hit(name: string, x: number, y: number, opt: HitOptions = {}): void {
     const p = PRESETS[name];
     if (!p) return;
-    const now = this.nowReal;
+    const now = this.now;
     const groundY = opt.groundY ?? y;
     const height = groundY - y;
 
-    if (p.hitstopFrames && now >= this.hitstopEndsReal + (p.hitstopMinGapMs ?? 0)) {
+    if (p.hitstopFrames && hitstopAllowed(now, this.hitstopEndsReal, p.hitstopMinGapMs)) {
       this.clock.hitstop(p.hitstopFrames);
       this.hitstopEndsReal = Math.max(this.hitstopEndsReal, now + framesToMs(p.hitstopFrames));
     }
@@ -153,7 +165,8 @@ export class Feel {
     if (p.smoke) this.particles.emit('smoke', x, groundY, p.smoke, height);
     if (p.debris) this.particles.emit('debris', x, groundY, p.debris, height);
     if (p.crater) this.particles.emit('crater', x, groundY, p.crater);
-    if (p.fx) this.fx.play(p.fx, x, y, p.fxScale ?? 1, Depth.Explosion, FX_FPS[p.fx]);
+    // 타격 장식 이펙트만 동시 상한을 받는다(총구 섬광·무기 폭발은 상한 밖)
+    if (p.fx) this.fx.play(p.fx, x, y, p.fxScale ?? 1, Depth.Explosion, FX_FPS[p.fx], true);
     if (p.combo) this.addCombo();
   }
 
@@ -171,7 +184,7 @@ export class Feel {
   }
 
   shake(px: number, ms: number): void {
-    const now = this.nowReal;
+    const now = this.now;
     const mul = this.intensity.shake;
     if (mul <= 0) return;
     // 약한 흔들림이 진행 중인 강한 흔들림을 끊지 않게
@@ -183,11 +196,12 @@ export class Feel {
   }
 
   zoomPunch(amount: number): void {
-    const now = this.nowReal;
+    const now = this.now;
     const z = feelData.zoomPunch;
     const current = this.zoomAmount * punchCurve(now - this.zoomStart, z.inMs, z.outMs);
     if (current >= amount) return;
-    this.zoomStart = now;
+    // 지금 줌 값에서 이어 올라가게 곡선 시작점을 당긴다(처음부터 다시 시작하면 한두 프레임 출렁임)
+    this.zoomStart = now - punchRestartElapsed(current, amount, z.inMs);
     this.zoomAmount = amount;
   }
 
@@ -195,11 +209,11 @@ export class Feel {
   flash(sprite: Phaser.GameObjects.Sprite, color: number, ms: number): void {
     if (this.intensity.flash <= 0) return;
     sprite.setTintFill(color);
-    this.flashes.set(sprite, this.nowReal + ms);
+    this.flashes.set(sprite, this.now + ms - FRAME_MS / 2);
   }
 
   flashScreen(ms: number): void {
-    this.screenFlashStart = this.nowReal;
+    this.screenFlashStart = this.now;
     this.screenFlashMs = ms;
   }
 
@@ -208,7 +222,7 @@ export class Feel {
     const sx = prev ? prev.sx : sprite.scaleX;
     const sy = prev ? prev.sy : sprite.scaleY;
     sprite.setScale(sx * feelData.squash.x, sy * feelData.squash.y);
-    this.squashes.set(sprite, { until: this.nowReal + feelData.squash.ms, sx, sy });
+    this.squashes.set(sprite, { until: this.now + feelData.squash.ms - FRAME_MS / 2, sx, sy });
   }
 
   private addCombo(): void {
@@ -227,29 +241,37 @@ export class Feel {
     }
   }
 
-  /** nowRealMs: scene.time.now, dtMs: 이펙트 delta(clock.effectDeltaMs: 일시정지·슬로모 반영, 히트스톱 무시) */
-  update(nowRealMs: number, dtMs: number): void {
-    this.nowReal = nowRealMs;
+  /**
+   * 프레임 맨 앞(타격 판정보다 먼저)에서 호출. 연출 시계를 이번 프레임 시각으로 맞춘다.
+   * 끝에서 갱신하면 이번 프레임의 타격이 직전 프레임 시각을 써서 점멸이 한 프레임 짧아진다.
+   */
+  beginFrame(realDeltaMs: number, hardPaused: boolean): void {
+    if (!hardPaused) this.now += Math.min(Math.max(0, realDeltaMs), MAX_REAL_DELTA_MS);
+  }
+
+  /** 프레임 끝에서 호출. dtMs: 이펙트 delta(clock.effectDeltaMs: 일시정지·슬로모 반영, 히트스톱 무시) */
+  update(dtMs: number): void {
+    const now = this.now;
     for (const [sprite, until] of this.flashes) {
-      if (nowRealMs >= until) {
+      if (now >= until) {
         sprite.clearTint();
         this.flashes.delete(sprite);
       }
     }
     for (const [sprite, sq] of this.squashes) {
-      if (nowRealMs >= sq.until) {
+      if (now >= sq.until) {
         sprite.setScale(sq.sx, sq.sy);
         this.squashes.delete(sprite);
       }
     }
     const z = feelData.zoomPunch;
-    this.scene.cameras.main.setZoom(1 + this.zoomAmount * punchCurve(nowRealMs - this.zoomStart, z.inMs, z.outMs));
+    this.scene.cameras.main.setZoom(1 + this.zoomAmount * punchCurve(now - this.zoomStart, z.inMs, z.outMs));
 
-    const sf = (nowRealMs - this.screenFlashStart) / Math.max(1, this.screenFlashMs);
+    const sf = (now - this.screenFlashStart) / Math.max(1, this.screenFlashMs);
     const flashAlpha = sf >= 0 && sf < 1 ? feelData.screenFlash.maxAlpha * this.intensity.flash * (1 - sf) : 0;
     this.screenFlash.setVisible(flashAlpha > 0).setAlpha(flashAlpha);
 
-    const vk = (nowRealMs - this.vignetteStart) / feelData.vignette.ms;
+    const vk = (now - this.vignetteStart) / feelData.vignette.ms;
     const vAlpha = vk >= 0 && vk < 1 ? feelData.vignette.maxAlpha * this.intensity.flash * (1 - vk) : 0;
     this.vignette.setVisible(vAlpha > 0).setAlpha(vAlpha);
 

@@ -17,6 +17,9 @@ export interface PickupConfig {
   collectRadius: number;
   pullSpeed: number;
   accel: number;
+  /** 흡수 최고·최저 속도(pullSpeed 배수) */
+  maxSpeedMul: number;
+  minSpeedMul: number;
 }
 
 const BASE_SCALE = 0.5;
@@ -83,8 +86,8 @@ export class PickupSystem {
       }
       if (!p.attracted && d <= magnet) p.attracted = true;
       if (p.attracted) {
-        p.speed = Math.min(p.speed + this.cfg.accel * dt, this.cfg.pullSpeed * 2);
-        const step = Math.min(d, Math.max(this.cfg.pullSpeed * 0.5, p.speed) * dt);
+        p.speed = Math.min(p.speed + this.cfg.accel * dt, this.cfg.pullSpeed * this.cfg.maxSpeedMul);
+        const step = Math.min(d, Math.max(this.cfg.pullSpeed * this.cfg.minSpeedMul, p.speed) * dt);
         p.sprite.setPosition(p.sprite.x + (dx / d) * step, p.sprite.y + (dy / d) * step);
       }
     }

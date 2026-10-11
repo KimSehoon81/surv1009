@@ -36,13 +36,14 @@ export class FxSystem {
    */
   cropAnim(name: string, crop: readonly number[], fps: number): string {
     const spec = manifest.fx(name);
-    const key = `${spec.key}_crop${fps}`;
+    const tag = crop.join('_');
+    const key = `${spec.key}_crop${tag}_${fps}`;
     if (this.scene.anims.exists(key)) return key;
     const tex = this.scene.textures.get(spec.key);
     const [cx = 0, cy = 0, cw = spec.frameSize, ch = spec.frameSize] = crop;
     const frames: Phaser.Types.Animations.AnimationFrame[] = [];
     for (let i = 0; i < spec.frames; i++) {
-      const name = `crop${i}`;
+      const name = `crop${tag}_${i}`;
       const src = tex.get(i);
       if (!tex.has(name)) tex.add(name, src.sourceIndex, src.cutX + cx, src.cutY + cy, cw, ch);
       frames.push({ key: spec.key, frame: name });
@@ -51,13 +52,16 @@ export class FxSystem {
     return key;
   }
 
-  play(name: string, x: number, y: number, scale = 1, depth: number = Depth.Explosion, fps = DEFAULT_FPS): Phaser.GameObjects.Sprite | null {
-    return this.playAnim(this.animKey(name, fps), x, y, scale, depth);
+  play(name: string, x: number, y: number, scale = 1, depth: number = Depth.Explosion, fps = DEFAULT_FPS, capped = false): Phaser.GameObjects.Sprite | null {
+    return this.playAnim(this.animKey(name, fps), x, y, scale, depth, capped);
   }
 
-  /** 상한에 닿으면 null(이펙트 하나 빠져도 게임은 문제없음) */
-  playAnim(key: string, x: number, y: number, scale = 1, depth: number = Depth.Explosion): Phaser.GameObjects.Sprite | null {
-    if (this.pool.size >= this.cap) return null;
+  /**
+   * capped=true(타격 장식 스파크 등)는 동시 상한에 닿으면 생략하고 null.
+   * 무기 폭발·총구 섬광처럼 빠지면 안 되는 이펙트는 capped=false로 항상 재생한다.
+   */
+  playAnim(key: string, x: number, y: number, scale = 1, depth: number = Depth.Explosion, capped = false): Phaser.GameObjects.Sprite | null {
+    if (capped && this.pool.size >= this.cap) return null;
     const s = this.pool.acquire();
     s.setPosition(x, y).setScale(scale).setDepth(depth).setOrigin(0.5).setFlipX(false).setActive(true).setVisible(true);
     s.play(key);

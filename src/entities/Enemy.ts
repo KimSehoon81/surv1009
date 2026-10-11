@@ -11,6 +11,9 @@ import type { UnitAnims } from '../systems/anims';
 export type EnemyId = keyof typeof enemyData.enemies;
 export type EnemyDef = (typeof enemyData.enemies)[EnemyId];
 
+/** 모든 적 중 가장 큰 충돌 반지름(공간 해시 검색 여유). 데이터에서 계산 */
+export const MAX_ENEMY_RADIUS = Math.max(...Object.values(enemyData.enemies).map((e) => e.radius));
+
 export function isEnemyId(id: string): id is EnemyId {
   return id in enemyData.enemies;
 }
