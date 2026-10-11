@@ -4,6 +4,7 @@ import characters from '../data/characters.json';
 import spawnData from '../data/spawn.json';
 import feelData from '../data/feel.json';
 import weaponData from '../data/weapons.json';
+import upgradesData from '../data/upgrades.json';
 import { manifest, type AssetSpec } from '../assets/manifest';
 import { ensureTextures, queueAssets } from '../systems/assetLoader';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
@@ -15,7 +16,10 @@ import { galleryUnitIds } from './GalleryScene';
 function battleAssets(): AssetSpec[] {
   const enemyIds = [...new Set(spawnData.S1.spawns.map((s) => s.enemy))];
   const units = [...Object.keys(characters.characters), ...enemyIds].flatMap((id) => manifest.unitSheets(id));
-  const ui = ['bullet', 'star_xp', 'icon_upgrade_weapon_grenade'].map((n) => manifest.image('ui', n, 32, 32));
+  // UI 그림: 무기 투사체, 경험치 별, 레벨업 업그레이드 아이콘(데이터가 참조하는 것 전부)
+  const weaponSprites = Object.values(weaponData.weapons).map((w) => w.sprite);
+  const upgradeIcons = [...upgradesData.upgrades, ...upgradesData.fallbacks].map((u) => u.icon);
+  const ui = [...new Set(['star_xp', 'icon_upgrade_reroll', ...weaponSprites, ...upgradeIcons])].map((n) => manifest.image('ui', n, 32, 32));
   // 이펙트: 무기·타격감 프리셋·총구 섬광이 참조하는 시트 전부
   const named = (o: object) => Object.values(o as Record<string, { fx?: string }>).map((v) => v.fx);
   const fxNames = new Set([...named(weaponData.weapons), ...named(feelData.presets), feelData.muzzle.fx]);

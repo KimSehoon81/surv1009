@@ -4,6 +4,7 @@ import { BootScene } from './scenes/BootScene';
 import { PreloadScene } from './scenes/PreloadScene';
 import { BattleScene } from './scenes/BattleScene';
 import { GalleryScene } from './scenes/GalleryScene';
+import { HudScene } from './scenes/HudScene';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -18,7 +19,7 @@ const game = new Phaser.Game({
     zoom: computeZoom(window.innerWidth, window.innerHeight),
   },
   input: { keyboard: true, mouse: true, gamepad: false },
-  scene: [BootScene, PreloadScene, BattleScene, GalleryScene],
+  scene: [BootScene, PreloadScene, BattleScene, HudScene, GalleryScene],
 });
 
 window.addEventListener('resize', () => {

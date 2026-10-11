@@ -1,6 +1,7 @@
 import weaponData from '../data/weapons.json';
 import combat from '../data/combat.json';
 import type { SpatialHash } from '../core/spatialHash';
+import { modValue, type StatMod } from '../core/stats';
 import type { Enemy } from '../entities/Enemy';
 import type { Player } from '../entities/Player';
 import type { ProjectileSystem } from './projectiles';
@@ -24,6 +25,8 @@ interface Equipped {
   def: WeaponDef;
   /** 0 이하면 발사 가능 */
   cooldownMs: number;
+  /** 무기 강화 수정자(damageMult·aoeRadius 등) */
+  mods: StatMod[];
 }
 
 const num = (def: WeaponDef, key: string): number | undefined => {
@@ -37,7 +40,18 @@ export class WeaponSystem {
 
   add(id: WeaponId): void {
     if (this.equipped.some((w) => w.id === id)) return;
-    this.equipped.push({ id, def: weaponData.weapons[id], cooldownMs: 0 });
+    this.equipped.push({ id, def: weaponData.weapons[id], cooldownMs: 0, mods: [] });
+  }
+
+  /** 무기 강화(레벨업). 장착하지 않은 무기면 무시 */
+  addMods(id: string, mods: readonly StatMod[]): void {
+    const w = this.equipped.find((e) => e.id === id);
+    if (w) w.mods.push(...mods);
+  }
+
+  /** 정의값(없으면 기본값)에 강화 수정자를 적용한 값 */
+  private param(w: Equipped, key: string, fallback: number): number {
+    return modValue(num(w.def, key) ?? fallback, key, w.mods);
   }
 
   has(id: WeaponId): boolean {
@@ -55,13 +69,13 @@ export class WeaponSystem {
     for (const w of this.equipped) {
       w.cooldownMs -= dtMs;
       if (w.cooldownMs > 0) continue;
-      const range = num(w.def, 'range') ?? stats.range;
+      const range = this.param(w, 'range', stats.range);
       const target = grid.nearest(player.x, player.y, range, (e) => e.alive);
       if (!target) {
         w.cooldownMs = 0; // 적이 없으면 장전 상태로 대기(여러 발이 쌓이지 않게)
         continue;
       }
-      const cooldown = num(w.def, 'cooldownMs') ?? 1000 / stats.attackSpeed;
+      const cooldown = this.param(w, 'cooldownMs', 1000 / stats.attackSpeed);
       w.cooldownMs += cooldown;
       player.faceTowards(target.x);
       if (w.def.type === 'projectile') {
@@ -72,10 +86,10 @@ export class WeaponSystem {
           {
             sprite: w.def.sprite,
             scale: w.def.scale,
-            speed: num(w.def, 'projectileSpeed') ?? DEFAULTS.projectileSpeed,
-            radius: num(w.def, 'radius') ?? DEFAULTS.radius,
-            pierce: num(w.def, 'pierce') ?? 0,
-            damageMult: w.def.damageMult,
+            speed: this.param(w, 'projectileSpeed', DEFAULTS.projectileSpeed),
+            radius: this.param(w, 'radius', DEFAULTS.radius),
+            pierce: Math.round(this.param(w, 'pierce', 0)),
+            damageMult: this.param(w, 'damageMult', 1),
             rangePx: range,
           },
           muzzleX,
@@ -91,10 +105,10 @@ export class WeaponSystem {
           {
             sprite: w.def.sprite,
             scale: w.def.scale,
-            flightMs: num(w.def, 'flightMs') ?? DEFAULTS.flightMs,
-            arcHeight: num(w.def, 'arcHeight') ?? DEFAULTS.arcHeight,
-            aoeRadius: num(w.def, 'aoeRadius') ?? DEFAULTS.aoeRadius,
-            damageMult: w.def.damageMult,
+            flightMs: this.param(w, 'flightMs', DEFAULTS.flightMs),
+            arcHeight: this.param(w, 'arcHeight', DEFAULTS.arcHeight),
+            aoeRadius: this.param(w, 'aoeRadius', DEFAULTS.aoeRadius),
+            damageMult: this.param(w, 'damageMult', 1),
             fx: typeof def.fx === 'string' ? def.fx : undefined,
             fxScale: num(w.def, 'fxScale') ?? 1,
             impact: typeof def.impact === 'string' ? def.impact : undefined,

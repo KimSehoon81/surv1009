@@ -1,0 +1,32 @@
+{
+  "$comment": "레벨업 업그레이드(PRD §4.2). rarity.weights=기본 레어도(일반 60/우수 28/희귀 10/전설 2), luckK=행운 1당 해당 레어도 가중치 증가 비율(일반은 0), value=레어도별 수치 배율. 업그레이드: kind(passive/weapon_new/weapon_up/card), target(player 또는 weapon:<무기ID>), mods(능력치 수정자: add=더하기, mul=+비율, 최종 = (기본+add합)×(1+mul합)), scales=false면 레어도 배율 미적용, requires={weapon|notWeapon}, maxLevel=최대 단계, weight=뽑힐 가중치. desc의 {0}{1}은 mods 순서대로 값(fmt pct는 ×100). 패시브는 PRD의 7종(체력·이속·공속·범위·치명·자석·행운)에 아이콘이 있는 공격력·방어력·치명 피해를 더해 10종. fallbacks=후보가 모자랄 때 대체 보상",
+  "rarity": {
+    "order": ["common", "uncommon", "rare", "legendary"],
+    "names": { "common": "일반", "uncommon": "우수", "rare": "희귀", "legendary": "전설" },
+    "colors": { "common": "#c8c0b0", "uncommon": "#6fd06f", "rare": "#5aa8ff", "legendary": "#ffb040" },
+    "weights": { "common": 60, "uncommon": 28, "rare": 10, "legendary": 2 },
+    "luckK": { "common": 0, "uncommon": 0.08, "rare": 0.15, "legendary": 0.25 },
+    "value": { "common": 1, "uncommon": 1.5, "rare": 2, "legendary": 3 }
+  },
+  "upgrades": [
+    { "id": "hp", "kind": "passive", "name": "체력", "icon": "icon_upgrade_hp", "desc": "최대 체력 +{0}", "maxLevel": 5, "weight": 10, "target": "player", "mods": [{ "stat": "hp", "op": "add", "value": 12, "fmt": "int" }] },
+    { "id": "speed", "kind": "passive", "name": "이동 속도", "icon": "icon_upgrade_speed", "desc": "이동 속도 +{0}%", "maxLevel": 5, "weight": 10, "target": "player", "mods": [{ "stat": "moveSpeed", "op": "mul", "value": 0.06, "fmt": "pct" }] },
+    { "id": "attack_speed", "kind": "passive", "name": "공격 속도", "icon": "icon_upgrade_attack_speed", "desc": "공격 속도 +{0}%", "maxLevel": 5, "weight": 10, "target": "player", "mods": [{ "stat": "attackSpeed", "op": "mul", "value": 0.08, "fmt": "pct" }] },
+    { "id": "range", "kind": "passive", "name": "사거리", "icon": "icon_upgrade_range", "desc": "사거리 +{0}%", "maxLevel": 5, "weight": 8, "target": "player", "mods": [{ "stat": "range", "op": "mul", "value": 0.08, "fmt": "pct" }] },
+    { "id": "crit", "kind": "passive", "name": "치명타", "icon": "icon_upgrade_crit_chance", "desc": "치명타 확률 +{0}%p", "maxLevel": 5, "weight": 8, "target": "player", "mods": [{ "stat": "critChance", "op": "add", "value": 0.03, "fmt": "pct" }] },
+    { "id": "magnet", "kind": "passive", "name": "자석", "icon": "icon_upgrade_magnet", "desc": "보급품 흡수 범위 +{0}%", "maxLevel": 5, "weight": 7, "target": "player", "mods": [{ "stat": "magnet", "op": "mul", "value": 0.2, "fmt": "pct" }] },
+    { "id": "luck", "kind": "passive", "name": "행운", "icon": "icon_upgrade_luck", "desc": "행운 +{0} (좋은 업그레이드·카드)", "maxLevel": 5, "weight": 6, "target": "player", "mods": [{ "stat": "luck", "op": "add", "value": 1, "fmt": "int" }] },
+    { "id": "attack", "kind": "passive", "name": "공격력", "icon": "icon_upgrade_attack", "desc": "공격력 +{0}%", "maxLevel": 5, "weight": 10, "target": "player", "mods": [{ "stat": "attack", "op": "mul", "value": 0.1, "fmt": "pct" }] },
+    { "id": "defense", "kind": "passive", "name": "방어력", "icon": "icon_upgrade_defense", "desc": "방어력 +{0}", "maxLevel": 5, "weight": 7, "target": "player", "mods": [{ "stat": "defense", "op": "add", "value": 4, "fmt": "int" }] },
+    { "id": "crit_damage", "kind": "passive", "name": "치명 피해", "icon": "icon_upgrade_crit_damage", "desc": "치명타 피해 +{0}%", "maxLevel": 5, "weight": 6, "target": "player", "mods": [{ "stat": "critMult", "op": "add", "value": 0.2, "fmt": "pct" }] },
+    { "id": "rifle_up", "kind": "weapon_up", "name": "소총 강화", "icon": "icon_upgrade_weapon_rifle", "desc": "소총 피해 +{0}%", "maxLevel": 5, "weight": 9, "target": "weapon:rifle", "requires": { "weapon": "rifle" }, "mods": [{ "stat": "damageMult", "op": "mul", "value": 0.15, "fmt": "pct" }] },
+    { "id": "grenade_new", "kind": "weapon_new", "name": "수류탄", "icon": "icon_upgrade_weapon_grenade", "desc": "새 무기: 가까운 적에게 곡사 폭발", "maxLevel": 1, "weight": 8, "target": "weapon:grenade", "addWeapon": "grenade", "scales": false, "requires": { "notWeapon": "grenade" }, "mods": [] },
+    { "id": "grenade_up", "kind": "weapon_up", "name": "수류탄 강화", "icon": "icon_upgrade_weapon_grenade", "desc": "폭발 피해 +{0}%, 범위 +{1}%", "maxLevel": 5, "weight": 8, "target": "weapon:grenade", "requires": { "weapon": "grenade" }, "mods": [{ "stat": "damageMult", "op": "mul", "value": 0.15, "fmt": "pct" }, { "stat": "aoeRadius", "op": "mul", "value": 0.06, "fmt": "pct" }] },
+    { "id": "hand_plus", "kind": "card", "name": "작전 손패", "icon": "icon_upgrade_hand_plus", "desc": "손패 +1장", "maxLevel": 1, "weight": 4, "target": "player", "scales": false, "mods": [{ "stat": "handSize", "op": "add", "value": 1, "fmt": "int" }] },
+    { "id": "draw_speed", "kind": "card", "name": "보급 속도", "icon": "icon_upgrade_draw_speed", "desc": "카드 드로우 속도 +{0}%", "maxLevel": 3, "weight": 5, "target": "player", "mods": [{ "stat": "drawSpeed", "op": "mul", "value": 0.12, "fmt": "pct" }] }
+  ],
+  "fallbacks": [
+    { "id": "first_aid", "kind": "fallback", "name": "응급 처치", "icon": "icon_upgrade_hp", "desc": "체력 30% 회복", "maxLevel": 99, "weight": 1, "target": "player", "scales": false, "heal": 0.3, "mods": [] },
+    { "id": "supply_pull", "kind": "fallback", "name": "보급품 회수", "icon": "icon_upgrade_magnet", "desc": "떨어진 경험치 별을 모두 끌어옴", "maxLevel": 99, "weight": 1, "target": "player", "scales": false, "pullAll": true, "mods": [] }
+  ]
+}

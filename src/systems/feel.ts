@@ -22,7 +22,6 @@ import { MAX_REAL_DELTA_MS, type GameClock } from './clock';
 import { DamageNumbers, type NumbersData } from './damageNumbers';
 import type { FxSystem } from './fx';
 import { ParticleSystem, ensureParticleTextures, type ParticleKindData } from './particles';
-import { PIXEL_FONT } from '../ui/pixelFont';
 
 /** feel.json 프리셋. 없는 항목은 연출하지 않는다 */
 export interface FeelPreset {
@@ -128,7 +127,6 @@ export class Feel {
   private vignetteStart = -Infinity;
   private readonly screenFlash: Phaser.GameObjects.Rectangle;
   private readonly vignette: Phaser.GameObjects.Image;
-  private readonly comboText: Phaser.GameObjects.BitmapText;
   private readonly muzzleAnim: string;
   /** 연출 시계(ms): 실시간으로 흐르되 완전 정지(일시정지·레벨업 선택) 중에는 멈춘다. beginFrame에서 갱신 */
   private now = 0;
@@ -154,15 +152,6 @@ export class Feel {
       .image(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT / 2, VIGNETTE_KEY)
       .setScrollFactor(0)
       .setDepth(Depth.ScreenFx)
-      .setVisible(false);
-    this.comboText = scene.add
-      .bitmapText(feelData.combo.x, feelData.combo.y, PIXEL_FONT, '', 7)
-      .setLetterSpacing(-1)
-      .setOrigin(1, 0)
-      .setScale(feelData.combo.scale)
-      .setTint(parseColor(feelData.combo.color))
-      .setScrollFactor(0)
-      .setDepth(Depth.Ui)
       .setVisible(false);
     this.muzzleAnim = fx.cropAnim(feelData.muzzle.fx, feelData.muzzle.crop, feelData.muzzle.fps);
   }
@@ -289,9 +278,7 @@ export class Feel {
   }
 
   private addCombo(): number {
-    const n = this.combo.add(this.clock.timeMs);
-    if (n >= feelData.combo.minShow) this.comboText.setText(`${n} COMBO`).setVisible(true).setScale(feelData.combo.scale * 1.3);
-    return n;
+    return this.combo.add(this.clock.timeMs);
   }
 
   /** 풀로 돌아간 스프라이트의 점멸·찌그러짐을 원래대로 */
@@ -344,12 +331,7 @@ export class Feel {
     const vAlpha = vk >= 0 && vk < 1 ? feelData.vignette.maxAlpha * this.intensity.flash * (1 - vk) : 0;
     this.vignette.setVisible(vAlpha > 0).setAlpha(vAlpha);
 
-    if (this.combo.expire(this.clock.timeMs)) this.comboText.setVisible(false);
-    else if (this.comboText.visible && dtMs > 0) {
-      // 갱신 때 1.3배로 튄 글자를 원래 크기로
-      const base = feelData.combo.scale;
-      this.comboText.setScale(Math.max(base, this.comboText.scaleX - (dtMs / 1000) * base * 3));
-    }
+    this.combo.expire(this.clock.timeMs);
 
     this.numbers.update(dtMs);
     this.particles.update(dtMs);
@@ -361,7 +343,6 @@ export class Feel {
     this.numbers.clear();
     this.particles.clear();
     this.combo.expire(Infinity);
-    this.comboText.setVisible(false);
     this.zoomAmount = 0;
     this.shaker.reset();
     this.scene.cameras.main.setZoom(1).setFollowOffset(0, 0);

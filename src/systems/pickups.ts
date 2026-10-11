@@ -69,6 +69,11 @@ export class PickupSystem {
   }
 
   /** 흡수한 경험치 합계를 돌려준다 */
+  /** 떨어진 보급품 전부를 플레이어 쪽으로 끌어오기 시작(레벨업 대체 보상) */
+  attractAll(): void {
+    for (const p of this.pool.active) p.attracted = true;
+  }
+
   update(dtMs: number, px: number, py: number, magnet: number): number {
     if (dtMs <= 0) return 0;
     let gained = 0;

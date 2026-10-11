@@ -3,10 +3,14 @@ import floorData from '../data/floor.json';
 import spawnData from '../data/spawn.json';
 import combat from '../data/combat.json';
 import feelData from '../data/feel.json';
+import levels from '../data/levels.json';
+import upgradesData from '../data/upgrades.json';
 import { createRng, type Rng } from '../core/rng';
 import { computeHit } from '../core/combat';
 import { parseColor } from '../core/feel';
-import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
+import { Progression, type UpgradeTarget } from '../core/progression';
+import type { RarityConfig, UpgradeDef } from '../core/upgrades';
+import { xpToNext } from '../core/xp';
 import { Depth } from '../config/depth';
 import { params } from '../config/params';
 import { GameClock } from '../systems/clock';
@@ -39,13 +43,16 @@ export class BattleScene extends Phaser.Scene {
   private projectiles!: ProjectileSystem;
   private pickups!: PickupSystem;
   private fx!: FxSystem;
-  private feel!: Feel;
+  feel!: Feel;
+  /** 레벨·업그레이드(HUD 씬이 읽음) */
+  progression!: Progression;
+  /** 화면 가운데 큰 알림(전사 등). null이면 없음 */
+  bannerMessage: string | null = null;
+  private upgradeTarget!: UpgradeTarget;
   audio!: AudioSystem;
   private combatRng!: Rng;
   private hpBar!: Phaser.GameObjects.Graphics;
   private debug!: DebugOverlay;
-  private pauseText!: Phaser.GameObjects.Text;
-  private bannerText!: Phaser.GameObjects.Text;
   /** 이번 판 기록 */
   readonly run = { xp: 0, kills: 0, damageTaken: 0, blocks: 0, defeated: false };
   private invincible = false;
@@ -93,17 +100,35 @@ export class BattleScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.player.sprite, true);
     this.cameras.main.centerOn(0, 0);
 
-    const textStyle = {
-      fontFamily: 'monospace',
-      fontSize: '16px',
-      color: '#ffffff',
-      align: 'center',
-      backgroundColor: '#000000b0',
-      padding: { x: 12, y: 8 },
+    this.bannerMessage = null;
+    this.progression = new Progression(
+      {
+        xp: levels.xp,
+        rarity: upgradesData.rarity as unknown as RarityConfig,
+        upgrades: upgradesData.upgrades as unknown as UpgradeDef[],
+        fallbacks: upgradesData.fallbacks as unknown as UpgradeDef[],
+        rerolls: levels.rerolls,
+      },
+      rng.fork('upgrades'),
+    );
+    const scene = this;
+    this.upgradeTarget = {
+      get luck() {
+        return scene.player.stats.luck;
+      },
+      get weapons() {
+        return scene.weapons.equipped.map((w) => w.id);
+      },
+      addPlayerMods: (mods) => this.player.addMods(mods),
+      addWeaponMods: (id, mods) => this.weapons.addMods(id, mods),
+      addWeapon: (id) => {
+        if (isWeaponId(id)) this.weapons.add(id);
+      },
+      heal: (f) => {
+        this.player.hp = Math.min(this.player.maxHp, this.player.hp + Math.round(this.player.maxHp * f));
+      },
+      pullAll: () => this.pickups.attractAll(),
     };
-    this.pauseText = this.add.text(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT / 2, '일시정지\nEsc로 계속', textStyle);
-    this.bannerText = this.add.text(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT / 2, '', textStyle);
-    for (const t of [this.pauseText, this.bannerText]) t.setOrigin(0.5).setScrollFactor(0).setDepth(Depth.Ui).setVisible(false);
 
     this.debug = new DebugOverlay(this, this.clock, params.debug, () => {
       const p = this.player;
@@ -111,10 +136,11 @@ export class BattleScene extends Phaser.Scene {
         `player ${p.id} ${p.action} hp ${p.hp}/${p.maxHp} (${Math.round(p.x)}, ${Math.round(p.y)})${this.invincible ? ' [무적]' : ''}`,
         `enemies ${this.enemies.alive}${this.enemies.stress ? ' [STRESS]' : ''} pool ${this.enemies.pool.capacity} (created ${this.enemies.pool.created})`,
         `weapons ${this.weapons.equipped.map((w) => w.id).join(',')} shots ${this.projectiles.active} fx ${this.fx.active}`,
+        `lv ${this.progression.level} (${Math.round(this.progression.progress * 100)}%) pending ${this.progression.pending} rerolls ${this.progression.rerolls}`,
         `xp ${this.run.xp} kills ${this.run.kills} gems ${this.pickups.active} taken ${this.run.damageTaken} blocks ${this.run.blocks}`,
         `feel particles ${this.feel.particles.active}/${this.feel.particles.cap} numbers ${this.feel.numbers.active} combo ${this.feel.combo.count}`,
         `audio ${this.audio.enabled ? `voices ${this.audio.activeVoices} played ${this.audio.played} dropped ${this.audio.dropped}` : 'off'}`,
-        params.debug ? 'J공격 K방어 L스킬 U치명 O느림 C캐릭터 V수류탄 I무적 B대형처치 F2적300 Esc정지' : '',
+        params.debug ? 'J공격 K방어 L스킬 U치명 O느림 C캐릭터 V수류탄 I무적 B대형처치 N레벨업 F2적300 Esc정지' : '',
       ].filter(Boolean);
     });
 
@@ -131,7 +157,9 @@ export class BattleScene extends Phaser.Scene {
       this.controls.destroy();
       this.floor.destroy();
       this.audio.destroy();
+      this.scene.stop(SceneKey.Hud);
     });
+    this.scene.launch(SceneKey.Hud);
   }
 
   private equipStartingWeapons(): void {
@@ -139,7 +167,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   override update(_time: number, delta: number): void {
-    if (this.controls.justDown('pause') && !this.run.defeated) this.togglePause();
+    if (this.controls.justDown('pause') && !this.run.defeated && !this.progression.isOpen) this.togglePause();
     const dt = this.clock.tick(delta);
     this.feel.beginFrame(delta, this.clock.hardPaused);
     const now = this.clock.timeMs;
@@ -158,8 +186,12 @@ export class BattleScene extends Phaser.Scene {
       this.projectiles.update(dt, this.enemies.grid, this.hooks);
       this.contactDamage(now);
       const gained = this.pickups.update(dt, p.x, p.y, p.stats.magnet);
-      if (gained > 0) this.audio.play('pickup');
+      if (gained > 0) {
+        this.audio.play('pickup');
+        this.progression.addXp(gained);
+      }
       this.run.xp += gained;
+      if (this.progression.pending > 0 && !this.progression.isOpen) this.openLevelUp();
     }
     this.fx.update(this.clock.effectScale);
     this.feel.update(this.clock.effectDeltaMs);
@@ -254,7 +286,7 @@ export class BattleScene extends Phaser.Scene {
   private defeat(): void {
     this.run.defeated = true;
     this.clock.pause('defeat');
-    this.bannerText.setText(`전사\n처치 ${this.run.kills} · 경험치 ${this.run.xp}\n잠시 후 다시 출정`).setVisible(true);
+    this.bannerMessage = `전사\nLv ${this.progression.level} · 처치 ${this.run.kills} · 경험치 ${this.run.xp}\n잠시 후 다시 출정`;
     this.time.delayedCall(combat.defeatRestartMs, () => this.scene.restart());
   }
 
@@ -272,7 +304,29 @@ export class BattleScene extends Phaser.Scene {
   private togglePause(): void {
     if (this.clock.hasScale('pause')) this.clock.resume('pause');
     else this.clock.pause('pause');
-    this.pauseText.setVisible(this.clock.hasScale('pause'));
+  }
+
+  /** 레벨업 창 열기: 전투 시계만 멈추고(HUD는 계속) 선택지를 HUD로 보낸다 */
+  private openLevelUp(): void {
+    const choices = this.progression.open(this.upgradeTarget);
+    if (!choices) return;
+    this.clock.pause('levelup');
+    this.events.emit('levelup', choices);
+    this.audio.play('levelup');
+  }
+
+  /** HUD에서 고른 업그레이드 적용. 레벨업이 더 쌓여 있으면 다음 프레임에 다시 열린다 */
+  pickUpgrade(index: number): void {
+    if (!this.progression.choose(index, this.upgradeTarget)) return;
+    this.audio.play('select');
+    this.clock.resume('levelup');
+    this.events.emit('levelupClosed');
+  }
+
+  rerollUpgrade(): void {
+    if (!this.progression.reroll() || !this.progression.choices) return;
+    this.audio.play('select');
+    this.events.emit('levelup', this.progression.choices);
   }
 
   private debugKeys(now: number): void {
@@ -287,6 +341,7 @@ export class BattleScene extends Phaser.Scene {
       if (this.weapons.has('grenade')) this.weapons.remove('grenade');
       else this.weapons.add('grenade');
     }
+    if (this.controls.justDown('debugLevel')) this.progression.addXp(xpToNext(this.progression.level, levels.xp) - this.progression.xp.xp);
     if (this.controls.justDown('debugBigKill')) {
       // 정예·보스가 아직 없으므로 가장 가까운 적을 대형 처치 연출로 쓰러뜨려 kill_big 프리셋을 확인
       const e = this.enemies.grid.nearest(p.x, p.y, 600, (n) => n.alive);

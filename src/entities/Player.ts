@@ -1,5 +1,7 @@
 import * as Phaser from 'phaser';
 import characters from '../data/characters.json';
+import levels from '../data/levels.json';
+import { applyMods, type StatLimits, type StatMod } from '../core/stats';
 import { manifest } from '../assets/manifest';
 import { createAnimState, triggerAction, updateAnimState, type AnimState } from '../core/animState';
 import { facingFrom, step } from '../core/movement';
@@ -7,7 +9,10 @@ import { registerUnitAnims, type UnitAnims } from '../systems/anims';
 import type { InputMap } from '../systems/input';
 
 export type CharacterId = keyof typeof characters.characters;
-export type Stats = (typeof characters.characters)[CharacterId]['stats'];
+type CharacterStats = (typeof characters.characters)[CharacterId]['stats'];
+/** 캐릭터 능력치 + 공통 기본 능력치(손패 수·드로우 속도) */
+export type Stats = CharacterStats & typeof levels.extraBaseStats;
+const LIMITS = levels.statLimits as StatLimits;
 
 export function isCharacterId(id: string): id is CharacterId {
   return id in characters.characters;
@@ -17,7 +22,11 @@ export function isCharacterId(id: string): id is CharacterId {
 export class Player {
   readonly sprite: Phaser.GameObjects.Sprite;
   id: CharacterId;
-  stats: Stats;
+  /** 기본 능력치에 수정자를 적용한 현재 값(읽기 전용으로 쓸 것) */
+  stats!: Stats;
+  /** 업그레이드·버프·디버프 수정자. addMods로만 바꾼다(즉시 재계산) */
+  readonly mods: StatMod[] = [];
+  private base!: Stats;
   /** 이동 속도 배율(슬로우 디버프·가속 버프가 바꾼다). 1 = 기본 */
   speedMul = 1;
   hp = 1;
@@ -36,7 +45,6 @@ export class Player {
     id: CharacterId,
   ) {
     this.id = id;
-    this.stats = characters.characters[id].stats;
     this.sprite = scene.add.sprite(x, y, manifest.sheetKey(id, 'move_slow'), 0).setOrigin(manifest.anchor.x, manifest.anchor.y);
     this.setCharacter(id, 0);
   }
@@ -52,12 +60,26 @@ export class Player {
   /** 캐릭터 교체(출정 준비·디버그). 위치와 바라보는 방향은 유지 */
   setCharacter(id: CharacterId, nowMs: number): void {
     this.id = id;
-    this.stats = characters.characters[id].stats;
-    this.maxHp = this.stats.hp;
+    this.base = { ...characters.characters[id].stats, ...levels.extraBaseStats };
+    this.recalc();
     this.hp = this.maxHp;
     this.anims = registerUnitAnims(this.scene, id);
     this.anim = createAnimState(this.anims.rules, nowMs);
     this.applyAnim(true);
+  }
+
+  addMods(mods: readonly StatMod[]): void {
+    this.mods.push(...mods);
+    this.recalc();
+  }
+
+  /** 능력치 재계산. 최대 체력이 오르면 오른 만큼 현재 체력도 채운다 */
+  private recalc(): void {
+    const prevMax = this.maxHp;
+    this.stats = applyMods(this.base, this.mods, LIMITS);
+    this.maxHp = Math.round(this.stats.hp);
+    if (this.maxHp > prevMax) this.hp += this.maxHp - prevMax;
+    this.hp = Math.min(this.hp, this.maxHp);
   }
 
   /** 한 번 재생 동작(공격·방어·스킬·치명타) */
