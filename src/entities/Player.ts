@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import characters from '../data/characters.json';
 import levels from '../data/levels.json';
 import { applyMods, type StatLimits, type StatMod } from '../core/stats';
+import { Buffs } from '../core/buffs';
 import { manifest } from '../assets/manifest';
 import { createAnimState, triggerAction, updateAnimState, type AnimState } from '../core/animState';
 import { facingFrom, step } from '../core/movement';
@@ -26,6 +27,8 @@ export class Player {
   stats!: Stats;
   /** 업그레이드·버프·디버프 수정자. addMods로만 바꾼다(즉시 재계산) */
   readonly mods: StatMod[] = [];
+  /** 시간제 버프·디버프(카드 효과). 만료되면 update에서 다시 계산 */
+  readonly buffs = new Buffs();
   private base!: Stats;
   /** 이동 속도 배율(슬로우 디버프·가속 버프가 바꾼다). 1 = 기본 */
   speedMul = 1;
@@ -33,6 +36,8 @@ export class Player {
   maxHp = 1;
   /** 이 시각(전투 시계)까지 피격 무적 */
   invulnUntilMs = 0;
+  /** 이 시각(전투 시계)까지 기절: 움직이지 못함(아군 오폭) */
+  stunUntilMs = 0;
   private facingDir: 1 | -1 = 1;
   private anims!: UnitAnims;
   private anim!: AnimState;
@@ -73,10 +78,22 @@ export class Player {
     this.recalc();
   }
 
+  /** 시간제 버프(같은 id면 값·지속시간 교체) */
+  addBuff(id: string, mods: readonly StatMod[], durationMs: number, nowMs: number): void {
+    this.buffs.add(id, mods, durationMs, nowMs);
+    this.recalc();
+  }
+
+  removeBuff(id: string): boolean {
+    if (!this.buffs.remove(id)) return false;
+    this.recalc();
+    return true;
+  }
+
   /** 능력치 재계산. 최대 체력이 오르면 오른 만큼 현재 체력도 채운다 */
   private recalc(): void {
     const prevMax = this.maxHp;
-    this.stats = applyMods(this.base, this.mods, LIMITS);
+    this.stats = applyMods(this.base, [...this.mods, ...this.buffs.mods()], LIMITS);
     this.maxHp = Math.round(this.stats.hp);
     if (this.maxHp > prevMax) this.hp += this.maxHp - prevMax;
     this.hp = Math.min(this.hp, this.maxHp);
@@ -127,7 +144,8 @@ export class Player {
    * @param timeScale 전투 시계 배율(애니메이션 재생 속도에 반영)
    */
   update(input: InputMap, dtMs: number, nowMs: number, timeScale: number): void {
-    const dir = input.moveVector();
+    if (this.buffs.expire(nowMs)) this.recalc();
+    const dir = nowMs < this.stunUntilMs ? { x: 0, y: 0 } : input.moveVector();
     this.moving = dir.x !== 0 || dir.y !== 0;
     if (this.moving && dtMs > 0) {
       const next = step(this.sprite, dir, this.stats.moveSpeed * this.speedMul, dtMs);

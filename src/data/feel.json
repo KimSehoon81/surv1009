@@ -1,5 +1,5 @@
 {
-  "$comment": "타격감 수치(PRD §4.4, 60fps 기준 프레임). 호출부는 프리셋 이름만 쓴다(feel.hit('crit', ...)). normal·crit·kill_big은 §4.4 표, 나머지는 보조 프리셋. 일반 타격 2프레임 정지는 맞은 적만 멈추는 국소 정지(localStopFrames), 전역 정지(hitstopFrames)는 치명 이상이며 stopBudget(정지 시간 비율 상한) 안에서만, hitstopForce는 예산 무시. hitstopMinGapMs=직전 전역 정지 끝난 뒤 이 시간 안이면 생략. shakeStack=연속 착탄 흔들림 누적, kickPx/Ms=타격 방향 화면 킥. emit=입자 종류별 개수, sfx=sfx.json 소리 이름, lod=연출 우선순위(lod.alwaysFrom 이상은 프레임 예산 무시). lod.budget=프레임당 전체 연출 수, 화면 밖(offscreenMarginPx) 타격은 시각 연출 생략. fxTiming=이펙트 시트 재생 속도와 첫 프레임 추가 유지(hold0F 프레임). intensity=접근성 강도 배율 0~1(D29 설정 화면). knockbackMulByTier=적 등급별 넉백 배율. 입자 kind에 sheet가 있으면 이펙트 시트 그림을 쓰고 randomFrame이면 프레임 하나를 무작위로(그을음 6종). card_success/card_fail=카드 판정 결과(금색 화면 플래시 screenFlashColor)",
+  "$comment": "타격감 수치(PRD §4.4, 60fps 기준 프레임). 호출부는 프리셋 이름만 쓴다(feel.hit('crit', ...)). normal·crit·kill_big은 §4.4 표, 나머지는 보조 프리셋. 일반 타격 2프레임 정지는 맞은 적만 멈추는 국소 정지(localStopFrames), 전역 정지(hitstopFrames)는 치명 이상이며 stopBudget(정지 시간 비율 상한) 안에서만, hitstopForce는 예산 무시. hitstopMinGapMs=직전 전역 정지 끝난 뒤 이 시간 안이면 생략. shakeStack=연속 착탄 흔들림 누적, kickPx/Ms=타격 방향 화면 킥. emit=입자 종류별 개수, sfx=sfx.json 소리 이름, lod=연출 우선순위(lod.alwaysFrom 이상은 프레임 예산 무시). lod.budget=프레임당 전체 연출 수, 화면 밖(offscreenMarginPx) 타격은 시각 연출 생략. fxTiming=이펙트 시트 재생 속도와 첫 프레임 추가 유지(hold0F 프레임). intensity=접근성 강도 배율 0~1(D29 설정 화면). knockbackMulByTier=적 등급별 넉백 배율. 입자 kind에 sheet가 있으면 이펙트 시트 그림을 쓰고 randomFrame이면 프레임 하나를 무작위로(그을음 6종). card_success/card_fail=카드 판정 결과(금색 화면 플래시 screenFlashColor) allyMarker=아군 범위 예고(청록, PRD §6.4: 포격·시한폭탄 착탄 지점), enemyReveal=척후·정찰기 적 표시 색.",
   "intensity": {
     "shake": 1,
     "flash": 1
@@ -245,6 +245,10 @@
       },
       "block": {
         "color": "#9fc4ff",
+        "scale": 1
+      },
+      "heal": {
+        "color": "#6fd06f",
         "scale": 1
       }
     }
@@ -587,5 +591,14 @@
         "ground": true
       }
     }
+  },
+  "allyMarker": {
+    "color": "#4fe0d8",
+    "fillAlpha": 0.12,
+    "lineAlpha": 0.85,
+    "pulseMs": 240
+  },
+  "enemyReveal": {
+    "color": "#ff6040"
   }
 }

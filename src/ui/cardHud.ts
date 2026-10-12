@@ -46,6 +46,7 @@ export class CardHud {
   private readonly tip: Phaser.GameObjects.Text;
   private hoverUid: number | null = null;
   private toastUntil = 0;
+  private toastSetAt = -1;
   private judgeView: Phaser.GameObjects.Container | null = null;
   private judgeKey = -1;
   private board: Phaser.GameObjects.Container | null = null;
@@ -83,9 +84,16 @@ export class CardHud {
     else if (ev.type === 'minusTriggered') msg = `${cardName(ev.card.id)} 발동${ev.mult > 1 ? ' ×2' : ''}`;
     else if (ev.type === 'purified') msg = `${cardName(ev.card.id)} 정화`;
     if (!msg) return;
-    const color = ev.type === 'minusTriggered' ? cardUi.colors.minus : cardUi.colors.success;
-    this.toast.setText(msg).setColor(color).setVisible(true);
-    this.toastUntil = this.scene.time.now + 1200;
+    this.showText(msg, ev.type === 'minusTriggered' ? cardUi.colors.minus : cardUi.colors.success);
+  }
+
+  /** 알림 한 줄. 같은 프레임에 이어 오면(카드 이름 → 효과 결과) 한 줄로 잇는다 */
+  showText(msg: string, color: string = cardUi.colors.success): void {
+    const now = this.scene.time.now;
+    const joined = this.toast.visible && this.toastSetAt === now ? `${this.toast.text} · ${msg}` : msg;
+    this.toast.setText(joined).setColor(color).setVisible(true);
+    this.toastSetAt = now;
+    this.toastUntil = now + 1400;
   }
 
   update(time: number): void {

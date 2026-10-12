@@ -11,7 +11,7 @@ export interface CardDef {
   tag: string;
   grade: string;
   effect: string;
-  params: Readonly<Record<string, number>>;
+  params: Readonly<Record<string, number | string>>;
 }
 
 export interface CardRules extends ChanceRules {
@@ -95,7 +95,13 @@ export type CardAction =
   | { type: 'add'; id: string; disguised?: boolean }
   | { type: 'shuffleHand' }
   | { type: 'primeIntel' }
-  | { type: 'penalty'; value: number; submits: number };
+  | { type: 'penalty'; value: number; submits: number }
+  /** OP 지급(정보 카드 실패 잔효 등). 인장 변환 규칙 동일 */
+  | { type: 'grantOp'; amount: number }
+  /** 가장 먼저 걸린 성공률 감소 하나 해제(통신 복구) */
+  | { type: 'clearPenalty' }
+  /** 즉시 1장 드로우, 손패가 가득이면 OP +1(콤보 보급 G4) */
+  | { type: 'drawNow' };
 
 export type RejectReason = 'cooldown' | 'empty' | 'tooMany' | 'notInHand' | 'blockedTag' | 'noSeal' | 'notEnoughOp';
 
@@ -246,6 +252,16 @@ export function cardStep(state: CardState, action: CardAction, env: CardEnv, rng
     case 'penalty':
       s.penalties.push({ value: action.value, submits: action.submits });
       break;
+    case 'grantOp':
+      addOp(s, action.amount, env, data, events);
+      break;
+    case 'clearPenalty':
+      s.penalties.shift();
+      break;
+    case 'drawNow':
+      if (s.hand.length < env.handSize) drawOne(s, data, env, rng, events, true);
+      else addOp(s, 1, env, data, events);
+      break;
   }
   return { state: s, events };
 }
@@ -337,6 +353,20 @@ function tagged(cards: readonly CardInstance[], data: CardData) {
   return cards.map((c) => ({ uid: c.uid, tag: data.cards[c.id]?.tag ?? '' }));
 }
 
+/** OP 적립: 인장이 가득(maxSeals)이면 쌓이지 않음, 필요 OP에 닿으면 인장으로 바꿈 */
+function addOp(s: CardState, amount: number, env: CardEnv, data: CardData, events: CardEvent[]): void {
+  for (let i = 0; i < amount; i++) {
+    if (s.seals >= data.rules.maxSeals) return;
+    s.op += 1;
+    events.push({ type: 'opGained', op: s.op });
+    if (s.op >= env.opForSeal) {
+      s.op -= env.opForSeal;
+      s.seals++;
+      events.push({ type: 'sealGained', seals: s.seals });
+    }
+  }
+}
+
 function removeFromHand(s: CardState, cards: readonly CardInstance[]): void {
   const ids = new Set(cards.map((c) => c.uid));
   s.hand = s.hand.filter((c) => !ids.has(c.uid));
@@ -404,15 +434,7 @@ function submit(s: CardState, uids: readonly number[], useSeal: boolean, env: Ca
   if (back.length > 0) events.push({ type: 'returned', cards: back });
   removeFromHand(s, v.minus);
   for (const c of v.minus) events.push({ type: 'minusTriggered', card: c, mult: 2 });
-  if (s.seals < r.maxSeals) {
-    s.op += r.opPerFail;
-    events.push({ type: 'opGained', op: s.op });
-    if (s.op >= env.opForSeal) {
-      s.op -= env.opForSeal;
-      s.seals++;
-      events.push({ type: 'sealGained', seals: s.seals });
-    }
-  }
+  addOp(s, r.opPerFail, env, data, events);
   s.failStreak++;
   s.stats.fails++;
   s.stats.longestFailStreak = Math.max(s.stats.longestFailStreak, s.failStreak);

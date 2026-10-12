@@ -5,6 +5,7 @@ import combat from '../data/combat.json';
 import feelData from '../data/feel.json';
 import levels from '../data/levels.json';
 import upgradesData from '../data/upgrades.json';
+import cardsData from '../data/cards.json';
 import { createRng, type Rng } from '../core/rng';
 import { computeHit } from '../core/combat';
 import { parseColor } from '../core/feel';
@@ -17,7 +18,10 @@ import { GameClock } from '../systems/clock';
 import { DebugOverlay } from '../systems/debugOverlay';
 import { EnemySystem } from '../systems/enemies';
 import { AudioSystem } from '../systems/audio';
-import { CardSystem } from '../systems/cards';
+import { CARD_DATA, CardSystem } from '../systems/cards';
+import { EffectRunner } from '../systems/effectRunner';
+import { runEffect, type Params } from '../systems/effects';
+import type { CardEvent } from '../core/cards';
 import { Feel } from '../systems/feel';
 import { Floor, type FloorConfig } from '../systems/floor';
 import { FxSystem } from '../systems/fx';
@@ -31,6 +35,14 @@ import { SceneKey } from './keys';
 
 const CHARACTERS: CharacterId[] = ['A01', 'A02', 'A03'];
 const DEBUG_SLOW = 0.4;
+const RESIDUE = cardsData.failResidue as Record<string, { effect: string; params: Params }>;
+/** 통신 복구가 풀 수 있는 디버프 = 마이너스 카드가 거는 버프 */
+const DEBUFF_IDS = new Set(
+  Object.values(CARD_DATA.cards)
+    .filter((c) => c.tag === 'minus' && typeof c.params.id === 'string')
+    .map((c) => c.params.id as string),
+);
+const CARD_IDS = Object.keys(CARD_DATA.cards);
 const HIT = { blockK: combat.blockK, blockReduction: combat.blockReduction, maxBlockChance: combat.maxBlockChance };
 
 /** 전투 씬: 플레이어·적·무기·투사체·경험치·피격·전사. 시간은 전부 전투 시계(clock) 기준 */
@@ -59,7 +71,14 @@ export class BattleScene extends Phaser.Scene {
   private hpBar!: Phaser.GameObjects.Graphics;
   private debug!: DebugOverlay;
   /** 이번 판 기록 */
-  readonly run = { xp: 0, kills: 0, damageTaken: 0, blocks: 0, defeated: false };
+  readonly run = { xp: 0, kills: 0, damageTaken: 0, blocks: 0, defeated: false, tp: 0, comboSuccesses: 0 };
+  /** 카드 효과 실행기(예약·예고 마커 포함) */
+  effects!: EffectRunner;
+  /** 콤보 보급: 다음 문턱 번호, 최근 보급 시각(전투 시계) */
+  private comboDrawStep = 0;
+  private comboDrawTimes: number[] = [];
+  private lastComboCount = 0;
+  private debugCardIndex = 0;
   private invincible = false;
   private hooks!: ProjectileHooks;
   private weaponHooks!: WeaponHooks;
@@ -70,7 +89,10 @@ export class BattleScene extends Phaser.Scene {
 
   create(): void {
     this.clock.reset();
-    Object.assign(this.run, { xp: 0, kills: 0, damageTaken: 0, blocks: 0, defeated: false });
+    Object.assign(this.run, { xp: 0, kills: 0, damageTaken: 0, blocks: 0, defeated: false, tp: 0, comboSuccesses: 0 });
+    this.comboDrawStep = 0;
+    this.comboDrawTimes = [];
+    this.lastComboCount = 0;
     const rng = createRng(params.seed);
     this.combatRng = rng.fork('combat');
     this.controls = new InputMap(this);
@@ -99,10 +121,13 @@ export class BattleScene extends Phaser.Scene {
         audio: this.audio,
         stats: () => battle.player.stats,
         stage: () => 1,
-        sealOpReduction: () => 0,
+        sealOpReduction: () => Math.round(battle.player.stats.sealOpReduction),
         canAct: () => !battle.run.defeated && !battle.progression.isOpen && !battle.clock.hasScale('pause') && !battle.opsOpen,
         onResult: (success) => battle.feel.hit(success ? 'card_success' : 'card_fail', battle.player.x, battle.player.y - combat.bodyOffsetY),
-        onEffect: (ev) => battle.events.emit('cards:effect', ev),
+        onEffect: (ev) => {
+          battle.events.emit('cards:effect', ev);
+          battle.onCardEvent(ev);
+        },
       },
       rng.fork('cards'),
     );
@@ -130,6 +155,29 @@ export class BattleScene extends Phaser.Scene {
       },
       rng.fork('upgrades'),
     );
+    this.effects = new EffectRunner({
+      scene: this,
+      clock: this.clock,
+      player: this.player,
+      enemies: this.enemies,
+      projectiles: this.projectiles,
+      feel: this.feel,
+      audio: this.audio,
+      cards: this.cards,
+      progression: this.progression,
+      rng: rng.fork('effects'),
+      explode: (x, y, r, m, f, fs, imp) => this.explode(x, y, r, m, f, fs, imp),
+      damageEnemy: (e, m, dx, dy, aoe) => this.damageEnemy(e, m, dx, dy, aoe),
+      onPlayerHurt: (n) => {
+        this.run.damageTaken += n;
+      },
+      addTp: (n) => {
+        this.run.tp += n;
+        this.toast(`TP +${n}`);
+      },
+      toast: (msg, color) => this.toast(msg, color),
+      debuffIds: DEBUFF_IDS,
+    });
     const scene = this;
     this.upgradeTarget = {
       get luck() {
@@ -157,10 +205,11 @@ export class BattleScene extends Phaser.Scene {
         `weapons ${this.weapons.equipped.map((w) => w.id).join(',')} shots ${this.projectiles.active} fx ${this.fx.active}`,
         `cards hand ${this.cards.state.hand.map((c) => c.id).join(',')} sel ${this.cards.selected.length} op ${this.cards.state.op} seals ${this.cards.state.seals} deck ${this.cards.state.drawPile.length}`,
         `lv ${this.progression.level} (${Math.round(this.progression.progress * 100)}%) pending ${this.progression.pending} rerolls ${this.progression.rerolls}`,
+        `effects pending ${this.effects.pending} buffs ${this.player.buffs.list.map((b) => b.id).join(',') || '-'} tp ${this.run.tp} combos ${this.run.comboSuccesses} tactical ${this.progression.tacticalSlots}`,
         `xp ${this.run.xp} kills ${this.run.kills} gems ${this.pickups.active} taken ${this.run.damageTaken} blocks ${this.run.blocks}`,
         `feel particles ${this.feel.particles.active}/${this.feel.particles.cap} numbers ${this.feel.numbers.active} combo ${this.feel.combo.count}`,
         `audio ${this.audio.enabled ? `voices ${this.audio.activeVoices} played ${this.audio.played} dropped ${this.audio.dropped}` : 'off'}`,
-        params.debug ? 'J공격 K방어 L스킬 U치명 O느림 C캐릭터 V수류탄 I무적 B대형처치 N레벨업 F2적300 Esc정지' : '',
+        params.debug ? 'J공격 K방어 L스킬 U치명 O느림 C캐릭터 V수류탄 I무적 B대형처치 N레벨업 F2적300 F3카드 Esc정지' : '',
       ].filter(Boolean);
     });
 
@@ -205,7 +254,8 @@ export class BattleScene extends Phaser.Scene {
       this.weapons.update(dt, now, p, this.enemies.grid, this.projectiles, this.weaponHooks);
       this.projectiles.update(dt, this.enemies.grid, this.hooks);
       this.contactDamage(now);
-      const gained = this.pickups.update(dt, p.x, p.y, p.stats.magnet);
+      // 경험치 배율(전공 훈장 등)은 주울 때 곱한다
+      const gained = this.pickups.update(dt, p.x, p.y, p.stats.magnet) * p.stats.xpMul;
       if (gained > 0) {
         this.audio.play('pickup');
         this.progression.addXp(gained);
@@ -213,6 +263,8 @@ export class BattleScene extends Phaser.Scene {
       this.run.xp += gained;
       if (this.progression.pending > 0 && !this.progression.isOpen) this.openLevelUp();
       this.cards.update(dt, time);
+      this.effects.update();
+      this.comboSupply(now);
     }
     this.fx.update(this.clock.effectScale);
     this.feel.update(this.clock.effectDeltaMs);
@@ -258,11 +310,60 @@ export class BattleScene extends Phaser.Scene {
     this.run.kills++;
   }
 
-  /** 곡사 착지: 범위 안 모든 적에게 피해 + 폭발 이펙트 */
+  /** 판정이 끝난 카드 결과를 효과로(PRD §5.1·§5.3.1). 조합 스킬 전용 연출(D10~D11) 전에는 쓰인 카드 효과를 배수로 대신 낸다 */
+  private onCardEvent(ev: CardEvent): void {
+    if (ev.type === 'cardEffect') this.runCard(ev.card.id, 1);
+    else if (ev.type === 'minusTriggered') this.runCard(ev.card.id, ev.mult);
+    else if (ev.type === 'lost') {
+      const tag = CARD_DATA.cards[ev.card.id]?.tag ?? '';
+      const r = RESIDUE[tag];
+      if (r) runEffect(r.effect, this.effects, r.params, 1);
+    } else if (ev.type === 'comboSkill') {
+      const s = this.player.stats;
+      const power = cardsData.comboFallbackPower * s.comboPower;
+      const ids = ev.cards.map((c) => c.id).filter((id) => CARD_DATA.cards[id]?.tag !== 'minus');
+      this.effects.schedule(s.comboDelayMs, () => {
+        for (const id of ids) this.runCard(id, power);
+      });
+      this.run.comboSuccesses++;
+      if (this.run.comboSuccesses % levels.tacticalEvery === 0) {
+        this.progression.tacticalSlots++;
+        this.toast('전술 선택지 확보 (다음 레벨업)', '#7fd8ff');
+      }
+    }
+  }
+
+  private runCard(id: string, power: number): void {
+    const def = CARD_DATA.cards[id];
+    if (def) runEffect(def.effect, this.effects, def.params, power);
+  }
+
+  private toast(msg: string, color?: string): void {
+    this.events.emit('toast', msg, color);
+  }
+
+  /** 콤보 보급(G4): 콤보가 문턱(25·60·120)을 넘을 때 카드 1장(가득이면 OP +1), 1분에 최대 perMinute번 */
+  private comboSupply(now: number): void {
+    const cfg = levels.comboDraw;
+    const n = this.feel.combo.count;
+    if (n < this.lastComboCount) this.comboDrawStep = 0;
+    this.lastComboCount = n;
+    const next = cfg.thresholds[this.comboDrawStep];
+    if (next === undefined || n < next) return;
+    this.comboDrawStep++;
+    this.comboDrawTimes = this.comboDrawTimes.filter((t) => now - t < 60_000);
+    if (this.comboDrawTimes.length >= cfg.perMinute) return;
+    this.comboDrawTimes.push(now);
+    const evs = this.cards.act({ type: 'drawNow' });
+    this.toast(evs.some((e) => e.type === 'drawn') ? `${next} 콤보 보급: 카드 +1` : `${next} 콤보 보급: OP +1`, '#ffe14d');
+  }
+
+  /** 곡사 착지·카드 포격: 범위 안 모든 적에게 피해 + 폭발 이펙트(mult 0이면 연출만) */
   private explode(x: number, y: number, radius: number, mult: number, fxName: string | undefined, fxScale: number, impact: string | undefined): void {
     const cy = y - combat.bodyOffsetY * 0.4;
     if (fxName) this.fx.play(fxName, x, cy, fxScale);
     if (impact) this.feel.hit(impact, x, cy, { groundY: y });
+    if (mult <= 0 || radius <= 0) return;
     const hit: Enemy[] = [];
     this.enemies.grid.forEachNear(x, y, radius + MAX_ENEMY_RADIUS, (e, d2) => {
       const r = radius + e.radius;
@@ -378,6 +479,13 @@ export class BattleScene extends Phaser.Scene {
       // 정예·보스가 아직 없으므로 가장 가까운 적을 대형 처치 연출로 쓰러뜨려 kill_big 프리셋을 확인
       const e = this.enemies.grid.nearest(p.x, p.y, 600, (n) => n.alive);
       if (e) this.finishEnemy(e, 'boss');
+    }
+    if (this.controls.justDown('debugCard')) {
+      // 카탈로그 순서대로 한 장씩 지급(P01 → … → M08 → P01)
+      const id = CARD_IDS[this.debugCardIndex % CARD_IDS.length] as string;
+      this.debugCardIndex++;
+      this.cards.give(id);
+      this.toast(`[디버그] ${id} ${CARD_DATA.cards[id]?.name ?? ''} 지급`, '#b0a890');
     }
     if (this.controls.justDown('debugStress')) {
       this.enemies.setStress(!this.enemies.stress, { x: p.x, y: p.y, radius: combat.playerRadius }, now);

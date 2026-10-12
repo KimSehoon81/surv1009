@@ -585,6 +585,79 @@
           "volume": 0.35
         }
       ]
+    },
+    "heal": {
+      "variants": 1,
+      "layers": [
+        {
+          "wave": "triangle",
+          "freq": 523,
+          "releaseMs": 90,
+          "volume": 0.4
+        },
+        {
+          "wave": "triangle",
+          "freq": 784,
+          "delayMs": 60,
+          "releaseMs": 90,
+          "volume": 0.4
+        },
+        {
+          "wave": "triangle",
+          "freq": 1046,
+          "delayMs": 120,
+          "holdMs": 40,
+          "releaseMs": 200,
+          "volume": 0.45
+        }
+      ]
+    },
+    "buff_up": {
+      "variants": 1,
+      "layers": [
+        {
+          "wave": "square",
+          "freq": 392,
+          "freqEnd": 784,
+          "releaseMs": 180,
+          "volume": 0.35,
+          "duty": 0.25
+        }
+      ]
+    },
+    "debuff": {
+      "variants": 1,
+      "layers": [
+        {
+          "wave": "square",
+          "freq": 330,
+          "freqEnd": 165,
+          "releaseMs": 220,
+          "volume": 0.35,
+          "duty": 0.5
+        },
+        {
+          "wave": "noise",
+          "freq": 1200,
+          "delayMs": 30,
+          "releaseMs": 120,
+          "curve": 1.5,
+          "volume": 0.15,
+          "lowpassHz": 1200
+        }
+      ]
+    },
+    "strike_whistle": {
+      "variants": 1,
+      "layers": [
+        {
+          "wave": "sine",
+          "freq": 1800,
+          "freqEnd": 700,
+          "releaseMs": 420,
+          "volume": 0.18
+        }
+      ]
     }
   },
   "cues": {
@@ -862,6 +935,57 @@
       "maxVoices": 1,
       "priority": 9,
       "center": true
+    },
+    "heal": {
+      "src": "heal",
+      "bus": "ui",
+      "vol": 0.4,
+      "pitchSt": [
+        0,
+        0
+      ],
+      "cooldownMs": 200,
+      "maxVoices": 1,
+      "priority": 6,
+      "center": true
+    },
+    "buff_up": {
+      "src": "buff_up",
+      "bus": "ui",
+      "vol": 0.35,
+      "pitchSt": [
+        0,
+        0
+      ],
+      "cooldownMs": 200,
+      "maxVoices": 1,
+      "priority": 6,
+      "center": true
+    },
+    "debuff": {
+      "src": "debuff",
+      "bus": "ui",
+      "vol": 0.4,
+      "pitchSt": [
+        0,
+        0
+      ],
+      "cooldownMs": 200,
+      "maxVoices": 1,
+      "priority": 7,
+      "center": true
+    },
+    "strike_whistle": {
+      "src": "strike_whistle",
+      "bus": "sfx",
+      "vol": 0.3,
+      "pitchSt": [
+        -1,
+        1
+      ],
+      "cooldownMs": 120,
+      "maxVoices": 2,
+      "priority": 3
     }
   }
 }

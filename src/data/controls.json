@@ -50,6 +50,9 @@
     "debugBigKill": [
       "B"
     ],
+    "debugCard": [
+      "F3"
+    ],
     "levelPick1": [
       "ONE",
       "NUMPAD_ONE"

@@ -44,6 +44,7 @@ export class HudScene extends Phaser.Scene {
   private levelUp: Phaser.GameObjects.Container | null = null;
   private cardHud!: CardHud;
   private readonly onCardEffect = (ev: CardEvent) => this.cardHud.showEffect(ev);
+  private readonly onToast = (msg: string, color?: string) => this.cardHud.showText(msg, color);
   private levelUpOpenedAt = 0;
   private readonly onLevelUp = (choices: Choice[]) => this.showLevelUp(choices);
   private readonly onLevelUpClosed = () => this.hideLevelUp();
@@ -81,12 +82,14 @@ export class HudScene extends Phaser.Scene {
       canOpenBoard: () => this.battle.canOpenBoard(),
     });
     this.battle.events.on('cards:effect', this.onCardEffect);
+    this.battle.events.on('toast', this.onToast);
     this.battle.events.on('levelup', this.onLevelUp);
     this.battle.events.on('levelupClosed', this.onLevelUpClosed);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.battle.events.off('levelup', this.onLevelUp);
       this.battle.events.off('levelupClosed', this.onLevelUpClosed);
       this.battle.events.off('cards:effect', this.onCardEffect);
+      this.battle.events.off('toast', this.onToast);
       this.cardHud.destroy();
       this.controls.destroy();
     });

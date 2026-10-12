@@ -1,5 +1,5 @@
 {
-  "$comment": "카드 카탈로그(PRD §5.3.1). tag: infantry 보병, artillery 포병, armor 기갑, air 공군, navy 해군, intel 정보, engineer 공병, medical 의무, allied 연합, minus 마이너스. grade: common < rare < legendary(실패 시 낮은 등급부터 소멸), minus는 마이너스. effect는 단일 효과 ID(처리는 D09 효과 레지스트리), params는 그 수치. starterDeck=기본 덱 20장(P12·P14·P16은 해금 카드, PRD 밖 구성). desc=툴팁 문구(PRD §5.3.1 효과 칸)",
+  "$comment": "카드 카탈로그(PRD §5.3.1). tag: infantry 보병, artillery 포병, armor 기갑, air 공군, navy 해군, intel 정보, engineer 공병, medical 의무, allied 연합, minus 마이너스. grade: common < rare < legendary(실패 시 낮은 등급부터 소멸), minus는 마이너스. effect=원자 효과 ID(systems/effects.ts 레지스트리), params=그 수치(damage는 공격력 배수, pct는 최대 체력 비율, ms·delayMs는 전투 시계). power(무리수 실패 2배·조합 대체 2배)는 피해·회복·버프 크기에 곱해짐. failResidue=실패로 사라진 카드의 병과별 약한 흔적(PRD §5.1 v0.2, 해군·기갑은 PRD 표에 없어 같은 계열로 추가). comboFallbackPower=조합 스킬 연출(D10~D11) 전까지 조합 성공 시 쓰인 카드 효과를 이 배수로 대신 냄. starterDeck=기본 덱 20장(P12·P14·P16은 해금 카드, PRD 밖 구성). desc=툴팁 문구",
   "tags": {
     "infantry": "보병",
     "artillery": "포병",
@@ -17,48 +17,88 @@
       "name": "소총 소대",
       "tag": "infantry",
       "grade": "common",
-      "effect": "volley",
-      "params": {},
+      "effect": "radialShots",
+      "params": {
+        "count": 12,
+        "damage": 0.8,
+        "range": 260
+      },
       "desc": "주변 일제 사격"
     },
     "P02": {
       "name": "수류탄 분대",
       "tag": "infantry",
       "grade": "common",
-      "effect": "grenades",
-      "params": {},
+      "effect": "lobs",
+      "params": {
+        "count": 3,
+        "damage": 1.4,
+        "aoe": 44
+      },
       "desc": "수류탄 3발 투척"
     },
     "P03": {
       "name": "포병 관측반",
       "tag": "artillery",
       "grade": "common",
-      "effect": "mortar",
-      "params": {},
+      "effect": "strikes",
+      "params": {
+        "count": 3,
+        "damage": 1.8,
+        "radius": 42,
+        "delayMs": 600,
+        "intervalMs": 180,
+        "spreadPx": 50,
+        "fx": "explosion_s",
+        "fxScale": 0.9
+      },
       "desc": "지정 지점 박격포 3발"
     },
     "P04": {
       "name": "폭격기 요청",
       "tag": "air",
       "grade": "rare",
-      "effect": "bomb",
-      "params": {},
+      "effect": "strikes",
+      "params": {
+        "count": 1,
+        "damage": 4,
+        "radius": 70,
+        "delayMs": 700,
+        "intervalMs": 0,
+        "spreadPx": 0,
+        "fx": "explosion_l",
+        "fxScale": 0.7
+      },
       "desc": "폭탄 1발 낙하"
     },
     "P05": {
       "name": "함포 지원 요청",
       "tag": "navy",
       "grade": "rare",
-      "effect": "naval_shell",
-      "params": {},
+      "effect": "strikes",
+      "params": {
+        "count": 1,
+        "damage": 3.5,
+        "radius": 60,
+        "delayMs": 700,
+        "intervalMs": 0,
+        "spreadPx": 0,
+        "fx": "explosion_l",
+        "fxScale": 0.6
+      },
       "desc": "함포 1회 착탄"
     },
     "P06": {
       "name": "전차 소대",
       "tag": "armor",
       "grade": "rare",
-      "effect": "tank_dash",
-      "params": {},
+      "effect": "line",
+      "params": {
+        "length": 320,
+        "width": 44,
+        "damage": 2.5,
+        "knockback": 24
+      },
       "desc": "전차 돌진"
     },
     "P07": {
@@ -66,7 +106,11 @@
       "tag": "engineer",
       "grade": "common",
       "effect": "timebomb",
-      "params": {},
+      "params": {
+        "delayMs": 3000,
+        "damage": 4,
+        "radius": 80
+      },
       "desc": "시한폭탄 1개 설치"
     },
     "P08": {
@@ -74,15 +118,21 @@
       "tag": "medical",
       "grade": "common",
       "effect": "heal",
-      "params": {},
+      "params": {
+        "pct": 0.25
+      },
       "desc": "체력 회복"
     },
     "P09": {
       "name": "유엔군 증원",
       "tag": "allied",
       "grade": "rare",
-      "effect": "support_fire",
-      "params": {},
+      "effect": "support",
+      "params": {
+        "durationMs": 3000,
+        "intervalMs": 200,
+        "damage": 0.7
+      },
       "desc": "지원군 3초 엄호"
     },
     "P10": {
@@ -90,14 +140,16 @@
       "tag": "intel",
       "grade": "common",
       "effect": "scout",
-      "params": {},
+      "params": {
+        "flashMs": 400
+      },
       "desc": "적 위치 표시, 다음 제출 +10%p"
     },
     "P11": {
       "name": "통신 복구",
       "tag": "intel",
       "grade": "common",
-      "effect": "clear_disruption",
+      "effect": "clearDisruption",
       "params": {},
       "desc": "방해 효과 1개 해제"
     },
@@ -105,24 +157,30 @@
       "name": "작전계획서",
       "tag": "intel",
       "grade": "legendary",
-      "effect": "next_upgrade_value",
-      "params": {},
+      "effect": "nextLevelUp",
+      "params": {
+        "valueMultiplier": 2
+      },
       "desc": "다음 레벨업 업그레이드 수치 200%"
     },
     "P13": {
       "name": "정찰 보고서",
       "tag": "intel",
       "grade": "rare",
-      "effect": "next_upgrade_rare",
-      "params": {},
+      "effect": "nextLevelUp",
+      "params": {
+        "rarePlusBonus": 0.3
+      },
       "desc": "다음 레벨업 희귀 이상 +30%p"
     },
     "P14": {
       "name": "참모 회의",
       "tag": "intel",
       "grade": "rare",
-      "effect": "next_upgrade_count",
-      "params": {},
+      "effect": "nextLevelUp",
+      "params": {
+        "count": 4
+      },
       "desc": "다음 레벨업 선택지 +1"
     },
     "P15": {
@@ -130,78 +188,124 @@
       "tag": "allied",
       "grade": "common",
       "effect": "rerolls",
-      "params": {},
+      "params": {
+        "amount": 2
+      },
       "desc": "레벨업 리롤 +2회"
     },
     "P16": {
       "name": "전공 훈장",
       "tag": "allied",
       "grade": "legendary",
-      "effect": "xp_boost",
-      "params": {},
+      "effect": "buff",
+      "params": {
+        "id": "medal",
+        "ms": 30000,
+        "stat": "xpMul",
+        "op": "mul",
+        "value": 1
+      },
       "desc": "30초간 경험치 ×2"
     },
     "M01": {
       "name": "오보",
       "tag": "minus",
       "grade": "minus",
-      "effect": "misinformation",
-      "params": {},
+      "effect": "cardPenalty",
+      "params": {
+        "value": 0.1,
+        "submits": 3
+      },
       "desc": "성공률 −10%p, 3회 제출 동안"
     },
     "M02": {
       "name": "아군 오폭",
       "tag": "minus",
       "grade": "minus",
-      "effect": "friendly_fire",
-      "params": {},
+      "effect": "friendlyFire",
+      "params": {
+        "pct": 0.08,
+        "stunMs": 600
+      },
       "desc": "플레이어 피해 + 짧은 기절"
     },
     "M03": {
       "name": "보급 부족",
       "tag": "minus",
       "grade": "minus",
-      "effect": "supply_short",
-      "params": {},
+      "effect": "buff",
+      "params": {
+        "id": "supply_short",
+        "ms": 30000,
+        "stat": "drawSpeed",
+        "op": "mul",
+        "value": -0.5
+      },
       "desc": "드로우 속도 −50%, 30초"
     },
     "M04": {
       "name": "불발탄",
       "tag": "minus",
       "grade": "minus",
-      "effect": "dud",
-      "params": {},
+      "effect": "buff",
+      "params": {
+        "id": "dud",
+        "ms": 20000,
+        "stat": "comboPower",
+        "op": "mul",
+        "value": -0.3,
+        "stat2": "comboDelayMs",
+        "value2": 2000
+      },
       "desc": "조합 스킬 지연 +2초, 위력 −30% (20초)"
     },
     "M05": {
       "name": "사기 저하",
       "tag": "minus",
       "grade": "minus",
-      "effect": "low_morale",
-      "params": {},
+      "effect": "buff",
+      "params": {
+        "id": "low_morale",
+        "ms": 30000,
+        "stat": "attack",
+        "op": "mul",
+        "value": -0.15
+      },
       "desc": "공격력 −15%, 30초"
     },
     "M06": {
       "name": "혹한·동상",
       "tag": "minus",
       "grade": "minus",
-      "effect": "frostbite",
-      "params": {},
+      "effect": "buff",
+      "params": {
+        "id": "frostbite",
+        "ms": 30000,
+        "stat": "moveSpeed",
+        "op": "mul",
+        "value": -0.2
+      },
       "desc": "이동속도 −20%, 30초"
     },
     "M07": {
       "name": "통신 두절",
       "tag": "minus",
       "grade": "minus",
-      "effect": "comms_down",
-      "params": {},
+      "effect": "buff",
+      "params": {
+        "id": "comms_down",
+        "ms": 20000,
+        "stat": "blockIntel",
+        "op": "add",
+        "value": 1
+      },
       "desc": "정보 카드 사용 불가 20초"
     },
     "M08": {
       "name": "지휘 혼선",
       "tag": "minus",
       "grade": "minus",
-      "effect": "confusion",
+      "effect": "shuffleHand",
       "params": {},
       "desc": "손패 순서 섞임, 선택 해제"
     }
@@ -227,5 +331,81 @@
     "P11",
     "P13",
     "P15"
-  ]
+  ],
+  "failResidue": {
+    "infantry": {
+      "effect": "shots",
+      "params": {
+        "count": 3,
+        "damage": 0.8
+      }
+    },
+    "artillery": {
+      "effect": "strikes",
+      "params": {
+        "count": 1,
+        "damage": 1,
+        "radius": 36,
+        "delayMs": 600,
+        "intervalMs": 0,
+        "spreadPx": 90,
+        "fx": "explosion_s",
+        "fxScale": 0.7
+      }
+    },
+    "armor": {
+      "effect": "line",
+      "params": {
+        "length": 160,
+        "width": 32,
+        "damage": 0.8,
+        "knockback": 12
+      }
+    },
+    "air": {
+      "effect": "recon",
+      "params": {
+        "ms": 20000
+      }
+    },
+    "navy": {
+      "effect": "strikes",
+      "params": {
+        "count": 1,
+        "damage": 1,
+        "radius": 40,
+        "delayMs": 700,
+        "intervalMs": 0,
+        "spreadPx": 120,
+        "fx": "explosion_s",
+        "fxScale": 0.7
+      }
+    },
+    "intel": {
+      "effect": "opGain",
+      "params": {
+        "amount": 1
+      }
+    },
+    "engineer": {
+      "effect": "stunArea",
+      "params": {
+        "radius": 80,
+        "ms": 1200
+      }
+    },
+    "medical": {
+      "effect": "heal",
+      "params": {
+        "pct": 0.05
+      }
+    },
+    "allied": {
+      "effect": "tp",
+      "params": {
+        "amount": 5
+      }
+    }
+  },
+  "comboFallbackPower": 2
 }

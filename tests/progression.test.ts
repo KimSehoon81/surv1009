@@ -172,4 +172,26 @@ describe('레벨업 흐름', () => {
     p.choose(1, t);
     expect(log).toContain('heal:0.3');
   });
+  it('전술 종류는 일반 추첨에 나오지 않고, 전술 슬롯이 있으면 1개 더 붙었다가 고르면 줄어든다', () => {
+    const p = new Progression(cfg, createRng('tac'));
+    const { t } = makeTarget();
+    p.addXp(xpToNext(1, XP) * 40);
+    const tacticalIds = new Set(DEFS.filter((d) => d.kind === 'tactical').map((d) => d.id));
+    expect(tacticalIds.size).toBeGreaterThan(0);
+    for (let i = 0; i < 4; i++) {
+      const c = p.open(t) ?? [];
+      expect(c).toHaveLength(3);
+      expect(c.some((x) => tacticalIds.has(x.def.id))).toBe(false);
+      p.choose(0, t);
+    }
+    p.tacticalSlots = 1;
+    const c = p.open(t) ?? [];
+    expect(c).toHaveLength(4);
+    const extra = c[3];
+    expect(extra && (extra.def.kind === 'tactical' || extra.def.kind === 'card')).toBe(true);
+    expect(new Set(c.map((x) => x.def.id)).size).toBe(4);
+    p.choose(3, t);
+    expect(p.tacticalSlots).toBe(0);
+    expect(p.open(t)).toHaveLength(3);
+  });
 });

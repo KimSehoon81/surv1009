@@ -42,6 +42,8 @@ export class Progression {
   pending = 0;
   choices: Choice[] | null = null;
   nextBonus: NextRollBonus = {};
+  /** 조합 성공 누적으로 생긴 전술 선택지(다음 레벨업에 1개씩 추가, PRD §5.5) */
+  tacticalSlots = 0;
   private openCtx: RollContext | null = null;
 
   constructor(
@@ -86,15 +88,28 @@ export class Progression {
       owned: { ...this.owned },
       weapons: [...target.weapons],
     };
-    this.choices = rollChoices(this.cfg.upgrades, this.cfg.fallbacks, this.cfg.rarity, this.openCtx, this.rng);
+    this.choices = this.roll(this.openCtx);
     return this.choices;
+  }
+
+  /** 일반 추첨(전술 종류 제외) + 전술 선택지(전술·카드 종류에서 1개) */
+  private roll(ctx: RollContext): Choice[] {
+    const normal = this.cfg.upgrades.filter((d) => d.kind !== 'tactical');
+    const out = rollChoices(normal, this.cfg.fallbacks, this.cfg.rarity, ctx, this.rng);
+    if (this.tacticalSlots > 0) {
+      const taken = new Set(out.map((c) => c.def.id));
+      const pool = this.cfg.upgrades.filter((d) => (d.kind === 'tactical' || d.kind === 'card') && !taken.has(d.id));
+      const extra = rollChoices(pool, [], this.cfg.rarity, { ...ctx, count: 1 }, this.rng);
+      out.push(...extra);
+    }
+    return out;
   }
 
   /** 같은 보정으로 다시 뽑기. 횟수가 없으면 false */
   reroll(): boolean {
     if (!this.isOpen || !this.openCtx || this.rerolls <= 0) return false;
     this.rerolls--;
-    this.choices = rollChoices(this.cfg.upgrades, this.cfg.fallbacks, this.cfg.rarity, this.openCtx, this.rng);
+    this.choices = this.roll(this.openCtx);
     return true;
   }
 
@@ -113,6 +128,8 @@ export class Progression {
     if (!c.fallback) this.owned[d.id] = (this.owned[d.id] ?? 0) + 1;
     this.history.push({ id: d.id, rarity: c.rarity });
     this.pending--;
+    // 전술 선택지가 붙은 창을 닫으면(무엇을 골랐든) 슬롯 1개 소모
+    if (this.tacticalSlots > 0) this.tacticalSlots--;
     this.choices = null;
     this.openCtx = null;
     return c;

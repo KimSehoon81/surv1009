@@ -4,6 +4,7 @@ import rulesData from '../data/cardRules.json';
 import cardUi from '../data/cardUi.json';
 import { recommend, type Advice } from '../core/cardAdvisor';
 import {
+  type CardAction,
   cardStep,
   createCardState,
   minusChanceFor,
@@ -42,7 +43,7 @@ export interface Judging {
 export interface CardHost {
   readonly clock: GameClock;
   readonly audio: AudioSink;
-  stats(): { handSize: number; drawSpeed: number; luck: number };
+  stats(): { handSize: number; drawSpeed: number; luck: number; blockIntel: number };
   stage(): number;
   /** 인장 필요 OP 감소(인게임 작전 숙련, D09) */
   sealOpReduction(): number;
@@ -50,7 +51,7 @@ export interface CardHost {
   canAct(): boolean;
   /** 판정 결과 연출(금색 플래시 등) */
   onResult(success: boolean): void;
-  /** 카드 효과·조합 스킬·마이너스 발동(처리는 D09~D11) */
+  /** 카드 효과·조합 스킬·마이너스 발동·실패 소멸(잔효) */
   onEffect(ev: CardEvent): void;
 }
 
@@ -90,6 +91,7 @@ export class CardSystem {
       extraChance: 0,
       opForSeal: CARD_DATA.rules.opForSeal - this.host.sealOpReduction(),
       minusChance: minusChanceFor(this.host.stage(), CARD_DATA.rules),
+      blockedTags: s.blockIntel > 0 ? ['intel'] : [],
     };
   }
 
@@ -191,10 +193,25 @@ export class CardSystem {
     this.host.audio.play(success ? 'judge_success' : 'judge_fail');
     this.host.onResult(success);
     for (const ev of j.events) {
-      if (ev.type === 'comboSkill' || ev.type === 'cardEffect' || ev.type === 'minusTriggered' || ev.type === 'purified') this.host.onEffect(ev);
+      if (ev.type === 'comboSkill' || ev.type === 'cardEffect' || ev.type === 'minusTriggered' || ev.type === 'purified' || ev.type === 'lost') this.host.onEffect(ev);
+    }
+    this.opSounds(j.events);
+  }
+
+  private opSounds(events: readonly CardEvent[]): void {
+    for (const ev of events) {
       if (ev.type === 'opGained') this.host.audio.play('op_tick', undefined, undefined, { combo: ev.op });
       if (ev.type === 'sealGained') this.host.audio.play('seal_stamp');
     }
+  }
+
+  /** 카드 효과가 카드 상태를 바꿀 때(척후 보고·오보·잔효 OP·지휘 혼선·콤보 보급·통신 복구) */
+  act(action: Extract<CardAction, { type: 'primeIntel' | 'penalty' | 'grantOp' | 'shuffleHand' | 'drawNow' | 'clearPenalty' }>): CardEvent[] {
+    const r = cardStep(this.state, action, this.env(), this.rng, CARD_DATA);
+    this.apply(r);
+    if (action.type === 'shuffleHand') this.selected = [];
+    this.opSounds(r.events);
+    return r.events;
   }
 
   private reject(reason: string, nowReal = 0): void {

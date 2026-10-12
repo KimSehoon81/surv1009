@@ -1,13 +1,62 @@
 {
-  "$comment": "스테이지 안 레벨(PRD §4.2): 필요 경험치 = round(base × growth^(Lv−1)), Lv1→2 = 20, Lv9→10 ≈ 220. maxLevel 이후는 레벨업 없음(Lv10 = 보스 구간). rerolls=스테이지 시작 리롤 횟수(PRD 밖 값, P15 재보급이 +2). inputLockMs=레벨업 창이 열린 뒤 입력을 받지 않는 시간(PRD §3: 카드 숫자키 오입력 방지). extraBaseStats=캐릭터 공통 기본 능력치(손패 수·드로우 속도 배율, D07 카드 코어가 읽음)",
-  "xp": { "base": 20, "growth": 1.35, "maxLevel": 10 },
+  "$comment": "스테이지 안 레벨(PRD §4.2): 필요 경험치 = round(base × growth^(Lv−1)), Lv1→2 = 20, Lv9→10 ≈ 220. maxLevel 이후는 레벨업 없음(Lv10 = 보스 구간). rerolls=스테이지 시작 리롤 횟수(PRD 밖 값, P15 재보급이 +2). inputLockMs=레벨업 창이 열린 뒤 입력을 받지 않는 시간(PRD §3: 카드 숫자키 오입력 방지). extraBaseStats=캐릭터 공통 기본 능력치(손패 수·드로우 속도 배율, D07 카드 코어가 읽음). extraBaseStats에 카드·버프용 능력치(sealOpReduction=인장 필요 OP 감소, xpMul=경험치 배율, comboPower/comboDelayMs=조합 스킬 위력·지연, blockIntel>0이면 정보 카드 사용 불가). comboDraw=처치 콤보가 이 수에 닿으면 드로우 즉시(손패 가득이면 OP+1), 분당 상한(G4). tacticalEvery=조합 성공 이 횟수마다 다음 레벨업에 전술 업그레이드 선택지 +1(PRD §5.5)",
+  "xp": {
+    "base": 20,
+    "growth": 1.35,
+    "maxLevel": 10
+  },
   "rerolls": 1,
   "inputLockMs": 400,
-  "extraBaseStats": { "handSize": 5, "drawSpeed": 1 },
+  "extraBaseStats": {
+    "handSize": 5,
+    "drawSpeed": 1,
+    "sealOpReduction": 0,
+    "xpMul": 1,
+    "comboPower": 1,
+    "comboDelayMs": 0,
+    "blockIntel": 0
+  },
   "statLimits": {
-    "critChance": [0, 1],
-    "moveSpeed": [40, 400],
-    "attackSpeed": [0.2, 20],
-    "handSize": [1, 7]
-  }
+    "critChance": [
+      0,
+      1
+    ],
+    "moveSpeed": [
+      40,
+      400
+    ],
+    "attackSpeed": [
+      0.2,
+      20
+    ],
+    "handSize": [
+      1,
+      7
+    ],
+    "sealOpReduction": [
+      0,
+      2
+    ],
+    "drawSpeed": [
+      0.25,
+      4
+    ],
+    "xpMul": [
+      0,
+      10
+    ],
+    "comboPower": [
+      0.1,
+      5
+    ]
+  },
+  "comboDraw": {
+    "thresholds": [
+      25,
+      60,
+      120
+    ],
+    "perMinute": 2
+  },
+  "tacticalEvery": 5
 }
