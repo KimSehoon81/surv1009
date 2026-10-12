@@ -17,6 +17,7 @@ import { GameClock } from '../systems/clock';
 import { DebugOverlay } from '../systems/debugOverlay';
 import { EnemySystem } from '../systems/enemies';
 import { AudioSystem } from '../systems/audio';
+import { CardSystem } from '../systems/cards';
 import { Feel } from '../systems/feel';
 import { Floor, type FloorConfig } from '../systems/floor';
 import { FxSystem } from '../systems/fx';
@@ -50,6 +51,10 @@ export class BattleScene extends Phaser.Scene {
   bannerMessage: string | null = null;
   private upgradeTarget!: UpgradeTarget;
   audio!: AudioSystem;
+  /** 전략카드(손패·판정). HUD 씬이 그린다 */
+  cards!: CardSystem;
+  /** 작전판(Tab) 열림: 전투 완전 정지 */
+  opsOpen = false;
   private combatRng!: Rng;
   private hpBar!: Phaser.GameObjects.Graphics;
   private debug!: DebugOverlay;
@@ -87,6 +92,20 @@ export class BattleScene extends Phaser.Scene {
     this.feel = new Feel(this, this.clock, this.fx, rng.fork('feel'));
     this.audio = new AudioSystem(this, rng.fork('audio'));
     this.feel.setAudio(this.audio);
+    const battle = this;
+    this.cards = new CardSystem(
+      {
+        clock: this.clock,
+        audio: this.audio,
+        stats: () => battle.player.stats,
+        stage: () => 1,
+        sealOpReduction: () => 0,
+        canAct: () => !battle.run.defeated && !battle.progression.isOpen && !battle.clock.hasScale('pause') && !battle.opsOpen,
+        onResult: (success) => battle.feel.hit(success ? 'card_success' : 'card_fail', battle.player.x, battle.player.y - combat.bodyOffsetY),
+        onEffect: (ev) => battle.events.emit('cards:effect', ev),
+      },
+      rng.fork('cards'),
+    );
     this.weapons = new WeaponSystem();
     this.equipStartingWeapons();
     this.hooks = {
@@ -136,6 +155,7 @@ export class BattleScene extends Phaser.Scene {
         `player ${p.id} ${p.action} hp ${p.hp}/${p.maxHp} (${Math.round(p.x)}, ${Math.round(p.y)})${this.invincible ? ' [무적]' : ''}`,
         `enemies ${this.enemies.alive}${this.enemies.stress ? ' [STRESS]' : ''} pool ${this.enemies.pool.capacity} (created ${this.enemies.pool.created})`,
         `weapons ${this.weapons.equipped.map((w) => w.id).join(',')} shots ${this.projectiles.active} fx ${this.fx.active}`,
+        `cards hand ${this.cards.state.hand.map((c) => c.id).join(',')} sel ${this.cards.selected.length} op ${this.cards.state.op} seals ${this.cards.state.seals} deck ${this.cards.state.drawPile.length}`,
         `lv ${this.progression.level} (${Math.round(this.progression.progress * 100)}%) pending ${this.progression.pending} rerolls ${this.progression.rerolls}`,
         `xp ${this.run.xp} kills ${this.run.kills} gems ${this.pickups.active} taken ${this.run.damageTaken} blocks ${this.run.blocks}`,
         `feel particles ${this.feel.particles.active}/${this.feel.particles.cap} numbers ${this.feel.numbers.active} combo ${this.feel.combo.count}`,
@@ -166,8 +186,8 @@ export class BattleScene extends Phaser.Scene {
     for (const id of this.player.weapons) if (isWeaponId(id)) this.weapons.add(id);
   }
 
-  override update(_time: number, delta: number): void {
-    if (this.controls.justDown('pause') && !this.run.defeated && !this.progression.isOpen) this.togglePause();
+  override update(time: number, delta: number): void {
+    if (this.controls.justDown('pause') && !this.run.defeated && !this.progression.isOpen && !this.opsOpen) this.togglePause();
     const dt = this.clock.tick(delta);
     this.feel.beginFrame(delta, this.clock.hardPaused);
     const now = this.clock.timeMs;
@@ -192,6 +212,7 @@ export class BattleScene extends Phaser.Scene {
       }
       this.run.xp += gained;
       if (this.progression.pending > 0 && !this.progression.isOpen) this.openLevelUp();
+      this.cards.update(dt, time);
     }
     this.fx.update(this.clock.effectScale);
     this.feel.update(this.clock.effectDeltaMs);
@@ -304,6 +325,17 @@ export class BattleScene extends Phaser.Scene {
   private togglePause(): void {
     if (this.clock.hasScale('pause')) this.clock.resume('pause');
     else this.clock.pause('pause');
+  }
+
+  /** 작전판(Tab): 전투를 완전히 멈추고 조합표·확률 내역을 본다 */
+  setOpsBoard(on: boolean): void {
+    this.opsOpen = on;
+    if (on) this.clock.pause('ops');
+    else this.clock.resume('ops');
+  }
+
+  canOpenBoard(): boolean {
+    return !this.run.defeated && !this.progression.isOpen && !this.clock.hasScale('pause');
   }
 
   /** 레벨업 창 열기: 전투 시계만 멈추고(HUD는 계속) 선택지를 HUD로 보낸다 */

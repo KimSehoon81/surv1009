@@ -20,6 +20,8 @@ export interface CardRules extends ChanceRules {
   drawIntervalMs: number;
   submitCooldownMs: number;
   opPerFail: number;
+  /** 인장에 필요한 기본 OP(인게임 작전 숙련이 env.opForSeal로 줄임) */
+  opForSeal: number;
   maxSeals: number;
   minusLifeMs: number;
   minusDiscardOp: number;

@@ -11,6 +11,8 @@ import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { params } from '../config/params';
 import { SceneKey } from './keys';
 import { galleryUnitIds } from './GalleryScene';
+import cardsData from '../data/cards.json';
+import { cardAssetSpecs } from '../ui/cardFace';
 
 /** 전투 시작에 필요한 에셋: 선택 가능한 캐릭터 전원 + 스테이지에 나오는 적 + 바닥 */
 function battleAssets(): AssetSpec[] {
@@ -25,7 +27,8 @@ function battleAssets(): AssetSpec[] {
   const sheets = Object.values(feelData.particles.kinds as Record<string, { sheet?: string }>).map((k) => k.sheet);
   const fxNames = new Set([...named(weaponData.weapons), ...named(feelData.presets), feelData.muzzle.fx, ...sheets]);
   const fx = [...fxNames].filter((n): n is string => typeof n === 'string').map((n) => manifest.fx(n));
-  return [...units, ...ui, ...fx, manifest.tile(floorData.S1.base), manifest.tile(floorData.S1.patch)];
+  const cards = cardAssetSpecs(Object.keys(cardsData.cards), Object.keys(cardsData.tags));
+  return [...units, ...ui, ...fx, ...cards, manifest.tile(floorData.S1.base), manifest.tile(floorData.S1.patch)];
 }
 
 export class PreloadScene extends Phaser.Scene {

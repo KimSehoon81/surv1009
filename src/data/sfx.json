@@ -1,5 +1,5 @@
 {
-  "$comment": "효과음(PRD §4.4 사운드 행, §11). sources=합성 소리(파일이 생기면 같은 이름 파일이 우선, D15), variants=음높이를 조금씩 바꾼 변형 수, vary=변형 음높이 폭(비율). cues=게임이 부르는 이름: bus·vol·pitchSt(무작위 반음 범위)·cooldownMs(같은 소리 최소 간격)·maxVoices·priority(높을수록 안 끊김)·center(팬 고정)·combo(처치 콤보 5음 음계 상승)·duck(BGM 덕킹 dB/ms). states=시간 상태별 버스 처리(히트스톱은 소리를 멈추지 않음)",
+  "$comment": "효과음(PRD §4.4 사운드 행, §11). sources=합성 소리(파일이 생기면 같은 이름 파일이 우선, D15), variants=음높이를 조금씩 바꾼 변형 수, vary=변형 음높이 폭(비율). cues=게임이 부르는 이름: bus·vol·pitchSt(무작위 반음 범위)·cooldownMs(같은 소리 최소 간격)·maxVoices·priority(높을수록 안 끊김)·center(팬 고정)·combo(처치 콤보 5음 음계 상승)·duck(BGM 덕킹 dB/ms). states=시간 상태별 버스 처리(히트스톱은 소리를 멈추지 않음). 판정 소리(PRD §11 v0.2): judge_roll(0.6초 공통 예고음) → judge_success / judge_fail(성공보다 −6dB, 짧고 조롱조 없음) → op_tick(OP 수만큼 음이 오름) · seal_stamp. 카드 UI음은 ui 버스(일시정지·판정 중에도 정상)",
   "buses": {
     "master": 0.8,
     "bgm": 0.6,
@@ -320,6 +320,271 @@
           "volume": 0.3
         }
       ]
+    },
+    "card_select": {
+      "variants": 1,
+      "layers": [
+        {
+          "wave": "square",
+          "freq": 660,
+          "releaseMs": 45,
+          "volume": 0.4,
+          "duty": 0.25
+        }
+      ]
+    },
+    "card_deselect": {
+      "variants": 1,
+      "layers": [
+        {
+          "wave": "square",
+          "freq": 440,
+          "freqEnd": 330,
+          "releaseMs": 50,
+          "volume": 0.35,
+          "duty": 0.25
+        }
+      ]
+    },
+    "card_submit": {
+      "variants": 1,
+      "layers": [
+        {
+          "wave": "noise",
+          "freq": 3000,
+          "releaseMs": 90,
+          "curve": 2,
+          "volume": 0.5,
+          "lowpassHz": 2500
+        },
+        {
+          "wave": "square",
+          "freq": 330,
+          "freqEnd": 660,
+          "releaseMs": 80,
+          "volume": 0.4,
+          "duty": 0.5
+        }
+      ]
+    },
+    "card_reject": {
+      "variants": 1,
+      "layers": [
+        {
+          "wave": "square",
+          "freq": 150,
+          "releaseMs": 80,
+          "volume": 0.5,
+          "duty": 0.5,
+          "crush": 4
+        }
+      ]
+    },
+    "judge_roll": {
+      "variants": 1,
+      "layers": [
+        {
+          "wave": "noise",
+          "freq": 5000,
+          "delayMs": 0,
+          "releaseMs": 35,
+          "curve": 2,
+          "volume": 0.35,
+          "lowpassHz": 3500
+        },
+        {
+          "wave": "noise",
+          "freq": 5000,
+          "delayMs": 110,
+          "releaseMs": 35,
+          "curve": 2,
+          "volume": 0.38999999999999996,
+          "lowpassHz": 3500
+        },
+        {
+          "wave": "noise",
+          "freq": 5000,
+          "delayMs": 200,
+          "releaseMs": 35,
+          "curve": 2,
+          "volume": 0.43,
+          "lowpassHz": 3500
+        },
+        {
+          "wave": "noise",
+          "freq": 5000,
+          "delayMs": 273,
+          "releaseMs": 35,
+          "curve": 2,
+          "volume": 0.47,
+          "lowpassHz": 3500
+        },
+        {
+          "wave": "noise",
+          "freq": 5000,
+          "delayMs": 333,
+          "releaseMs": 35,
+          "curve": 2,
+          "volume": 0.51,
+          "lowpassHz": 3500
+        },
+        {
+          "wave": "noise",
+          "freq": 5000,
+          "delayMs": 382,
+          "releaseMs": 35,
+          "curve": 2,
+          "volume": 0.55,
+          "lowpassHz": 3500
+        },
+        {
+          "wave": "noise",
+          "freq": 5000,
+          "delayMs": 422,
+          "releaseMs": 35,
+          "curve": 2,
+          "volume": 0.59,
+          "lowpassHz": 3500
+        },
+        {
+          "wave": "noise",
+          "freq": 5000,
+          "delayMs": 455,
+          "releaseMs": 35,
+          "curve": 2,
+          "volume": 0.63,
+          "lowpassHz": 3500
+        },
+        {
+          "wave": "noise",
+          "freq": 5000,
+          "delayMs": 482,
+          "releaseMs": 35,
+          "curve": 2,
+          "volume": 0.6699999999999999,
+          "lowpassHz": 3500
+        },
+        {
+          "wave": "noise",
+          "freq": 5000,
+          "delayMs": 504,
+          "releaseMs": 35,
+          "curve": 2,
+          "volume": 0.71,
+          "lowpassHz": 3500
+        },
+        {
+          "wave": "triangle",
+          "freq": 220,
+          "freqEnd": 660,
+          "releaseMs": 600,
+          "curve": 0.6,
+          "volume": 0.35
+        }
+      ]
+    },
+    "judge_success": {
+      "variants": 1,
+      "layers": [
+        {
+          "wave": "square",
+          "freq": 523,
+          "releaseMs": 120,
+          "volume": 0.45,
+          "duty": 0.5
+        },
+        {
+          "wave": "square",
+          "freq": 659,
+          "delayMs": 60,
+          "releaseMs": 120,
+          "volume": 0.45,
+          "duty": 0.5
+        },
+        {
+          "wave": "square",
+          "freq": 784,
+          "delayMs": 120,
+          "releaseMs": 140,
+          "volume": 0.45,
+          "duty": 0.5
+        },
+        {
+          "wave": "triangle",
+          "freq": 1046,
+          "delayMs": 180,
+          "holdMs": 80,
+          "releaseMs": 320,
+          "volume": 0.5
+        },
+        {
+          "wave": "sine",
+          "freq": 2637,
+          "delayMs": 180,
+          "releaseMs": 420,
+          "curve": 1.5,
+          "volume": 0.3
+        }
+      ]
+    },
+    "judge_fail": {
+      "variants": 1,
+      "layers": [
+        {
+          "wave": "sine",
+          "freq": 140,
+          "freqEnd": 90,
+          "releaseMs": 160,
+          "volume": 0.6
+        },
+        {
+          "wave": "noise",
+          "freq": 2500,
+          "delayMs": 20,
+          "releaseMs": 180,
+          "curve": 1.5,
+          "volume": 0.35,
+          "lowpassHz": 1800
+        }
+      ]
+    },
+    "op_tick": {
+      "variants": 1,
+      "layers": [
+        {
+          "wave": "triangle",
+          "freq": 880,
+          "releaseMs": 60,
+          "volume": 0.45
+        }
+      ]
+    },
+    "seal_stamp": {
+      "variants": 1,
+      "layers": [
+        {
+          "wave": "noise",
+          "freq": 1500,
+          "releaseMs": 120,
+          "curve": 2,
+          "volume": 0.7,
+          "lowpassHz": 900
+        },
+        {
+          "wave": "sine",
+          "freq": 110,
+          "freqEnd": 70,
+          "releaseMs": 200,
+          "volume": 0.8
+        },
+        {
+          "wave": "triangle",
+          "freq": 1318,
+          "delayMs": 90,
+          "releaseMs": 300,
+          "volume": 0.35
+        }
+      ]
     }
   },
   "cues": {
@@ -473,6 +738,129 @@
       "cooldownMs": 80,
       "maxVoices": 2,
       "priority": 7,
+      "center": true
+    },
+    "card_select": {
+      "src": "card_select",
+      "bus": "ui",
+      "vol": 0.35,
+      "pitchSt": [
+        0,
+        0
+      ],
+      "cooldownMs": 40,
+      "maxVoices": 2,
+      "priority": 7,
+      "center": true,
+      "combo": {
+        "maxSt": 12
+      }
+    },
+    "card_deselect": {
+      "src": "card_deselect",
+      "bus": "ui",
+      "vol": 0.3,
+      "pitchSt": [
+        0,
+        0
+      ],
+      "cooldownMs": 40,
+      "maxVoices": 2,
+      "priority": 7,
+      "center": true
+    },
+    "card_submit": {
+      "src": "card_submit",
+      "bus": "ui",
+      "vol": 0.45,
+      "pitchSt": [
+        0,
+        0
+      ],
+      "cooldownMs": 40,
+      "maxVoices": 2,
+      "priority": 7,
+      "center": true
+    },
+    "card_reject": {
+      "src": "card_reject",
+      "bus": "ui",
+      "vol": 0.4,
+      "pitchSt": [
+        0,
+        0
+      ],
+      "cooldownMs": 120,
+      "maxVoices": 1,
+      "priority": 7,
+      "center": true
+    },
+    "judge_roll": {
+      "src": "judge_roll",
+      "bus": "ui",
+      "vol": 0.45,
+      "pitchSt": [
+        0,
+        0
+      ],
+      "cooldownMs": 300,
+      "maxVoices": 1,
+      "priority": 8,
+      "center": true
+    },
+    "judge_success": {
+      "src": "judge_success",
+      "bus": "ui",
+      "vol": 0.55,
+      "pitchSt": [
+        0,
+        0
+      ],
+      "cooldownMs": 300,
+      "maxVoices": 1,
+      "priority": 9,
+      "center": true
+    },
+    "judge_fail": {
+      "src": "judge_fail",
+      "bus": "ui",
+      "vol": 0.45,
+      "pitchSt": [
+        0,
+        0
+      ],
+      "cooldownMs": 300,
+      "maxVoices": 1,
+      "priority": 9,
+      "center": true
+    },
+    "op_tick": {
+      "src": "op_tick",
+      "bus": "ui",
+      "vol": 0.4,
+      "pitchSt": [
+        0,
+        0
+      ],
+      "cooldownMs": 30,
+      "maxVoices": 2,
+      "priority": 7,
+      "center": true,
+      "combo": {
+        "maxSt": 19
+      }
+    },
+    "seal_stamp": {
+      "src": "seal_stamp",
+      "bus": "ui",
+      "vol": 0.6,
+      "pitchSt": [
+        0,
+        0
+      ],
+      "cooldownMs": 300,
+      "maxVoices": 1,
+      "priority": 9,
       "center": true
     }
   }

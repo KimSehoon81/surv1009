@@ -1,0 +1,15 @@
+{
+  "$comment": "카드 HUD(PRD §5.1·§11). face=카드 앞면 합성 좌표(120×168 원본 기준): 일러스트 창(일러스트 104×104를 가운데 기준으로 잘라 넣음), 병과 원 중심, 등급 원 3개. scale=손패 표시 배율(원본 0.5 → 60×84 논리 px, 부드럽게 줄인 텍스처를 미리 만듦). hand=손패 위치(아래 가운데), lift=고른 카드 들림. flipMs=판정 뒤집기 단계(실시간, 합 0.6초), judgeSlowmo=조합 판정 때만 0.3배 0.6초, selectSlowmo=카드를 고른 동안 0.6배·제출 1회당 최대 2초(편의 옵션, PRD 밖 시간값은 §5.1 v0.2)",
+  "face": {
+    "art": { "x": 15, "y": 30, "w": 89, "h": 67 },
+    "tag": { "x": 26, "y": 18, "size": 18 },
+    "pips": { "y": 149, "xs": [33, 61, 89], "r": 6 }
+  },
+  "scale": 0.5,
+  "hand": { "centerX": 480, "bottom": 532, "gap": 6, "lift": 10 },
+  "flipMs": { "out": 150, "back": 150, "hold": 150, "reveal": 150 },
+  "resultMs": 450,
+  "judgeSlowmo": { "scale": 0.3, "ms": 600 },
+  "selectSlowmo": { "enabled": true, "scale": 0.6, "maxMs": 2000 },
+  "colors": { "success": "#ffd34d", "fail": "#b04a3a", "select": "#7fd8ff", "recommend": "#ffffff", "minus": "#ff5040" }
+}

@@ -152,6 +152,8 @@ export function createManifest(available: readonly string[]) {
     image,
     fx,
     anchor: spec.anchor,
+    /** 규격 원본(assets.json) */
+    spec,
   };
 }
 

@@ -8,6 +8,8 @@ import { describe as describeUpgrade, type Choice } from '../core/upgrades';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { InputMap, type InputAction } from '../systems/input';
 import { PIXEL_FONT, ensurePixelFont } from '../ui/pixelFont';
+import { CardHud } from '../ui/cardHud';
+import type { CardEvent } from '../core/cards';
 import type { BattleScene } from './BattleScene';
 import { SceneKey } from './keys';
 
@@ -40,6 +42,8 @@ export class HudScene extends Phaser.Scene {
   private ownedText!: Phaser.GameObjects.Text;
   private bannerText!: Phaser.GameObjects.Text;
   private levelUp: Phaser.GameObjects.Container | null = null;
+  private cardHud!: CardHud;
+  private readonly onCardEffect = (ev: CardEvent) => this.cardHud.showEffect(ev);
   private levelUpOpenedAt = 0;
   private readonly onLevelUp = (choices: Choice[]) => this.showLevelUp(choices);
   private readonly onLevelUpClosed = () => this.hideLevelUp();
@@ -72,11 +76,18 @@ export class HudScene extends Phaser.Scene {
       .setVisible(false);
     this.bannerText = this.add.text(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT / 2, '', panel).setOrigin(0.5).setVisible(false);
 
+    this.cardHud = new CardHud(this, this.battle.cards, this.controls, {
+      pauseForBoard: (on) => this.battle.setOpsBoard(on),
+      canOpenBoard: () => this.battle.canOpenBoard(),
+    });
+    this.battle.events.on('cards:effect', this.onCardEffect);
     this.battle.events.on('levelup', this.onLevelUp);
     this.battle.events.on('levelupClosed', this.onLevelUpClosed);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.battle.events.off('levelup', this.onLevelUp);
       this.battle.events.off('levelupClosed', this.onLevelUpClosed);
+      this.battle.events.off('cards:effect', this.onCardEffect);
+      this.cardHud.destroy();
       this.controls.destroy();
     });
     // 전투가 먼저 레벨업 창을 열어 둔 상태에서 HUD가 다시 시작된 경우
@@ -100,12 +111,13 @@ export class HudScene extends Phaser.Scene {
       this.comboText.setText(`${n} COMBO`).setScale(feelData.combo.scale * (1 + 0.3 * (1 - k)));
     }
 
-    const paused = b.clock.hasScale('pause') && !b.run.defeated;
+    const paused = b.clock.hasScale('pause') && !b.run.defeated && !b.opsOpen;
     this.pauseText.setVisible(paused);
     this.ownedText.setVisible(paused).setText(paused ? this.ownedSummary() : '');
     this.bannerText.setVisible(b.bannerMessage !== null).setText(b.bannerMessage ?? '');
 
     if (this.levelUp) this.updateLevelUp(time);
+    else this.cardHud.update(time);
     this.controls.endFrame();
   }
 

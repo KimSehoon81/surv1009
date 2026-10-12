@@ -50,6 +50,8 @@ export interface FeelPreset {
   flashColor?: string;
   flashFrames?: number;
   screenFlashFrames?: number;
+  /** 화면 플래시 색(없으면 feel.json screenFlash.color) */
+  screenFlashColor?: string;
   knockbackPx?: number;
   knockbackMs?: number;
   number?: string;
@@ -201,7 +203,7 @@ export class Feel {
       if (p.shakePx && p.shakeMs) this.shaker.addShake(p.shakePx, p.shakeMs, now, p.shakeStack);
       if (p.kickPx && p.kickMs) this.shaker.addKick(dirX, dirY, p.kickPx, p.kickMs, now);
       if (p.zoomPunch) this.zoomPunch(p.zoomPunch);
-      if (p.screenFlashFrames) this.flashScreen(framesToMs(p.screenFlashFrames));
+      if (p.screenFlashFrames) this.flashScreen(framesToMs(p.screenFlashFrames), p.screenFlashColor);
     }
     if (p.vignette) this.vignetteStart = now;
 
@@ -264,7 +266,8 @@ export class Feel {
     this.flashes.set(sprite, this.now + ms - FRAME_MS / 2);
   }
 
-  flashScreen(ms: number): void {
+  flashScreen(ms: number, color: string = feelData.screenFlash.color): void {
+    this.screenFlash.setFillStyle(parseColor(color));
     this.screenFlashStart = this.now;
     this.screenFlashMs = ms;
   }
