@@ -36,6 +36,8 @@ export class Player {
   maxHp = 1;
   /** 이 시각(전투 시계)까지 피격 무적 */
   invulnUntilMs = 0;
+  /** 이 시각(전투 시계)까지 보호막: 접촉 피해 없음, 깜빡임 대신 오라(야전 치료) */
+  shieldUntilMs = 0;
   /** 이 시각(전투 시계)까지 기절: 움직이지 못함(아군 오폭) */
   stunUntilMs = 0;
   private facingDir: 1 | -1 = 1;

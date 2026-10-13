@@ -77,6 +77,11 @@ export class EffectRunner implements EffectContext {
   }
 
   fireBullet(toX: number, toY: number, damage: number, rangePx: number): void {
+    this.fireBulletFrom(this.d.player.x, this.d.player.y, toX, toY, damage, rangePx);
+  }
+
+  /** 발 기준 (fromX, fromY)에서 목표로 소총탄(지원군 사수 등 플레이어가 아닌 사수) */
+  fireBulletFrom(fromX: number, fromY: number, toX: number, toY: number, damage: number, rangePx: number): void {
     const spec: BulletSpec = {
       sprite: RIFLE.sprite,
       scale: RIFLE.scale,
@@ -86,7 +91,7 @@ export class EffectRunner implements EffectContext {
       damageMult: damage,
       rangePx,
     };
-    this.d.projectiles.fireBullet(spec, this.d.player.x, this.d.player.y, toX, toY);
+    this.d.projectiles.fireBullet(spec, fromX, fromY, toX, toY);
   }
 
   lob(toX: number, toY: number, damage: number, aoe: number): void {

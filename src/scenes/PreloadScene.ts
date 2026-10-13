@@ -27,7 +27,15 @@ function battleAssets(): AssetSpec[] {
   const named = (o: object) => Object.values(o as Record<string, { fx?: string }>).map((v) => v.fx);
   const sheets = Object.values(feelData.particles.kinds as Record<string, { sheet?: string }>).map((k) => k.sheet);
   // 연출 큐(cues.json)의 시트·비행체·설치물
-  const cueSheets = Object.values(CUES).flatMap((c) => [c.fx, c.fly?.sprite, c.prop?.sheet]);
+  const cueSheets = Object.values(CUES).flatMap((c) => [
+    c.fx,
+    c.fly?.sprite,
+    c.prop?.sheet,
+    c.dash?.sprite,
+    c.fall?.sheet,
+    c.gunner ? 'support_volley' : undefined,
+    c.mine ? 'mines' : undefined,
+  ]);
   const fxNames = new Set([...named(weaponData.weapons), ...named(feelData.presets), feelData.muzzle.fx, ...sheets, ...cueSheets]);
   const fx = [...fxNames].filter((n): n is string => typeof n === 'string').map((n) => manifest.fx(n));
   const cards = cardAssetSpecs(Object.keys(cardsData.cards), Object.keys(cardsData.tags));

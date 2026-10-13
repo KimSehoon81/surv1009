@@ -202,6 +202,22 @@
     "afterburn": {
       "smoke": 6,
       "lod": 30
+    },
+    "tank_trail": {
+      "shakePx": 1,
+      "shakeMs": 120,
+      "shakeStack": true,
+      "debris": 2,
+      "emit": {
+        "ring": 1
+      },
+      "lod": 20
+    },
+    "supply_land": {
+      "shakePx": 1,
+      "shakeMs": 100,
+      "smoke": 4,
+      "lod": 40
     }
   },
   "killPresetByTier": {

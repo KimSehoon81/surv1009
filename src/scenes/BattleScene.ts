@@ -21,6 +21,7 @@ import { AudioSystem } from '../systems/audio';
 import { CARD_DATA, CardSystem } from '../systems/cards';
 import { EffectRunner } from '../systems/effectRunner';
 import { TIMELINES, TimelineSystem } from '../systems/timeline';
+import { MineSystem } from '../systems/mines';
 import { runEffect, type Params } from '../systems/effects';
 import type { CardEvent } from '../core/cards';
 import { Feel } from '../systems/feel';
@@ -78,6 +79,8 @@ export class BattleScene extends Phaser.Scene {
   effects!: EffectRunner;
   /** 조합·고급 스킬 연출 타임라인 */
   timelines!: TimelineSystem;
+  /** 지뢰(조합 지뢰 살포, D23 적 지뢰) */
+  mines!: MineSystem;
   private debugComboIndex = 0;
   /** 콤보 보급: 다음 문턱 번호, 최근 보급 시각(전투 시계) */
   private comboDrawStep = 0;
@@ -183,6 +186,7 @@ export class BattleScene extends Phaser.Scene {
       toast: (msg, color) => this.toast(msg, color),
       debuffIds: DEBUFF_IDS,
     });
+    this.mines = new MineSystem(this, combat.mineCap);
     this.timelines = new TimelineSystem({
       scene: this,
       clock: this.clock,
@@ -190,10 +194,16 @@ export class BattleScene extends Phaser.Scene {
       feel: this.feel,
       audio: this.audio,
       effects: this.effects,
+      mines: this.mines,
       grid: this.enemies.grid,
       player: this.player,
       rng: rng.fork('timelines'),
       damage: (x, y, r, m) => this.explode(x, y, r, m, undefined, 1, undefined),
+      damageEnemy: (e, m, dx, dy) => this.damageEnemy(e, m, dx, dy, true),
+      enemiesOnScreen: () => {
+        const v = this.cameras.main.worldView;
+        return this.enemies.pool.active.filter((e) => e.alive && v.contains(e.x, e.y));
+      },
     });
     const scene = this;
     this.upgradeTarget = {
@@ -282,6 +292,13 @@ export class BattleScene extends Phaser.Scene {
       this.cards.update(dt, time);
       this.effects.update();
       this.timelines.update();
+      this.mines.update(now, this.enemies.grid, target, {
+        onExplode: (x, y, spec) => {
+          this.timelines.cue('mine_blast', x, y);
+          if (spec.faction === 'ally') this.explode(x, y, spec.radius, spec.damage, undefined, 1, undefined);
+          else this.effects.hurtPlayer(spec.damage, 0);
+        },
+      });
       this.comboSupply(now);
     }
     this.fx.update(this.clock.effectScale);
@@ -394,7 +411,7 @@ export class BattleScene extends Phaser.Scene {
   /** 적과 몸이 닿으면 피해. 무적 시간 동안은 다시 맞지 않는다. 방어 판정 성공 시 −50% + 방어 동작 */
   private contactDamage(now: number): void {
     const p = this.player;
-    if (now < p.invulnUntilMs || this.invincible) return;
+    if (now < p.invulnUntilMs || now < p.shieldUntilMs || this.invincible) return;
     let attacker: Enemy | null = null;
     this.enemies.grid.forEachNear(p.x, p.y, combat.playerRadius + MAX_ENEMY_RADIUS + combat.contactSlackPx, (e, d2) => {
       const r = combat.playerRadius + e.radius + combat.contactSlackPx;

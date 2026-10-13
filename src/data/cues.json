@@ -1,11 +1,27 @@
 {
-  "$comment": "연출 데이터 2층(PRD §6.4 v0.2): 같은 순간에 함께 낼 것의 묶음. 소리는 애니메이션 콜백이 아니라 이 큐가 실행되는 순간(전투 시계 이벤트) 낸다. feel=feel.json 프리셋(섬광·링·흔들림·히트스톱·입자·소리), sfx=sfx.json 소리, fx=이펙트 시트(fxFrom=시작 프레임, fxScale, fxLayer=decal|shadow|explosion|smoke|air, fxAlpha, fxDy=위로 올림 px). 반투명 규칙: smoke·air 층(캐릭터를 덮음)은 실행기가 알파 0.7 상한을 강제. fly=화면 위→아래로 지나가는 비행체(sprite 시트 0프레임, ms 동안, shadow=검게 칠한 반투명 그림자, dx·dy=조준점 기준 어긋남, grow=지나가는 동안 커지는 비율). dropShadow=낙하물 그림자가 ms 동안 from→to 반지름으로 커짐. prop=자리에 남는 물체(시트 frames 구간 반복, fps→fpsEnd로 점멸 가속, ms 뒤 사라짐), countdown=머리 위 숫자 카운트(from부터 1초마다, sfx 음높이 상승). hook=다른 시스템에 알림(pre_impact_silence: 큰 착탄 직전 0.2초 무음, D15에서 audio 연결)",
+  "$comment": "연출 데이터 2층(PRD §6.4 v0.2): 같은 순간에 함께 낼 것의 묶음. 소리는 애니메이션 콜백이 아니라 이 큐가 실행되는 순간(전투 시계 이벤트) 낸다. feel=feel.json 프리셋(섬광·링·흔들림·히트스톱·입자·소리), sfx=sfx.json 소리, fx=이펙트 시트(fxFrom=시작 프레임, fxScale, fxLayer=decal|shadow|explosion|smoke|air, fxAlpha, fxDy=위로 올림 px). 반투명 규칙: smoke·air 층(캐릭터를 덮음)은 실행기가 알파 0.7 상한을 강제. fly=화면 위→아래로 지나가는 비행체(sprite 시트 0프레임, ms 동안, shadow=검게 칠한 반투명 그림자, dx·dy=조준점 기준 어긋남, grow=지나가는 동안 커지는 비율). dropShadow=낙하물 그림자가 ms 동안 from→to 반지름으로 커짐. prop=자리에 남는 물체(시트 frames 구간 반복, fps→fpsEnd로 점멸 가속, ms 뒤 사라짐), countdown=머리 위 숫자 카운트(from부터 1초마다, sfx 음높이 상승). hook=다른 시스템에 알림(pre_impact_silence: 큰 착탄 직전 0.2초 무음, D15에서 audio 연결) bullets=플레이어에게서 조준 방향 부채꼴 사격(count발, spreadDeg, rangePx, muzzle=총구 섬광·동작), gunner=지원군 사수(화면 고정 screen=[x,y] 논리 px, slide=들어올 때 시작 어긋남, face=1 오른쪽, inMs·fireMs·outMs, intervalMs마다 가장 가까운 적에게 월드 좌표 탄환, 참전국 색 띠는 countries에서 무작위), arc=화면 side 가장자리에서 포물선(height px, 비행 시간 = 앞당긴 큐의 lead), edgeFlash=화면 밖 섬광 띠, dash=돌진(speed px/초로 화면 끝에서 끝까지, width 폭 안 적 피해·knockback, hit=false면 피해 없이 trailCue만, trailCue를 trailEveryPx마다), fall=낙하산 낙하(height px, 시간 = lead), mine=지뢰 설치(systems/mines, 피해 = 이벤트 damage), heal=최대 체력 비율 회복, shield=보호막(ms 동안 접촉 피해 없음, 따뜻한 색 오라), screenStrike=화면 안 모든 적에게 피해. 피해를 실어 나르는 원자(bullets·gunner·dash·mine·screenStrike)가 없으면 이벤트 damage는 그 위치 범위 피해",
   "cues": {
     "bomber_shadow": {
-      "fly": { "sprite": "bomber", "ms": 1100, "scale": 0.5, "shadow": true, "alpha": 0.32, "dx": 18, "dy": 0, "grow": 0.35 }
+      "fly": {
+        "sprite": "bomber",
+        "ms": 1100,
+        "scale": 0.5,
+        "shadow": true,
+        "alpha": 0.32,
+        "dx": 18,
+        "dy": 0,
+        "grow": 0.35
+      }
     },
     "bomber": {
-      "fly": { "sprite": "bomber", "ms": 1300, "scale": 0.6, "alpha": 0.9, "dx": 0, "dy": -40 },
+      "fly": {
+        "sprite": "bomber",
+        "ms": 1300,
+        "scale": 0.6,
+        "alpha": 0.9,
+        "dx": 0,
+        "dy": -40
+      },
       "sfx": "bomber_drone"
     },
     "bomb_fall": {
@@ -14,22 +30,282 @@
       "fxScale": 0.7,
       "fxLayer": "air",
       "fxDy": 18,
-      "dropShadow": { "ms": 300, "from": 4, "to": 16 },
+      "dropShadow": {
+        "ms": 300,
+        "from": 4,
+        "to": 16
+      },
       "sfx": "strike_whistle"
     },
-    "bomb_impact_l": { "feel": "impact_l" },
-    "bomb_impact_stack": { "feel": "impact_l_stack" },
-    "afterburn": { "feel": "afterburn", "fx": "embers", "fxScale": 0.8, "fxLayer": "smoke", "fxAlpha": 0.8, "fxDy": 16 },
+    "bomb_impact_l": {
+      "feel": "impact_l"
+    },
+    "bomb_impact_stack": {
+      "feel": "impact_l_stack"
+    },
+    "afterburn": {
+      "feel": "afterburn",
+      "fx": "embers",
+      "fxScale": 0.8,
+      "fxLayer": "smoke",
+      "fxAlpha": 0.8,
+      "fxDy": 16
+    },
     "timebomb_set": {
-      "prop": { "sheet": "timebomb", "frames": [0, 3], "fps": 3, "fpsEnd": 14, "ms": 3000, "scale": 0.5 },
-      "countdown": { "from": 3, "sfx": "timer_beep" },
+      "prop": {
+        "sheet": "timebomb",
+        "frames": [
+          0,
+          3
+        ],
+        "fps": 3,
+        "fpsEnd": 14,
+        "ms": 3000,
+        "scale": 0.5
+      },
+      "countdown": {
+        "from": 3,
+        "sfx": "timer_beep"
+      },
       "sfx": "card_select"
     },
-    "pre_impact_silence": { "hook": "pre_impact_silence" },
-    "timebomb_blast": { "feel": "impact_l" },
-    "chain_blast": { "feel": "impact_s", "fx": "explosion_s", "fxScale": 0.7, "fxLayer": "explosion" },
-    "flare": { "fx": "flare_smoke", "fxScale": 0.6, "fxLayer": "smoke", "fxDy": 20, "sfx": "flare_pop" },
-    "shell_impact": { "feel": "impact_s", "fx": "burst_shell", "fxFrom": 2, "fxScale": 0.6, "fxLayer": "explosion", "fxDy": 16 },
-    "shell_impact_last": { "feel": "shell_last", "fx": "burst_shell", "fxFrom": 2, "fxScale": 0.7, "fxLayer": "explosion", "fxDy": 16 }
-  }
+    "pre_impact_silence": {
+      "hook": "pre_impact_silence"
+    },
+    "timebomb_blast": {
+      "feel": "impact_l"
+    },
+    "chain_blast": {
+      "feel": "impact_s",
+      "fx": "explosion_s",
+      "fxScale": 0.7,
+      "fxLayer": "explosion"
+    },
+    "flare": {
+      "fx": "flare_smoke",
+      "fxScale": 0.6,
+      "fxLayer": "smoke",
+      "fxDy": 20,
+      "sfx": "flare_pop"
+    },
+    "shell_impact": {
+      "feel": "impact_s",
+      "fx": "burst_shell",
+      "fxFrom": 2,
+      "fxScale": 0.6,
+      "fxLayer": "explosion",
+      "fxDy": 16
+    },
+    "shell_impact_last": {
+      "feel": "shell_last",
+      "fx": "burst_shell",
+      "fxFrom": 2,
+      "fxScale": 0.7,
+      "fxLayer": "explosion",
+      "fxDy": 16
+    },
+    "volley": {
+      "bullets": {
+        "count": 7,
+        "spreadDeg": 50,
+        "rangePx": 340,
+        "muzzle": true
+      }
+    },
+    "gunner_left": {
+      "gunner": {
+        "screen": [
+          56,
+          232
+        ],
+        "slide": [
+          -90,
+          0
+        ],
+        "face": 1,
+        "inMs": 350,
+        "fireMs": 3000,
+        "outMs": 350,
+        "intervalMs": 170,
+        "rangePx": 460,
+        "scale": 0.5
+      }
+    },
+    "gunner_right": {
+      "gunner": {
+        "screen": [
+          904,
+          232
+        ],
+        "slide": [
+          90,
+          0
+        ],
+        "face": -1,
+        "inMs": 350,
+        "fireMs": 3000,
+        "outMs": 350,
+        "intervalMs": 170,
+        "rangePx": 460,
+        "scale": 0.5
+      }
+    },
+    "gunner_bottom": {
+      "gunner": {
+        "screen": [
+          730,
+          470
+        ],
+        "slide": [
+          0,
+          90
+        ],
+        "face": -1,
+        "inMs": 350,
+        "fireMs": 3000,
+        "outMs": 350,
+        "intervalMs": 170,
+        "rangePx": 460,
+        "scale": 0.5
+      }
+    },
+    "naval_arc": {
+      "arc": {
+        "side": "left",
+        "height": 150
+      },
+      "edgeFlash": {
+        "side": "left",
+        "ms": 120,
+        "color": "#fff0b0",
+        "width": 28
+      },
+      "sfx": "naval_gun"
+    },
+    "naval_impact": {
+      "feel": "impact_l_stack",
+      "fx": "naval_shell",
+      "fxFrom": 4,
+      "fxScale": 0.6,
+      "fxLayer": "smoke",
+      "fxAlpha": 0.8,
+      "fxDy": 30
+    },
+    "naval_impact_last": {
+      "feel": "impact_l",
+      "fx": "naval_shell",
+      "fxFrom": 4,
+      "fxScale": 0.6,
+      "fxLayer": "smoke",
+      "fxAlpha": 0.8,
+      "fxDy": 30
+    },
+    "tank_dash": {
+      "dash": {
+        "sprite": "tank_charge",
+        "fps": 12,
+        "scale": 0.55,
+        "speed": 820,
+        "margin": 70,
+        "width": 60,
+        "knockback": 56,
+        "hit": true,
+        "trailCue": "tank_trail",
+        "trailEveryPx": 60
+      },
+      "sfx": "tank_engine"
+    },
+    "tank_trail": {
+      "feel": "tank_trail",
+      "fx": "dust",
+      "fxScale": 0.5,
+      "fxLayer": "explosion",
+      "fxAlpha": 0.85,
+      "fxDy": 6
+    },
+    "mine_tank": {
+      "dash": {
+        "sprite": "tank_charge",
+        "fps": 12,
+        "scale": 0.55,
+        "speed": 700,
+        "margin": 70,
+        "width": 60,
+        "knockback": 0,
+        "hit": false,
+        "trailCue": "mine_drop",
+        "trailEveryPx": 46
+      },
+      "sfx": "tank_engine"
+    },
+    "mine_drop": {
+      "mine": {
+        "armMs": 400,
+        "lifeMs": 20000,
+        "triggerRadius": 16,
+        "radius": 56,
+        "scale": 0.4
+      },
+      "sfx": "mine_arm"
+    },
+    "mine_blast": {
+      "feel": "impact_s",
+      "fx": "mines",
+      "fxFrom": 3,
+      "fxScale": 0.6,
+      "fxLayer": "explosion",
+      "fxDy": 8
+    },
+    "supply_plane": {
+      "fly": {
+        "sprite": "supply_drop",
+        "frame": 0,
+        "dir": "left",
+        "ms": 1600,
+        "scale": 0.6,
+        "alpha": 0.9,
+        "dy": -120
+      },
+      "sfx": "bomber_drone"
+    },
+    "crate_fall": {
+      "fall": {
+        "sheet": "supply_drop",
+        "frames": [
+          1,
+          2
+        ],
+        "fps": 3,
+        "height": 150,
+        "scale": 0.5
+      }
+    },
+    "crate_land": {
+      "feel": "supply_land",
+      "fx": "supply_drop",
+      "fxFrom": 3,
+      "fxScale": 0.5,
+      "fxLayer": "explosion",
+      "fxDy": 10,
+      "heal": 0.3,
+      "shield": {
+        "ms": 3000,
+        "color": "#ffc870"
+      },
+      "sfx": "heal"
+    },
+    "offensive_strike": {
+      "screenStrike": true,
+      "feel": "impact_l",
+      "sfx": "explode_l"
+    }
+  },
+  "countries": [
+    "#3a6ea5",
+    "#c8102e",
+    "#f2f2f2",
+    "#ffcc00",
+    "#2e8b57",
+    "#7a3fbf"
+  ]
 }

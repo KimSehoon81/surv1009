@@ -31,6 +31,8 @@ export interface TimelineEventDef {
   radius?: number;
   /** 착탄 몇 초 전부터 예고 마커 */
   markerLead?: number;
+  /** 같은 자리에서 lead초 먼저 낼 큐(포탄 비행·보급 상자 낙하 등). 그 큐의 durationMs = lead */
+  pre?: readonly { cue: string; lead: number }[];
   repeat?: RepeatDef;
 }
 
@@ -50,6 +52,9 @@ export interface FiredEvent {
   /** 반복 안에서 몇 번째(0부터)와 전체 수 */
   index: number;
   count: number;
+  /** 시전 순간 플레이어 → 조준점 방향(단위 벡터). 돌파·부채꼴 사격 방향 */
+  dirX: number;
+  dirY: number;
 }
 
 export const MARKER_CUE = 'marker';
@@ -93,6 +98,11 @@ function placeAt(ev: TimelineEventDef, i: number, n: number, o: ExpandOrigin, ra
 export function expandTimeline(def: TimelineDef, origin: ExpandOrigin, rand: () => number): FiredEvent[] {
   const out: (FiredEvent & { order: number })[] = [];
   let order = 0;
+  const ddx = origin.aim.x - origin.player.x;
+  const ddy = origin.aim.y - origin.player.y;
+  const dl = Math.hypot(ddx, ddy);
+  const dirX = dl > 0 ? ddx / dl : 1;
+  const dirY = dl > 0 ? ddy / dl : 0;
   for (const ev of def.events) {
     const n = Math.max(1, ev.repeat?.count ?? 1);
     for (let i = 0; i < n; i++) {
@@ -100,11 +110,14 @@ export function expandTimeline(def: TimelineDef, origin: ExpandOrigin, rand: () 
       const at = placeAt(ev, i, n, origin, rand);
       const cue = i === n - 1 && n > 1 && ev.repeat?.lastCue ? ev.repeat.lastCue : ev.cue;
       const radius = ev.radius ?? 0;
-      if (ev.markerLead && ev.markerLead > 0) {
-        const lead = Math.round(ev.markerLead * 1000);
-        out.push({ atMs: Math.max(0, atMs - lead), cue: MARKER_CUE, x: at.x, y: at.y, damage: 0, radius, durationMs: Math.min(lead, atMs), index: i, count: n, order: order++ });
+      const base = { x: at.x, y: at.y, radius, index: i, count: n, dirX, dirY };
+      const pre = [...(ev.markerLead ? [{ cue: MARKER_CUE, lead: ev.markerLead }] : []), ...(ev.pre ?? [])];
+      for (const p of pre) {
+        if (p.lead <= 0) continue;
+        const lead = Math.round(p.lead * 1000);
+        out.push({ ...base, atMs: Math.max(0, atMs - lead), cue: p.cue, damage: 0, durationMs: Math.min(lead, atMs), order: order++ });
       }
-      out.push({ atMs, cue, x: at.x, y: at.y, damage: ev.damage ?? 0, radius, durationMs: 0, index: i, count: n, order: order++ });
+      out.push({ ...base, atMs, cue, damage: ev.damage ?? 0, durationMs: 0, order: order++ });
     }
   }
   out.sort((a, b) => a.atMs - b.atMs || a.order - b.order);

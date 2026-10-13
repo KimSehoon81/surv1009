@@ -15,13 +15,14 @@ const origin = { aim: { x: 300, y: 0 }, player: { x: 0, y: 0 }, minFanDist: 100 
 const rand = () => 0.5;
 
 describe('연출 타임라인 데이터', () => {
-  it('D10 조합 4종이 있고, 쓰는 큐·프리셋·소리가 모두 정의돼 있다', () => {
+  it('조합 11종 전부 타임라인이 있고, 쓰는 큐·프리셋·소리가 모두 정의돼 있다', () => {
     const combos = new Set(combosData.combos.map((c) => c.id));
-    for (const id of ['precision_bomb', 'bomber_wing', 'timebomb', 'barrage']) expect(TL[id], id).toBeDefined();
+    expect(combos.size).toBe(11);
+    for (const id of combos) expect(TL[id], id).toBeDefined();
     for (const [id, def] of Object.entries(TL)) {
       expect(combos.has(id), id).toBe(true);
       for (const ev of def.events) {
-        for (const cue of [ev.cue, ev.repeat?.lastCue].filter((c): c is string => !!c)) {
+        for (const cue of [ev.cue, ev.repeat?.lastCue, ...(ev.pre ?? []).map((p) => p.cue)].filter((c): c is string => !!c)) {
           const c = CUES[cue];
           expect(c, `${id}:${cue}`).toBeDefined();
           if (c?.feel) expect(PRESETS[c.feel], c.feel).toBeDefined();
@@ -81,6 +82,25 @@ describe('연출 타임라인 데이터', () => {
     const angles = shells.map((e) => Math.atan2(e.y, e.x));
     expect(Math.max(...angles) - Math.min(...angles)).toBeCloseTo((70 * Math.PI) / 180, 5);
     for (const e of shells) expect(Math.hypot(e.x, e.y)).toBeCloseTo(300, 5);
+  });
+});
+
+describe('앞당긴 큐와 방향', () => {
+  it('함포: 포탄 비행(pre)은 착탄과 같은 자리에서 lead초 먼저, 시간 = lead', () => {
+    const out = expandTimeline(TL.naval_support as TimelineDef, origin, Math.random);
+    const impacts = out.filter((e) => e.damage > 0);
+    expect(impacts).toHaveLength(3);
+    for (const imp of impacts) {
+      const arc = out.find((e) => e.cue === 'naval_arc' && e.index === imp.index);
+      expect(arc).toMatchObject({ x: imp.x, y: imp.y, atMs: imp.atMs - 700, durationMs: 700 });
+    }
+  });
+
+  it('모든 이벤트에 플레이어 → 조준점 방향(단위 벡터)', () => {
+    const out = expandTimeline(TL.tank_breakthrough as TimelineDef, { aim: { x: 0, y: -50 }, player: { x: 0, y: 0 } }, rand);
+    expect(out[0]).toMatchObject({ dirX: 0, dirY: -1 });
+    const same = expandTimeline(TL.tank_breakthrough as TimelineDef, { aim: { x: 5, y: 5 }, player: { x: 5, y: 5 } }, rand);
+    expect(same[0]).toMatchObject({ dirX: 1, dirY: 0 });
   });
 });
 
