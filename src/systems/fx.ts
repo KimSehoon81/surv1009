@@ -20,13 +20,14 @@ export class FxSystem {
     this.pool = new Pool(() => scene.add.sprite(0, 0, '__DEFAULT').setActive(false).setVisible(false), 24);
   }
 
-  private animKey(name: string): string {
+  /** from: 시작 프레임(예: bomb_fall은 3프레임부터, 앞의 붉은 링 생략) */
+  private animKey(name: string, from = 0): string {
     const spec = manifest.fx(name);
     const t = TIMING[name];
     const fps = t?.fps ?? DEFAULT_FPS;
-    const key = `${spec.key}_play`;
+    const key = from > 0 ? `${spec.key}_play_from${from}` : `${spec.key}_play`;
     if (!this.scene.anims.exists(key)) {
-      const frames = this.scene.anims.generateFrameNumbers(spec.key, { start: 0, end: spec.frames - 1 });
+      const frames = this.scene.anims.generateFrameNumbers(spec.key, { start: Math.min(from, spec.frames - 1), end: spec.frames - 1 });
       // Phaser 프레임 duration은 기본 프레임 시간에 더해지는 값
       const first = frames[0];
       if (first && t?.hold0F) first.duration = t.hold0F * FRAME_MS;
@@ -61,6 +62,11 @@ export class FxSystem {
     return this.playAnim(this.animKey(name), x, y, scale, depth, capped);
   }
 
+  /** from 프레임부터 재생 */
+  playFrom(name: string, from: number, x: number, y: number, scale = 1, depth: number = Depth.Explosion): Phaser.GameObjects.Sprite | null {
+    return this.playAnim(this.animKey(name, from), x, y, scale, depth, false);
+  }
+
   /**
    * capped=true(타격 장식 스파크 등)는 동시 상한에 닿으면 생략하고 null.
    * 무기 폭발·총구 섬광처럼 빠지면 안 되는 이펙트는 capped=false로 항상 재생한다.
@@ -68,7 +74,7 @@ export class FxSystem {
   playAnim(key: string, x: number, y: number, scale = 1, depth: number = Depth.Explosion, capped = false): Phaser.GameObjects.Sprite | null {
     if (capped && this.pool.size >= this.cap) return null;
     const s = this.pool.acquire();
-    s.setPosition(x, y).setScale(scale).setDepth(depth).setOrigin(0.5).setFlipX(false).setActive(true).setVisible(true);
+    s.setPosition(x, y).setScale(scale).setDepth(depth).setOrigin(0.5).setFlipX(false).setAlpha(1).setActive(true).setVisible(true);
     s.play(key);
     s.once('animationcomplete', () => {
       s.setActive(false).setVisible(false);

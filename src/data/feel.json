@@ -1,5 +1,5 @@
 {
-  "$comment": "타격감 수치(PRD §4.4, 60fps 기준 프레임). 호출부는 프리셋 이름만 쓴다(feel.hit('crit', ...)). normal·crit·kill_big은 §4.4 표, 나머지는 보조 프리셋. 일반 타격 2프레임 정지는 맞은 적만 멈추는 국소 정지(localStopFrames), 전역 정지(hitstopFrames)는 치명 이상이며 stopBudget(정지 시간 비율 상한) 안에서만, hitstopForce는 예산 무시. hitstopMinGapMs=직전 전역 정지 끝난 뒤 이 시간 안이면 생략. shakeStack=연속 착탄 흔들림 누적, kickPx/Ms=타격 방향 화면 킥. emit=입자 종류별 개수, sfx=sfx.json 소리 이름, lod=연출 우선순위(lod.alwaysFrom 이상은 프레임 예산 무시). lod.budget=프레임당 전체 연출 수, 화면 밖(offscreenMarginPx) 타격은 시각 연출 생략. fxTiming=이펙트 시트 재생 속도와 첫 프레임 추가 유지(hold0F 프레임). intensity=접근성 강도 배율 0~1(D29 설정 화면). knockbackMulByTier=적 등급별 넉백 배율. 입자 kind에 sheet가 있으면 이펙트 시트 그림을 쓰고 randomFrame이면 프레임 하나를 무작위로(그을음 6종). card_success/card_fail=카드 판정 결과(금색 화면 플래시 screenFlashColor) allyMarker=아군 범위 예고(청록, PRD §6.4: 포격·시한폭탄 착탄 지점), enemyReveal=척후·정찰기 적 표시 색.",
+  "$comment": "타격감 수치(PRD §4.4, 60fps 기준 프레임). 호출부는 프리셋 이름만 쓴다(feel.hit('crit', ...)). normal·crit·kill_big은 §4.4 표, 나머지는 보조 프리셋. 일반 타격 2프레임 정지는 맞은 적만 멈추는 국소 정지(localStopFrames), 전역 정지(hitstopFrames)는 치명 이상이며 stopBudget(정지 시간 비율 상한) 안에서만, hitstopForce는 예산 무시. hitstopMinGapMs=직전 전역 정지 끝난 뒤 이 시간 안이면 생략. shakeStack=연속 착탄 흔들림 누적, kickPx/Ms=타격 방향 화면 킥. emit=입자 종류별 개수, sfx=sfx.json 소리 이름, lod=연출 우선순위(lod.alwaysFrom 이상은 프레임 예산 무시). lod.budget=프레임당 전체 연출 수, 화면 밖(offscreenMarginPx) 타격은 시각 연출 생략. fxTiming=이펙트 시트 재생 속도와 첫 프레임 추가 유지(hold0F 프레임). intensity=접근성 강도 배율 0~1(D29 설정 화면). knockbackMulByTier=적 등급별 넉백 배율. 입자 kind에 sheet가 있으면 이펙트 시트 그림을 쓰고 randomFrame이면 프레임 하나를 무작위로(그을음 6종). card_success/card_fail=카드 판정 결과(금색 화면 플래시 screenFlashColor) allyMarker=아군 범위 예고(청록, PRD §6.4: 포격·시한폭탄 착탄 지점), enemyReveal=척후·정찰기 적 표시 색. impact_l=대형 착탄(정밀 폭격·시한폭탄, 히트스톱), impact_l_stack=연속 대형 착탄의 앞 발들(흔들림만 누적, 큰 섬광 대신 작은 섬광: 큰 섬광 초당 3회 이하), shell_last=연발탄 마지막 1발(히트스톱), afterburn=잔불 연기.",
   "intensity": {
     "shake": 1,
     "flash": 1
@@ -145,6 +145,63 @@
       "shakePx": 1,
       "shakeMs": 80,
       "lod": 100
+    },
+    "impact_l": {
+      "hitstopFrames": 6,
+      "shakePx": 5,
+      "shakeMs": 380,
+      "shakeStack": true,
+      "screenFlashFrames": 2,
+      "fx": "explosion_l",
+      "fxScale": 0.9,
+      "debris": 12,
+      "smoke": 8,
+      "emit": {
+        "flash_l": 1,
+        "glow": 1,
+        "ring_l": 1,
+        "crater_l": 1
+      },
+      "zoomPunch": 0.03,
+      "sfx": "explode_l",
+      "lod": 100
+    },
+    "impact_l_stack": {
+      "shakePx": 4,
+      "shakeMs": 300,
+      "shakeStack": true,
+      "fx": "explosion_l",
+      "fxScale": 0.8,
+      "debris": 8,
+      "smoke": 6,
+      "emit": {
+        "flash": 1,
+        "glow": 1,
+        "ring_l": 1,
+        "crater_l": 1
+      },
+      "sfx": "explode_l",
+      "lod": 90
+    },
+    "shell_last": {
+      "shakePx": 2,
+      "shakeMs": 160,
+      "shakeStack": true,
+      "debris": 6,
+      "smoke": 3,
+      "crater": 1,
+      "emit": {
+        "flash": 1,
+        "glow": 1,
+        "ring": 1
+      },
+      "sfx": "explode",
+      "lod": 90,
+      "hitstopFrames": 4
+    },
+    "afterburn": {
+      "smoke": 6,
+      "lod": 30
     }
   },
   "killPresetByTier": {
@@ -211,6 +268,19 @@
     "explosion_l": {
       "fps": 16,
       "hold0F": 2
+    },
+    "bomb_fall": {
+      "fps": 13
+    },
+    "flare_smoke": {
+      "fps": 8
+    },
+    "burst_shell": {
+      "fps": 16,
+      "hold0F": 1
+    },
+    "embers": {
+      "fps": 8
     }
   },
   "numbers": {
@@ -596,7 +666,9 @@
     "color": "#4fe0d8",
     "fillAlpha": 0.12,
     "lineAlpha": 0.85,
-    "pulseMs": 240
+    "pulseMs": 240,
+    "shrinkFrames": 4,
+    "shrinkTo": 0.75
   },
   "enemyReveal": {
     "color": "#ff6040"

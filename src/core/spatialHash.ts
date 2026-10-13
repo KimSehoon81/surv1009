@@ -35,6 +35,29 @@ export class SpatialHash<T extends Point> {
     b.push(item);
   }
 
+  /**
+   * 사각형(화면) 안 칸 중 항목이 가장 많은 칸의 중심(조합 스킬 자동 조준, PRD §6.4). 없으면 null.
+   * 이번 프레임에 채워진 칸만 본다.
+   */
+  densestCell(minX: number, minY: number, maxX: number, maxY: number, filter?: (item: T) => boolean): Point | null {
+    let best: Point | null = null;
+    let bestCount = 0;
+    for (const b of this.used) {
+      const first = b[0];
+      if (!first) continue;
+      const cx = (Math.floor(first.x / this.cellSize) + 0.5) * this.cellSize;
+      const cy = (Math.floor(first.y / this.cellSize) + 0.5) * this.cellSize;
+      if (cx < minX || cx > maxX || cy < minY || cy > maxY) continue;
+      let n = 0;
+      for (const it of b) if (!filter || filter(it)) n++;
+      if (n > bestCount) {
+        bestCount = n;
+        best = { x: cx, y: cy };
+      }
+    }
+    return best;
+  }
+
   /** 반경 r 안의 항목마다 fn 호출. fn이 true를 돌려주면 즉시 멈춘다 */
   forEachNear(x: number, y: number, r: number, fn: (item: T, distSq: number) => boolean | void): void {
     const cs = this.cellSize;

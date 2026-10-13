@@ -2,7 +2,7 @@ import type * as Phaser from 'phaser';
 import combat from '../data/combat.json';
 import feelData from '../data/feel.json';
 import weaponsData from '../data/weapons.json';
-import { parseColor, startKnockback } from '../core/feel';
+import { FRAME_MS, parseColor, startKnockback } from '../core/feel';
 import type { Progression } from '../core/progression';
 import type { Rng } from '../core/rng';
 import type { StatMod } from '../core/stats';
@@ -292,6 +292,17 @@ export class EffectRunner implements EffectContext {
       // 착탄 직전일수록 빨리 깜빡이고 안쪽 원이 커진다
       const k = Math.min(1, (now - m.startMs) / Math.max(1, m.untilMs - m.startMs));
       const pulse = 0.6 + 0.4 * Math.abs(Math.sin((now / MARK.pulseMs) * Math.PI * (1 + k)));
+      // 착탄 4프레임 전부터: 수축하며 밝아짐(PRD §6.4 v0.2)
+      const left = m.untilMs - now;
+      const shrinkMs = MARK.shrinkFrames * FRAME_MS;
+      if (left <= shrinkMs) {
+        const s = Math.max(0, left / shrinkMs);
+        const r = m.r * (MARK.shrinkTo + (1 - MARK.shrinkTo) * s);
+        g.fillStyle(color, MARK.fillAlpha * 2.5).fillCircle(m.x, m.y, r);
+        // 흰색은 착탄 1~2프레임 전용(색 언어)
+        g.lineStyle(2, left <= 2 * FRAME_MS ? 0xffffff : color, 1).strokeCircle(m.x, m.y, r);
+        continue;
+      }
       g.fillStyle(color, MARK.fillAlpha).fillCircle(m.x, m.y, m.r);
       g.lineStyle(1, color, MARK.lineAlpha * pulse).strokeCircle(m.x, m.y, m.r);
       g.lineStyle(1, color, MARK.lineAlpha).strokeCircle(m.x, m.y, m.r * k);

@@ -1,0 +1,66 @@
+{
+  "$comment": "연출 데이터 1층(PRD §6.2·§6.4 v0.2): 언제·어디. 조합 스킬 id(combos.json)와 고급 스킬(D12~)이 같은 실행기(systems/timeline)를 쓴다. 이벤트: t=시작 후 초(전투 시계라 일시정지·판정 슬로모·히트스톱을 따름), cue=cues.json 이름, at=aim(조준점)|player(시전 순간 플레이어 발 위치), offset=[dx,dy]px, damage=공격력 배수(× 능력치 comboPower), radius=피해 반경 px, markerLead=착탄 몇 초 전부터 아군 청록 예고 마커(반경 = radius). repeat: count발을 every초 간격으로, pattern line(at 기준 step=[dx,dy] 간격 가운데 정렬)·fan(플레이어→at 방향 부채꼴, spreadDeg, 거리는 at까지(최소 minDist), radius=흔들림)·scatter(at 주변 radius 안 무작위), lastCue=마지막 1발만 다른 큐(히트스톱은 마지막 1발에만). aim: 기본은 화면 안 공간 해시 칸 중 적이 가장 많은 칸 중심, mouse=true면 최근 mouseRecentMs 안에 마우스를 움직였을 때 커서 위치(화면 아래 ignoreBottomPx는 손패 영역이라 제외). 수치는 정한 값(PRD에 피해량 없음): 정밀 폭격 1발 6배·반경 80, 편대 3발 3.5배, 시한폭탄 6배+연쇄 4×1.5배, 연발탄 8×1.6배",
+  "aim": {
+    "mouse": true,
+    "mouseRecentMs": 2000,
+    "ignoreBottomPx": 130,
+    "minFanDist": 100
+  },
+  "timelines": {
+    "precision_bomb": {
+      "events": [
+        { "t": 0.8, "cue": "bomber_shadow", "at": "aim" },
+        { "t": 1.0, "cue": "bomber", "at": "aim" },
+        { "t": 1.6, "cue": "bomb_fall", "at": "aim" },
+        { "t": 1.9, "cue": "bomb_impact_l", "at": "aim", "damage": 6, "radius": 80, "markerLead": 1.9 },
+        { "t": 2.5, "cue": "afterburn", "at": "aim" }
+      ]
+    },
+    "bomber_wing": {
+      "events": [
+        { "t": 0.8, "cue": "bomber_shadow", "at": "aim", "repeat": { "count": 3, "every": 0.3, "pattern": "line", "step": [80, 0] } },
+        { "t": 1.0, "cue": "bomber", "at": "aim", "repeat": { "count": 3, "every": 0.3, "pattern": "line", "step": [80, 0] } },
+        { "t": 1.6, "cue": "bomb_fall", "at": "aim", "repeat": { "count": 3, "every": 0.3, "pattern": "line", "step": [80, 0] } },
+        {
+          "t": 1.9,
+          "cue": "bomb_impact_stack",
+          "at": "aim",
+          "damage": 3.5,
+          "radius": 64,
+          "markerLead": 1.9,
+          "repeat": { "count": 3, "every": 0.3, "pattern": "line", "step": [80, 0], "lastCue": "bomb_impact_l" }
+        },
+        { "t": 2.5, "cue": "afterburn", "at": "aim", "repeat": { "count": 3, "every": 0.3, "pattern": "line", "step": [80, 0] } }
+      ]
+    },
+    "timebomb": {
+      "events": [
+        { "t": 0, "cue": "timebomb_set", "at": "aim" },
+        { "t": 2.8, "cue": "pre_impact_silence", "at": "aim" },
+        { "t": 3.0, "cue": "timebomb_blast", "at": "aim", "damage": 6, "radius": 100, "markerLead": 3.0 },
+        {
+          "t": 3.15,
+          "cue": "chain_blast",
+          "at": "aim",
+          "damage": 1.5,
+          "radius": 44,
+          "repeat": { "count": 4, "every": 0.12, "pattern": "scatter", "radius": 90 }
+        }
+      ]
+    },
+    "barrage": {
+      "events": [
+        { "t": 0, "cue": "flare", "at": "aim" },
+        {
+          "t": 0.6,
+          "cue": "shell_impact",
+          "at": "aim",
+          "damage": 1.6,
+          "radius": 40,
+          "markerLead": 0.6,
+          "repeat": { "count": 8, "every": 0.12, "pattern": "fan", "spreadDeg": 70, "radius": 16, "lastCue": "shell_impact_last" }
+        }
+      ]
+    }
+  }
+}

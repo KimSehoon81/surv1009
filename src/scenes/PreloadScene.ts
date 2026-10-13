@@ -13,6 +13,7 @@ import { SceneKey } from './keys';
 import { galleryUnitIds } from './GalleryScene';
 import cardsData from '../data/cards.json';
 import { cardAssetSpecs } from '../ui/cardFace';
+import { CUES } from '../systems/timeline';
 
 /** 전투 시작에 필요한 에셋: 선택 가능한 캐릭터 전원 + 스테이지에 나오는 적 + 바닥 */
 function battleAssets(): AssetSpec[] {
@@ -25,7 +26,9 @@ function battleAssets(): AssetSpec[] {
   // 이펙트: 무기·타격감 프리셋·총구 섬광이 참조하는 시트 전부
   const named = (o: object) => Object.values(o as Record<string, { fx?: string }>).map((v) => v.fx);
   const sheets = Object.values(feelData.particles.kinds as Record<string, { sheet?: string }>).map((k) => k.sheet);
-  const fxNames = new Set([...named(weaponData.weapons), ...named(feelData.presets), feelData.muzzle.fx, ...sheets]);
+  // 연출 큐(cues.json)의 시트·비행체·설치물
+  const cueSheets = Object.values(CUES).flatMap((c) => [c.fx, c.fly?.sprite, c.prop?.sheet]);
+  const fxNames = new Set([...named(weaponData.weapons), ...named(feelData.presets), feelData.muzzle.fx, ...sheets, ...cueSheets]);
   const fx = [...fxNames].filter((n): n is string => typeof n === 'string').map((n) => manifest.fx(n));
   const cards = cardAssetSpecs(Object.keys(cardsData.cards), Object.keys(cardsData.tags));
   return [...units, ...ui, ...fx, ...cards, manifest.tile(floorData.S1.base), manifest.tile(floorData.S1.patch)];

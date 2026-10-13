@@ -658,6 +658,64 @@
           "volume": 0.18
         }
       ]
+    },
+    "bomber_drone": {
+      "variants": 1,
+      "layers": [
+        {
+          "wave": "saw",
+          "freq": 118,
+          "freqEnd": 82,
+          "attackMs": 250,
+          "holdMs": 500,
+          "releaseMs": 650,
+          "volume": 0.35,
+          "lowpassHz": 900
+        },
+        {
+          "wave": "noise",
+          "freq": 600,
+          "attackMs": 300,
+          "holdMs": 400,
+          "releaseMs": 700,
+          "volume": 0.2,
+          "lowpassHz": 500
+        }
+      ]
+    },
+    "timer_beep": {
+      "variants": 1,
+      "layers": [
+        {
+          "wave": "square",
+          "freq": 1320,
+          "releaseMs": 70,
+          "volume": 0.4,
+          "duty": 0.25
+        }
+      ]
+    },
+    "flare_pop": {
+      "variants": 1,
+      "layers": [
+        {
+          "wave": "noise",
+          "freq": 3000,
+          "releaseMs": 60,
+          "volume": 0.6,
+          "lowpassHz": 2500
+        },
+        {
+          "wave": "noise",
+          "freq": 2000,
+          "delayMs": 40,
+          "attackMs": 40,
+          "holdMs": 200,
+          "releaseMs": 400,
+          "volume": 0.2,
+          "lowpassHz": 1600
+        }
+      ]
     }
   },
   "cues": {
@@ -986,6 +1044,61 @@
       "cooldownMs": 120,
       "maxVoices": 2,
       "priority": 3
+    },
+    "bomber_drone": {
+      "src": "bomber_drone",
+      "bus": "sfx",
+      "vol": 0.45,
+      "pitchSt": [
+        -1,
+        1
+      ],
+      "cooldownMs": 150,
+      "maxVoices": 3,
+      "priority": 4
+    },
+    "timer_beep": {
+      "src": "timer_beep",
+      "bus": "sfx",
+      "vol": 0.4,
+      "pitchSt": [
+        0,
+        0
+      ],
+      "cooldownMs": 100,
+      "maxVoices": 2,
+      "priority": 6,
+      "center": true
+    },
+    "flare_pop": {
+      "src": "flare_pop",
+      "bus": "sfx",
+      "vol": 0.4,
+      "pitchSt": [
+        -1,
+        1
+      ],
+      "cooldownMs": 100,
+      "maxVoices": 2,
+      "priority": 4
+    },
+    "explode_l": {
+      "src": "boom",
+      "bus": "sfx",
+      "vol": 0.85,
+      "pitchSt": [
+        -2,
+        -1
+      ],
+      "cooldownMs": 120,
+      "maxVoices": 2,
+      "priority": 8,
+      "duck": {
+        "db": -7,
+        "attackMs": 15,
+        "holdMs": 150,
+        "releaseMs": 500
+      }
     }
   }
 }

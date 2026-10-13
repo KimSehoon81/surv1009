@@ -1,0 +1,35 @@
+{
+  "$comment": "연출 데이터 2층(PRD §6.4 v0.2): 같은 순간에 함께 낼 것의 묶음. 소리는 애니메이션 콜백이 아니라 이 큐가 실행되는 순간(전투 시계 이벤트) 낸다. feel=feel.json 프리셋(섬광·링·흔들림·히트스톱·입자·소리), sfx=sfx.json 소리, fx=이펙트 시트(fxFrom=시작 프레임, fxScale, fxLayer=decal|shadow|explosion|smoke|air, fxAlpha, fxDy=위로 올림 px). 반투명 규칙: smoke·air 층(캐릭터를 덮음)은 실행기가 알파 0.7 상한을 강제. fly=화면 위→아래로 지나가는 비행체(sprite 시트 0프레임, ms 동안, shadow=검게 칠한 반투명 그림자, dx·dy=조준점 기준 어긋남, grow=지나가는 동안 커지는 비율). dropShadow=낙하물 그림자가 ms 동안 from→to 반지름으로 커짐. prop=자리에 남는 물체(시트 frames 구간 반복, fps→fpsEnd로 점멸 가속, ms 뒤 사라짐), countdown=머리 위 숫자 카운트(from부터 1초마다, sfx 음높이 상승). hook=다른 시스템에 알림(pre_impact_silence: 큰 착탄 직전 0.2초 무음, D15에서 audio 연결)",
+  "cues": {
+    "bomber_shadow": {
+      "fly": { "sprite": "bomber", "ms": 1100, "scale": 0.5, "shadow": true, "alpha": 0.32, "dx": 18, "dy": 0, "grow": 0.35 }
+    },
+    "bomber": {
+      "fly": { "sprite": "bomber", "ms": 1300, "scale": 0.6, "alpha": 0.9, "dx": 0, "dy": -40 },
+      "sfx": "bomber_drone"
+    },
+    "bomb_fall": {
+      "fx": "bomb_fall",
+      "fxFrom": 2,
+      "fxScale": 0.7,
+      "fxLayer": "air",
+      "fxDy": 18,
+      "dropShadow": { "ms": 300, "from": 4, "to": 16 },
+      "sfx": "strike_whistle"
+    },
+    "bomb_impact_l": { "feel": "impact_l" },
+    "bomb_impact_stack": { "feel": "impact_l_stack" },
+    "afterburn": { "feel": "afterburn", "fx": "embers", "fxScale": 0.8, "fxLayer": "smoke", "fxAlpha": 0.8, "fxDy": 16 },
+    "timebomb_set": {
+      "prop": { "sheet": "timebomb", "frames": [0, 3], "fps": 3, "fpsEnd": 14, "ms": 3000, "scale": 0.5 },
+      "countdown": { "from": 3, "sfx": "timer_beep" },
+      "sfx": "card_select"
+    },
+    "pre_impact_silence": { "hook": "pre_impact_silence" },
+    "timebomb_blast": { "feel": "impact_l" },
+    "chain_blast": { "feel": "impact_s", "fx": "explosion_s", "fxScale": 0.7, "fxLayer": "explosion" },
+    "flare": { "fx": "flare_smoke", "fxScale": 0.6, "fxLayer": "smoke", "fxDy": 20, "sfx": "flare_pop" },
+    "shell_impact": { "feel": "impact_s", "fx": "burst_shell", "fxFrom": 2, "fxScale": 0.6, "fxLayer": "explosion", "fxDy": 16 },
+    "shell_impact_last": { "feel": "shell_last", "fx": "burst_shell", "fxFrom": 2, "fxScale": 0.7, "fxLayer": "explosion", "fxDy": 16 }
+  }
+}

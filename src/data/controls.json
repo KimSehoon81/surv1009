@@ -53,6 +53,9 @@
     "debugCard": [
       "F3"
     ],
+    "debugCombo": [
+      "F4"
+    ],
     "levelPick1": [
       "ONE",
       "NUMPAD_ONE"

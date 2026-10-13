@@ -20,6 +20,7 @@ import { EnemySystem } from '../systems/enemies';
 import { AudioSystem } from '../systems/audio';
 import { CARD_DATA, CardSystem } from '../systems/cards';
 import { EffectRunner } from '../systems/effectRunner';
+import { TIMELINES, TimelineSystem } from '../systems/timeline';
 import { runEffect, type Params } from '../systems/effects';
 import type { CardEvent } from '../core/cards';
 import { Feel } from '../systems/feel';
@@ -43,6 +44,7 @@ const DEBUFF_IDS = new Set(
     .map((c) => c.params.id as string),
 );
 const CARD_IDS = Object.keys(CARD_DATA.cards);
+const TIMELINE_IDS = Object.keys(TIMELINES);
 const HIT = { blockK: combat.blockK, blockReduction: combat.blockReduction, maxBlockChance: combat.maxBlockChance };
 
 /** 전투 씬: 플레이어·적·무기·투사체·경험치·피격·전사. 시간은 전부 전투 시계(clock) 기준 */
@@ -74,6 +76,9 @@ export class BattleScene extends Phaser.Scene {
   readonly run = { xp: 0, kills: 0, damageTaken: 0, blocks: 0, defeated: false, tp: 0, comboSuccesses: 0 };
   /** 카드 효과 실행기(예약·예고 마커 포함) */
   effects!: EffectRunner;
+  /** 조합·고급 스킬 연출 타임라인 */
+  timelines!: TimelineSystem;
+  private debugComboIndex = 0;
   /** 콤보 보급: 다음 문턱 번호, 최근 보급 시각(전투 시계) */
   private comboDrawStep = 0;
   private comboDrawTimes: number[] = [];
@@ -178,6 +183,18 @@ export class BattleScene extends Phaser.Scene {
       toast: (msg, color) => this.toast(msg, color),
       debuffIds: DEBUFF_IDS,
     });
+    this.timelines = new TimelineSystem({
+      scene: this,
+      clock: this.clock,
+      fx: this.fx,
+      feel: this.feel,
+      audio: this.audio,
+      effects: this.effects,
+      grid: this.enemies.grid,
+      player: this.player,
+      rng: rng.fork('timelines'),
+      damage: (x, y, r, m) => this.explode(x, y, r, m, undefined, 1, undefined),
+    });
     const scene = this;
     this.upgradeTarget = {
       get luck() {
@@ -205,11 +222,11 @@ export class BattleScene extends Phaser.Scene {
         `weapons ${this.weapons.equipped.map((w) => w.id).join(',')} shots ${this.projectiles.active} fx ${this.fx.active}`,
         `cards hand ${this.cards.state.hand.map((c) => c.id).join(',')} sel ${this.cards.selected.length} op ${this.cards.state.op} seals ${this.cards.state.seals} deck ${this.cards.state.drawPile.length}`,
         `lv ${this.progression.level} (${Math.round(this.progression.progress * 100)}%) pending ${this.progression.pending} rerolls ${this.progression.rerolls}`,
-        `effects pending ${this.effects.pending} buffs ${this.player.buffs.list.map((b) => b.id).join(',') || '-'} tp ${this.run.tp} combos ${this.run.comboSuccesses} tactical ${this.progression.tacticalSlots}`,
+        `effects pending ${this.effects.pending} timelines ${this.timelines.active} buffs ${this.player.buffs.list.map((b) => b.id).join(',') || '-'} tp ${this.run.tp} combos ${this.run.comboSuccesses} tactical ${this.progression.tacticalSlots}`,
         `xp ${this.run.xp} kills ${this.run.kills} gems ${this.pickups.active} taken ${this.run.damageTaken} blocks ${this.run.blocks}`,
         `feel particles ${this.feel.particles.active}/${this.feel.particles.cap} numbers ${this.feel.numbers.active} combo ${this.feel.combo.count}`,
         `audio ${this.audio.enabled ? `voices ${this.audio.activeVoices} played ${this.audio.played} dropped ${this.audio.dropped}` : 'off'}`,
-        params.debug ? 'J공격 K방어 L스킬 U치명 O느림 C캐릭터 V수류탄 I무적 B대형처치 N레벨업 F2적300 F3카드 Esc정지' : '',
+        params.debug ? 'J공격 K방어 L스킬 U치명 O느림 C캐릭터 V수류탄 I무적 B대형처치 N레벨업 F2적300 F3카드 F4조합 Esc정지' : '',
       ].filter(Boolean);
     });
 
@@ -264,6 +281,7 @@ export class BattleScene extends Phaser.Scene {
       if (this.progression.pending > 0 && !this.progression.isOpen) this.openLevelUp();
       this.cards.update(dt, time);
       this.effects.update();
+      this.timelines.update();
       this.comboSupply(now);
     }
     this.fx.update(this.clock.effectScale);
@@ -320,10 +338,11 @@ export class BattleScene extends Phaser.Scene {
       if (r) runEffect(r.effect, this.effects, r.params, 1);
     } else if (ev.type === 'comboSkill') {
       const s = this.player.stats;
-      const power = cardsData.comboFallbackPower * s.comboPower;
-      const ids = ev.cards.map((c) => c.id).filter((id) => CARD_DATA.cards[id]?.tag !== 'minus');
+      // 연출 타임라인이 있는 조합은 그것으로, 아직 없는 조합(D11)은 쓰인 카드 효과를 배수로 대신
       this.effects.schedule(s.comboDelayMs, () => {
-        for (const id of ids) this.runCard(id, power);
+        if (this.timelines.play(ev.combo, s.comboPower)) return;
+        const power = cardsData.comboFallbackPower * s.comboPower;
+        for (const c of ev.cards) if (CARD_DATA.cards[c.id]?.tag !== 'minus') this.runCard(c.id, power);
       });
       this.run.comboSuccesses++;
       if (this.run.comboSuccesses % levels.tacticalEvery === 0) {
@@ -486,6 +505,14 @@ export class BattleScene extends Phaser.Scene {
       this.debugCardIndex++;
       this.cards.give(id);
       this.toast(`[디버그] ${id} ${CARD_DATA.cards[id]?.name ?? ''} 지급`, '#b0a890');
+    }
+    if (this.controls.justDown('debugCombo')) {
+      // 연출이 있는 조합을 차례로 강제 성공(판정 없이 조합 스킬 이벤트만)
+      const combo = TIMELINE_IDS[this.debugComboIndex % TIMELINE_IDS.length] as string;
+      this.debugComboIndex++;
+      const ev: CardEvent = { type: 'comboSkill', combo, cards: [] };
+      this.events.emit('cards:effect', ev);
+      this.onCardEvent(ev);
     }
     if (this.controls.justDown('debugStress')) {
       this.enemies.setStress(!this.enemies.stress, { x: p.x, y: p.y, radius: combat.playerRadius }, now);
