@@ -45,7 +45,24 @@ export interface CueDef {
   gunner?: { screen: readonly number[]; slide: readonly number[]; face: number; inMs: number; fireMs: number; outMs: number; intervalMs: number; rangePx: number; scale: number };
   arc?: { side: 'left' | 'right'; height: number };
   edgeFlash?: { side: 'left' | 'right'; ms: number; color: string; width: number };
-  dash?: { sprite: string; fps: number; scale: number; speed: number; margin: number; width: number; knockback: number; hit: boolean; trailCue?: string; trailEveryPx?: number };
+  dash?: {
+    sprite: string;
+    frames?: readonly number[];
+    fps: number;
+    scale: number;
+    speed: number;
+    margin: number;
+    width: number;
+    knockback: number;
+    hit: boolean;
+    layer?: 'ground' | 'air';
+    dir?: readonly number[];
+    orient?: 'side' | 'top';
+    tickMs?: number;
+    reach?: number;
+    trailCue?: string;
+    trailEveryPx?: number;
+  };
   fall?: { sheet: string; frames: readonly number[]; fps: number; height: number; scale: number };
   mine?: { armMs: number; lifeMs: number; triggerRadius: number; radius: number; scale: number };
   heal?: number;
@@ -473,8 +490,9 @@ export class TimelineSystem {
    */
   private dash(ev: FiredEvent, c: NonNullable<CueDef['dash']>, dmg: number, power: number, start: number): Actor {
     const v = this.view;
-    const ux = ev.dirX;
-    const uy = ev.dirY;
+    const [fdx, fdy] = c.dir ?? [];
+    const ux = fdx ?? ev.dirX;
+    const uy = fdy ?? ev.dirY;
     // 화면 경계(+여유)까지의 거리
     const toEdge = (dx: number, dy: number): number => {
       const hw = v.width / 2 + c.margin;
@@ -490,10 +508,17 @@ export class TimelineSystem {
     const sx = ev.x - ux * back;
     const sy = ev.y - uy * back;
     const ms = (len / c.speed) * 1000;
-    const s = this.sprite(c.sprite, 0).setScale(c.scale).setOrigin(0.5, 0.8).setFlipX(ux < 0).setDepth(Depth.Player + 1);
-    const hit = new Set<Enemy>();
+    const [f0 = 0, f1 = 5] = c.frames ?? [];
+    const s = this.sprite(c.sprite, f0).setScale(c.scale);
+    if (c.layer === 'air') applyLayer(s.setOrigin(0.5), 'air', 1);
+    else s.setOrigin(0.5, 0.8).setDepth(Depth.Player + 1);
+    if (c.orient === 'top') s.setFlipY(uy > 0);
+    else s.setFlipX(ux < 0);
+    const lastHit = new Map<Enemy, number>();
     const half = c.width / 2;
-    let nextTrail = 0;
+    // 피해 띠: 기본은 몸체 자리, reach가 있으면 앞쪽 reach 길이(기총 탄착)
+    const reach = c.reach ?? 0;
+    let nextTrail = reach;
     return {
       update: (now) => {
         const t = now - start;
@@ -502,18 +527,25 @@ export class TimelineSystem {
         const dist = len * k;
         const x = sx + ux * dist;
         const y = sy + uy * dist;
-        s.setPosition(x, y).setFrame(Math.floor((t / 1000) * c.fps) % 6);
+        s.setPosition(x, y).setFrame(f0 + (Math.floor((t / 1000) * c.fps) % (f1 - f0 + 1)));
         if (c.hit && dmg > 0) {
-          this.d.grid.forEachNear(x, y, half + MAX_ENEMY_RADIUS, (e, d2) => {
+          const mx = x + ux * reach * 0.5;
+          const my = y + uy * reach * 0.5;
+          this.d.grid.forEachNear(mx, my, reach * 0.5 + half + MAX_ENEMY_RADIUS, (e) => {
+            if (!e.alive) return;
+            const prev = lastHit.get(e);
+            if (prev !== undefined && (c.tickMs === undefined || now - prev < c.tickMs)) return;
+            // 띠(선분 x,y → x+u·reach)까지 거리
+            const along = Math.max(0, Math.min(reach, (e.x - x) * ux + (e.y - y) * uy));
             const r = half + e.radius;
-            if (!e.alive || hit.has(e) || d2 > r * r) return;
-            hit.add(e);
+            if ((e.x - (x + ux * along)) ** 2 + (e.y - (y + uy * along)) ** 2 > r * r) return;
+            lastHit.set(e, now);
             this.d.damageEnemy(e, dmg, ux, uy);
-            if (e.alive) startKnockback(e.kb, ux, uy, c.knockback, 220);
+            if (e.alive && c.knockback > 0) startKnockback(e.kb, ux, uy, c.knockback, 220);
           });
         }
         if (c.trailCue && c.trailEveryPx) {
-          while (dist >= nextTrail) {
+          while (dist + reach >= nextTrail) {
             const at = { ...ev, cue: c.trailCue, x: sx + ux * nextTrail, y: sy + uy * nextTrail, durationMs: 0, damage: c.hit ? 0 : ev.damage };
             nextTrail += c.trailEveryPx;
             // 화면 밖 구간은 건너뜀(지뢰가 보이지 않는 곳에 깔리지 않게)

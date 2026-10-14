@@ -14,10 +14,12 @@ import { galleryUnitIds } from './GalleryScene';
 import cardsData from '../data/cards.json';
 import { cardAssetSpecs } from '../ui/cardFace';
 import { CUES } from '../systems/timeline';
+import skillsData from '../data/skills.json';
 
 /** 전투 시작에 필요한 에셋: 선택 가능한 캐릭터 전원 + 스테이지에 나오는 적 + 바닥 */
 function battleAssets(): AssetSpec[] {
-  const enemyIds = [...new Set(spawnData.S1.spawns.map((s) => s.enemy))];
+  // 스폰 표 + 엘리트(E04, 등장 시점은 D13 stages.json)
+  const enemyIds = [...new Set([...spawnData.S1.spawns.map((s) => s.enemy), 'E04'])];
   const units = [...Object.keys(characters.characters), ...enemyIds].flatMap((id) => manifest.unitSheets(id));
   // UI 그림: 무기 투사체, 경험치 별, 레벨업 업그레이드 아이콘(데이터가 참조하는 것 전부)
   const weaponSprites = Object.values(weaponData.weapons).map((w) => w.sprite);
@@ -38,8 +40,9 @@ function battleAssets(): AssetSpec[] {
   ]);
   const fxNames = new Set([...named(weaponData.weapons), ...named(feelData.presets), feelData.muzzle.fx, ...sheets, ...cueSheets]);
   const fx = [...fxNames].filter((n): n is string => typeof n === 'string').map((n) => manifest.fx(n));
+  const skillIcons = Object.values(skillsData.skills).map((sk) => manifest.image('skills', sk.icon, 32, 32));
   const cards = cardAssetSpecs(Object.keys(cardsData.cards), Object.keys(cardsData.tags));
-  return [...units, ...ui, ...fx, ...cards, manifest.tile(floorData.S1.base), manifest.tile(floorData.S1.patch)];
+  return [...units, ...ui, ...fx, ...skillIcons, ...cards, manifest.tile(floorData.S1.base), manifest.tile(floorData.S1.patch)];
 }
 
 export class PreloadScene extends Phaser.Scene {

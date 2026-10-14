@@ -10,6 +10,10 @@
       {
         "enemy": "E02",
         "perSec": 0.3
+      },
+      {
+        "enemy": "E03",
+        "perSec": 0.12
       }
     ],
     "radiusMargin": 48,

@@ -1,5 +1,5 @@
 {
-  "$comment": "연출 데이터 1층(PRD §6.2·§6.4 v0.2): 언제·어디. 조합 스킬 id(combos.json)와 고급 스킬(D12~)이 같은 실행기(systems/timeline)를 쓴다. 이벤트: t=시작 후 초(전투 시계라 일시정지·판정 슬로모·히트스톱을 따름), cue=cues.json 이름, at=aim(조준점)|player(시전 순간 플레이어 발 위치), offset=[dx,dy]px, damage=공격력 배수(× 능력치 comboPower), radius=피해 반경 px, markerLead=착탄 몇 초 전부터 아군 청록 예고 마커(반경 = radius). repeat: count발을 every초 간격으로, pattern line(at 기준 step=[dx,dy] 간격 가운데 정렬)·fan(플레이어→at 방향 부채꼴, spreadDeg, 거리는 at까지(최소 minDist), radius=흔들림)·scatter(at 주변 radius 안 무작위), lastCue=마지막 1발만 다른 큐(히트스톱은 마지막 1발에만). aim: 기본은 화면 안 공간 해시 칸 중 적이 가장 많은 칸 중심, mouse=true면 최근 mouseRecentMs 안에 마우스를 움직였을 때 커서 위치(화면 아래 ignoreBottomPx는 손패 영역이라 제외). 수치는 정한 값(PRD에 피해량 없음): 정밀 폭격 1발 6배·반경 80, 편대 3발 3.5배, 시한폭탄 6배+연쇄 4×1.5배, 연발탄 8×1.6배. D11: 일제 사격 1.2배×7발×3회, 지원군 사수 0.8배(0.17초마다, 3명×3초), 함포 4배×3(마지막만 히트스톱), 전차 돌파 2.5배+넉백, 야전 치료 30% 회복+보호막 3초, 지뢰 3배(20초 유지), 연합군 총공세 = 사수 2명·전차·함포 3·폭격 3·마지막 화면 전체 2배. pre=[{cue, lead}]: 같은 자리에서 lead초 먼저 낼 큐(그 큐의 시간 = lead)",
+  "$comment": "연출 데이터 1층(PRD §6.2·§6.4 v0.2): 언제·어디. 조합 스킬 id(combos.json)와 고급 스킬(D12~)이 같은 실행기(systems/timeline)를 쓴다. 이벤트: t=시작 후 초(전투 시계라 일시정지·판정 슬로모·히트스톱을 따름), cue=cues.json 이름, at=aim(조준점)|player(시전 순간 플레이어 발 위치), offset=[dx,dy]px, damage=공격력 배수(× 능력치 comboPower), radius=피해 반경 px, markerLead=착탄 몇 초 전부터 아군 청록 예고 마커(반경 = radius). repeat: count발을 every초 간격으로, pattern line(at 기준 step=[dx,dy] 간격 가운데 정렬)·fan(플레이어→at 방향 부채꼴, spreadDeg, 거리는 at까지(최소 minDist), radius=흔들림)·scatter(at 주변 radius 안 무작위), lastCue=마지막 1발만 다른 큐(히트스톱은 마지막 1발에만). aim: 기본은 화면 안 공간 해시 칸 중 적이 가장 많은 칸 중심, mouse=true면 최근 mouseRecentMs 안에 마우스를 움직였을 때 커서 위치(화면 아래 ignoreBottomPx는 손패 영역이라 제외). 수치는 정한 값(PRD에 피해량 없음): 정밀 폭격 1발 6배·반경 80, 편대 3발 3.5배, 시한폭탄 6배+연쇄 4×1.5배, 연발탄 8×1.6배. D11: 일제 사격 1.2배×7발×3회, 지원군 사수 0.8배(0.17초마다, 3명×3초), 함포 4배×3(마지막만 히트스톱), 전차 돌파 2.5배+넉백, 야전 치료 30% 회복+보호막 3초, 지뢰 3배(20초 유지), 연합군 총공세 = 사수 2명·전차·함포 3·폭격 3·마지막 화면 전체 2배. pre=[{cue, lead}]: 같은 자리에서 lead초 먼저 낼 큐(그 큐의 시간 = lead). 고급 스킬(skills.json timeline)도 같은 표: AS03 기총소사 = 전투기가 조준점을 지나 화면 아래→위, 앞쪽 띠에 0.2초마다 0.9배",
   "aim": {
     "mouse": true,
     "mouseRecentMs": 2000,
@@ -372,6 +372,16 @@
           "cue": "offensive_strike",
           "at": "player",
           "damage": 2
+        }
+      ]
+    },
+    "AS03": {
+      "events": [
+        {
+          "t": 0,
+          "cue": "fighter_strafe",
+          "at": "aim",
+          "damage": 0.9
         }
       ]
     }

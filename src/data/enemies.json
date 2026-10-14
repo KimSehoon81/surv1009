@@ -1,5 +1,5 @@
 {
-  "$comment": "적 정의(PRD §9.2). hp·attack은 스테이지 1 레벨 1 기준이며 core/scaling 배율이 곱해진다. speed=px/초, radius=충돌 반지름(px), xp=처치 시 경험치, speedJitter=개체별 속도 흔들림(±비율). behaviors는 core/behaviors의 부품 조합",
+  "$comment": "적 정의(PRD §9.2). hp·attack은 스테이지 1 레벨 1 기준이며 core/scaling 배율이 곱해진다. speed=px/초, radius=충돌 반지름(px), xp=처치 시 경험치, speedJitter=개체별 속도 흔들림(±비율). behaviors는 core/behaviors의 부품 조합 attacks=공격 부품(core/enemyAttack: lob·guard·chargeDash) 단계 windup→telegraph(붉은 예고, 최소 combat.minTelegraphMs)→active→recover, cooldownMs, range=[최소,최대] 시작 거리, damage=공격력 배수. lob은 예고 시간 = 포탄 비행 시간(착탄 = active). guard: 최근 whenHurtMs 안에 맞으면 activeMs 동안 피해 −reduce, 이어서 recoverMs 동안 약점(받는 피해 ×weakMult). chargeDash: 예고선 뒤 speed px/초로 activeMs 돌진(부딪히면 접촉 피해 ×damage). staggerImmune=피격 경직 없음(전차·보스). E03·E04 수치는 PRD 밖 값",
   "enemies": {
     "E01": {
       "name": "인민군 보병",
@@ -35,6 +35,84 @@
           "type": "zigzag",
           "amplitude": 0.9,
           "freq": 1.6
+        }
+      ]
+    },
+    "E03": {
+      "name": "박격포병",
+      "tier": "normal",
+      "hp": 22,
+      "attack": 5,
+      "defense": 0,
+      "speed": 46,
+      "speedJitter": 0.1,
+      "radius": 14,
+      "xp": 2,
+      "behaviors": [
+        {
+          "type": "keepDistance",
+          "min": 170,
+          "max": 270,
+          "side": 0.35
+        }
+      ],
+      "attacks": [
+        {
+          "type": "lob",
+          "range": [
+            110,
+            340
+          ],
+          "cooldownMs": 4200,
+          "windupMs": 350,
+          "telegraphMs": 900,
+          "activeMs": 50,
+          "recoverMs": 700,
+          "damage": 1.4,
+          "radius": 42
+        }
+      ]
+    },
+    "E04": {
+      "name": "T-34 전차",
+      "tier": "elite",
+      "hp": 320,
+      "attack": 9,
+      "defense": 4,
+      "speed": 32,
+      "speedJitter": 0.05,
+      "radius": 26,
+      "xp": 25,
+      "staggerImmune": true,
+      "behaviors": [
+        {
+          "type": "chase"
+        }
+      ],
+      "attacks": [
+        {
+          "type": "guard",
+          "cooldownMs": 8000,
+          "activeMs": 3000,
+          "recoverMs": 1500,
+          "reduce": 0.6,
+          "weakMult": 1.5,
+          "whenHurtMs": 600
+        },
+        {
+          "type": "chargeDash",
+          "range": [
+            90,
+            360
+          ],
+          "cooldownMs": 6500,
+          "windupMs": 250,
+          "telegraphMs": 900,
+          "activeMs": 800,
+          "recoverMs": 900,
+          "speed": 380,
+          "width": 44,
+          "damage": 1.6
         }
       ]
     }

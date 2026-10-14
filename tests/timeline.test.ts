@@ -4,6 +4,7 @@ import cuesData from '../src/data/cues.json';
 import combosData from '../src/data/combos.json';
 import feelData from '../src/data/feel.json';
 import sfxData from '../src/data/sfx.json';
+import skillsData from '../src/data/skills.json';
 import { MARKER_CUE, TimelinePlayer, expandTimeline, type TimelineDef } from '../src/core/timeline';
 import { SpatialHash } from '../src/core/spatialHash';
 import { FRAME_MS } from '../src/core/feel';
@@ -19,8 +20,10 @@ describe('연출 타임라인 데이터', () => {
     const combos = new Set(combosData.combos.map((c) => c.id));
     expect(combos.size).toBe(11);
     for (const id of combos) expect(TL[id], id).toBeDefined();
+    // 타임라인은 조합 스킬 또는 고급 스킬(skills.json timeline)이 쓴다
+    const skillTimelines = new Set(Object.values(skillsData.skills).map((s) => (s as { timeline?: string }).timeline));
     for (const [id, def] of Object.entries(TL)) {
-      expect(combos.has(id), id).toBe(true);
+      expect(combos.has(id) || skillTimelines.has(id), id).toBe(true);
       for (const ev of def.events) {
         for (const cue of [ev.cue, ev.repeat?.lastCue, ...(ev.pre ?? []).map((p) => p.cue)].filter((c): c is string => !!c)) {
           const c = CUES[cue];

@@ -6,6 +6,7 @@ import feelData from '../data/feel.json';
 import levels from '../data/levels.json';
 import upgradesData from '../data/upgrades.json';
 import cardsData from '../data/cards.json';
+import skillsData from '../data/skills.json';
 import { createRng, type Rng } from '../core/rng';
 import { computeHit } from '../core/combat';
 import { parseColor } from '../core/feel';
@@ -22,12 +23,15 @@ import { CARD_DATA, CardSystem } from '../systems/cards';
 import { EffectRunner } from '../systems/effectRunner';
 import { TIMELINES, TimelineSystem } from '../systems/timeline';
 import { MineSystem } from '../systems/mines';
+import { EnemyAttackSystem } from '../systems/enemyAttacks';
+import { SkillSlots, type CastReject, type SkillDef } from '../core/skills';
+import { damageTakenMult } from '../core/enemyAttack';
 import { runEffect, type Params } from '../systems/effects';
 import type { CardEvent } from '../core/cards';
 import { Feel } from '../systems/feel';
 import { Floor, type FloorConfig } from '../systems/floor';
 import { FxSystem } from '../systems/fx';
-import { InputMap } from '../systems/input';
+import { InputMap, type InputAction } from '../systems/input';
 import { PickupSystem } from '../systems/pickups';
 import { ProjectileSystem, type ProjectileHooks } from '../systems/projectiles';
 import { WeaponSystem, isWeaponId, type WeaponHooks } from '../systems/weapons';
@@ -46,6 +50,10 @@ const DEBUFF_IDS = new Set(
 );
 const CARD_IDS = Object.keys(CARD_DATA.cards);
 const TIMELINE_IDS = Object.keys(TIMELINES);
+const TP = skillsData.tp;
+const TP_BY_TIER: Record<string, number> = { normal: TP.perKill, elite: TP.perEliteKill, boss: TP.perBossKill };
+const SKILL_ACTIONS = skillsData.slots.map((s) => s.action as InputAction);
+const CAST_REJECT: Record<CastReject, string> = { locked: '잠긴 슬롯', empty: '장착한 스킬 없음', cooldown: '재사용 대기 중', tp: 'TP 부족', unimplemented: '준비 중인 스킬' };
 const HIT = { blockK: combat.blockK, blockReduction: combat.blockReduction, maxBlockChance: combat.maxBlockChance };
 
 /** 전투 씬: 플레이어·적·무기·투사체·경험치·피격·전사. 시간은 전부 전투 시계(clock) 기준 */
@@ -74,7 +82,11 @@ export class BattleScene extends Phaser.Scene {
   private hpBar!: Phaser.GameObjects.Graphics;
   private debug!: DebugOverlay;
   /** 이번 판 기록 */
-  readonly run = { xp: 0, kills: 0, damageTaken: 0, blocks: 0, defeated: false, tp: 0, comboSuccesses: 0 };
+  readonly run = { xp: 0, kills: 0, damageTaken: 0, blocks: 0, defeated: false, comboSuccesses: 0, skillsUsed: 0 };
+  /** 고급 스킬 슬롯(Q·E·R·F)과 TP. HUD가 읽음 */
+  skills!: SkillSlots;
+  /** 적 공격 예고·포탄 */
+  private enemyAttacks!: EnemyAttackSystem;
   /** 카드 효과 실행기(예약·예고 마커 포함) */
   effects!: EffectRunner;
   /** 조합·고급 스킬 연출 타임라인 */
@@ -97,7 +109,13 @@ export class BattleScene extends Phaser.Scene {
 
   create(): void {
     this.clock.reset();
-    Object.assign(this.run, { xp: 0, kills: 0, damageTaken: 0, blocks: 0, defeated: false, tp: 0, comboSuccesses: 0 });
+    Object.assign(this.run, { xp: 0, kills: 0, damageTaken: 0, blocks: 0, defeated: false, comboSuccesses: 0, skillsUsed: 0 });
+    this.skills = new SkillSlots(
+      skillsData.slots.map((sl) => ({ key: sl.key, skillId: sl.equip, locked: !sl.unlocked, readyAtMs: 0 })),
+      skillsData.skills as Record<string, SkillDef>,
+      TP.max,
+    );
+    this.skills.addTp(TP.start);
     this.comboDrawStep = 0;
     this.comboDrawTimes = [];
     this.lastComboCount = 0;
@@ -180,13 +198,19 @@ export class BattleScene extends Phaser.Scene {
         this.run.damageTaken += n;
       },
       addTp: (n) => {
-        this.run.tp += n;
+        this.skills.addTp(n);
         this.toast(`TP +${n}`);
       },
       toast: (msg, color) => this.toast(msg, color),
       debuffIds: DEBUFF_IDS,
     });
     this.mines = new MineSystem(this, combat.mineCap);
+    this.enemyAttacks = new EnemyAttackSystem(this, {
+      feel: this.feel,
+      audio: this.audio,
+      hitPlayer: (attack, x, y) => this.hitPlayer(attack, x, y),
+      player: () => this.player,
+    });
     this.timelines = new TimelineSystem({
       scene: this,
       clock: this.clock,
@@ -232,11 +256,11 @@ export class BattleScene extends Phaser.Scene {
         `weapons ${this.weapons.equipped.map((w) => w.id).join(',')} shots ${this.projectiles.active} fx ${this.fx.active}`,
         `cards hand ${this.cards.state.hand.map((c) => c.id).join(',')} sel ${this.cards.selected.length} op ${this.cards.state.op} seals ${this.cards.state.seals} deck ${this.cards.state.drawPile.length}`,
         `lv ${this.progression.level} (${Math.round(this.progression.progress * 100)}%) pending ${this.progression.pending} rerolls ${this.progression.rerolls}`,
-        `effects pending ${this.effects.pending} timelines ${this.timelines.active} buffs ${this.player.buffs.list.map((b) => b.id).join(',') || '-'} tp ${this.run.tp} combos ${this.run.comboSuccesses} tactical ${this.progression.tacticalSlots}`,
+        `effects pending ${this.effects.pending} timelines ${this.timelines.active} buffs ${this.player.buffs.list.map((b) => b.id).join(',') || '-'} tp ${Math.round(this.skills.tp)} combos ${this.run.comboSuccesses} tactical ${this.progression.tacticalSlots}`,
         `xp ${this.run.xp} kills ${this.run.kills} gems ${this.pickups.active} taken ${this.run.damageTaken} blocks ${this.run.blocks}`,
         `feel particles ${this.feel.particles.active}/${this.feel.particles.cap} numbers ${this.feel.numbers.active} combo ${this.feel.combo.count}`,
         `audio ${this.audio.enabled ? `voices ${this.audio.activeVoices} played ${this.audio.played} dropped ${this.audio.dropped}` : 'off'}`,
-        params.debug ? 'J공격 K방어 L스킬 U치명 O느림 C캐릭터 V수류탄 I무적 B대형처치 N레벨업 F2적300 F3카드 F4조합 Esc정지' : '',
+        params.debug ? 'J공격 K방어 L스킬 U치명 O느림 C캐릭터 V수류탄 I무적 B대형처치 N레벨업 F2적300 F3카드 F4조합 F5엘리트 Esc정지' : '',
       ].filter(Boolean);
     });
 
@@ -276,7 +300,8 @@ export class BattleScene extends Phaser.Scene {
     // 플레이어는 늘 적보다 앞(포위돼도 위치가 보이게, PRD §6.4 가독성). 적끼리는 y 순서
     p.sprite.setDepth(Depth.Player);
     const target = { x: p.x, y: p.y, radius: combat.playerRadius };
-    this.enemies.update(dt, now, scale, target, cam);
+    this.enemies.update(dt, now, scale, target, cam, this.enemyAttacks, combat.minTelegraphMs);
+    this.enemyAttacks.update(now, this.enemies.pool.active);
     if (!this.run.defeated) {
       this.weapons.update(dt, now, p, this.enemies.grid, this.projectiles, this.weaponHooks);
       this.projectiles.update(dt, this.enemies.grid, this.hooks);
@@ -290,6 +315,7 @@ export class BattleScene extends Phaser.Scene {
       this.run.xp += gained;
       if (this.progression.pending > 0 && !this.progression.isOpen) this.openLevelUp();
       this.cards.update(dt, time);
+      this.skillInput(now);
       this.effects.update();
       this.timelines.update();
       this.mines.update(now, this.enemies.grid, target, {
@@ -320,10 +346,13 @@ export class BattleScene extends Phaser.Scene {
     if (!e.alive) return;
     const now = this.clock.timeMs;
     const s = this.player.stats;
+    // 방어 자세 −60%, 약점 노출 ×1.5(core/enemyAttack)
+    const taken = e.attacks.length > 0 ? damageTakenMult(e.atk, e.attacks) : 1;
     const res = computeHit(
-      { attack: s.attack * damageMult, critChance: s.critChance, critMult: s.critMult, defense: e.def.defense, ...HIT },
+      { attack: s.attack * damageMult * taken, critChance: s.critChance, critMult: s.critMult, defense: e.def.defense, ...HIT },
       this.combatRng,
     );
+    e.lastHurtMs = now;
     e.hp -= res.damage;
     const preset = res.crit ? (aoe ? 'aoe_crit' : 'crit') : aoe ? 'aoe_hit' : 'normal';
     this.feel.hit(preset, e.x, e.y - combat.bodyOffsetY, { target: e, dirX, dirY, amount: res.damage, groundY: e.y });
@@ -332,8 +361,10 @@ export class BattleScene extends Phaser.Scene {
       this.finishEnemy(e);
       return;
     }
-    e.stunUntilMs = now + combat.enemyHitStunMs;
-    e.trigger('hit', now);
+    if (!e.staggerImmune) {
+      e.stunUntilMs = now + combat.enemyHitStunMs;
+      e.trigger('hit', now);
+    }
   }
 
   /** 처치: 보급품 + 등급별 처치 연출(일반 kill, 정예·보스 kill_big) */
@@ -343,6 +374,7 @@ export class BattleScene extends Phaser.Scene {
     this.feel.forget(e.sprite);
     this.enemies.kill(e);
     this.run.kills++;
+    this.skills.addTp(TP_BY_TIER[e.def.tier] ?? TP.perKill);
   }
 
   /** 판정이 끝난 카드 결과를 효과로(PRD §5.1·§5.3.1). 조합 스킬 전용 연출(D10~D11) 전에는 쓰인 카드 효과를 배수로 대신 낸다 */
@@ -362,6 +394,7 @@ export class BattleScene extends Phaser.Scene {
         for (const c of ev.cards) if (CARD_DATA.cards[c.id]?.tag !== 'minus') this.runCard(c.id, power);
       });
       this.run.comboSuccesses++;
+      this.skills.addTp(TP.perComboSuccess);
       if (this.run.comboSuccesses % levels.tacticalEvery === 0) {
         this.progression.tacticalSlots++;
         this.toast('전술 선택지 확보 (다음 레벨업)', '#7fd8ff');
@@ -422,7 +455,16 @@ export class BattleScene extends Phaser.Scene {
     });
     if (!attacker) return;
     const e = attacker as Enemy;
-    const res = computeHit({ attack: e.attack, critChance: 0, critMult: 1, defense: p.stats.defense, ...HIT }, this.combatRng);
+    // 차징 돌진 중이면 접촉 피해 배율
+    this.hitPlayer(e.attack * e.contactMult, e.x, e.y);
+  }
+
+  /** 적의 공격이 플레이어에게(접촉·포탄). 무적·보호막 중이면 무시, 방어 판정 성공 시 −50% + 방어 동작 */
+  private hitPlayer(attack: number, fromX: number, fromY: number): void {
+    const p = this.player;
+    const now = this.clock.timeMs;
+    if (this.run.defeated || now < p.invulnUntilMs || now < p.shieldUntilMs || this.invincible) return;
+    const res = computeHit({ attack, critChance: 0, critMult: 1, defense: p.stats.defense, ...HIT }, this.combatRng);
     p.hp = Math.max(0, p.hp - res.damage);
     p.invulnUntilMs = now + combat.playerInvulnMs;
     this.run.damageTaken += res.damage;
@@ -430,14 +472,36 @@ export class BattleScene extends Phaser.Scene {
     this.feel.hit(res.blocked ? 'block' : 'player_hit', p.x, p.y - combat.bodyOffsetY, {
       amount: res.damage,
       groundY: p.y,
-      dirX: p.x - e.x,
-      dirY: p.y - e.y,
+      dirX: p.x - fromX,
+      dirY: p.y - fromY,
     });
     if (res.blocked) {
       this.run.blocks++;
       p.trigger('defend', now);
     }
     if (p.hp <= 0) this.defeat();
+  }
+
+  /** 고급 스킬 키(Q·E·R·F). 카드 입력과 같은 조건(레벨업·일시정지·작전판 중에는 막힘) */
+  private skillInput(now: number): void {
+    if (this.progression.isOpen || this.opsOpen || this.clock.hasScale('pause')) return;
+    SKILL_ACTIONS.forEach((a, i) => {
+      if (this.controls.justDown(a)) this.castSkill(i, now);
+    });
+  }
+
+  castSkill(i: number, now = this.clock.timeMs): boolean {
+    const r = this.skills.cast(i, now);
+    if (!r.ok) {
+      this.audio.play('skill_denied');
+      this.toast(`${this.skills.slots[i]?.key ?? ''}: ${CAST_REJECT[r.reason]}`, '#b0a890');
+      return false;
+    }
+    this.timelines.play(r.def.timeline as string);
+    this.player.trigger('skill', now);
+    this.run.skillsUsed++;
+    this.toast(`${r.def.name}!`, '#7fd8ff');
+    return true;
   }
 
   /** 전사: 전투 정지 → 잠시 후 재시작(결과 화면은 D13) */
@@ -530,6 +594,11 @@ export class BattleScene extends Phaser.Scene {
       const ev: CardEvent = { type: 'comboSkill', combo, cards: [] };
       this.events.emit('cards:effect', ev);
       this.onCardEvent(ev);
+    }
+    if (this.controls.justDown('debugElite')) {
+      // 원거리·엘리트 확인용: 박격포병 3 + T-34 1을 화면 가장자리 근처에
+      for (let i = 0; i < 3; i++) this.enemies.spawn('E03', p.x + Math.cos(i * 2.1) * 300, p.y + Math.sin(i * 2.1) * 220, now);
+      this.enemies.spawn('E04', p.x + 320, p.y - 40, now);
     }
     if (this.controls.justDown('debugStress')) {
       this.enemies.setStress(!this.enemies.stress, { x: p.x, y: p.y, radius: combat.playerRadius }, now);

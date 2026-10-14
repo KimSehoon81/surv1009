@@ -773,6 +773,63 @@
           "duty": 0.25
         }
       ]
+    },
+    "fighter_pass": {
+      "variants": 1,
+      "layers": [
+        {
+          "wave": "saw",
+          "freq": 240,
+          "freqEnd": 120,
+          "attackMs": 150,
+          "holdMs": 500,
+          "releaseMs": 500,
+          "volume": 0.3,
+          "lowpassHz": 1400
+        },
+        {
+          "wave": "noise",
+          "freq": 1500,
+          "attackMs": 120,
+          "holdMs": 500,
+          "releaseMs": 500,
+          "volume": 0.18,
+          "lowpassHz": 1000
+        }
+      ]
+    },
+    "enemy_mortar": {
+      "variants": 2,
+      "vary": 0.06,
+      "layers": [
+        {
+          "wave": "noise",
+          "freq": 1800,
+          "attackMs": 1,
+          "releaseMs": 120,
+          "volume": 0.5,
+          "lowpassHz": 900
+        },
+        {
+          "wave": "sine",
+          "freq": 180,
+          "freqEnd": 90,
+          "releaseMs": 120,
+          "volume": 0.4
+        }
+      ]
+    },
+    "skill_denied": {
+      "variants": 1,
+      "layers": [
+        {
+          "wave": "square",
+          "freq": 180,
+          "releaseMs": 90,
+          "volume": 0.3,
+          "duty": 0.5
+        }
+      ]
     }
   },
   "cues": {
@@ -1192,6 +1249,44 @@
       "cooldownMs": 60,
       "maxVoices": 2,
       "priority": 1
+    },
+    "fighter_pass": {
+      "src": "fighter_pass",
+      "bus": "sfx",
+      "vol": 0.5,
+      "pitchSt": [
+        0,
+        0
+      ],
+      "cooldownMs": 300,
+      "maxVoices": 1,
+      "priority": 6,
+      "center": true
+    },
+    "enemy_mortar": {
+      "src": "enemy_mortar",
+      "bus": "sfx",
+      "vol": 0.35,
+      "pitchSt": [
+        -1,
+        1
+      ],
+      "cooldownMs": 120,
+      "maxVoices": 2,
+      "priority": 3
+    },
+    "skill_denied": {
+      "src": "skill_denied",
+      "bus": "ui",
+      "vol": 0.3,
+      "pitchSt": [
+        0,
+        0
+      ],
+      "cooldownMs": 150,
+      "maxVoices": 1,
+      "priority": 2,
+      "center": true
     }
   }
 }

@@ -1,5 +1,5 @@
 {
-  "$comment": "전투 공통 수치. playerRadius=플레이어 충돌 반지름(px), bodyOffsetY=발 기준점에서 몸통(조준·명중 지점)까지 위로 거리(px). 방어 확률 = 방어력/(방어력+blockK), 최대 maxBlockChance, 방어 성공 시 피해 −blockReduction(PRD §4.3: −50%). enemyHitStunMs=적 피격 경직(PRD §4.3: 0.15초). pickupCap=경험치 별 동시 상한(넘으면 오래된 것끼리 병합). muzzleOffsetX/Y=발 기준점에서 총구 끝까지(px, 오른쪽 볼 때, A01~A03 공격 프레임 실측 평균). bulletLifeSlack=총알 수명 여유(사거리÷속도×배수), contactSlackPx=접촉 판정 여유, invulnBlinkMs/Alpha=무적 깜빡임 주기·알파, magnetMaxSpeedMul/MinSpeedMul=자석 흡수 최고·최저 속도(pullSpeed 배수) mineCap=동시 지뢰 상한(넘으면 오래된 것부터 제거).",
+  "$comment": "전투 공통 수치. playerRadius=플레이어 충돌 반지름(px), bodyOffsetY=발 기준점에서 몸통(조준·명중 지점)까지 위로 거리(px). 방어 확률 = 방어력/(방어력+blockK), 최대 maxBlockChance, 방어 성공 시 피해 −blockReduction(PRD §4.3: −50%). enemyHitStunMs=적 피격 경직(PRD §4.3: 0.15초). pickupCap=경험치 별 동시 상한(넘으면 오래된 것끼리 병합). muzzleOffsetX/Y=발 기준점에서 총구 끝까지(px, 오른쪽 볼 때, A01~A03 공격 프레임 실측 평균). bulletLifeSlack=총알 수명 여유(사거리÷속도×배수), contactSlackPx=접촉 판정 여유, invulnBlinkMs/Alpha=무적 깜빡임 주기·알파, magnetMaxSpeedMul/MinSpeedMul=자석 흡수 최고·최저 속도(pullSpeed 배수) mineCap=동시 지뢰 상한(넘으면 오래된 것부터 제거). minTelegraphMs=적 공격 예고 최소 시간(PRD §6.4: 0.6초).",
   "playerRadius": 14,
   "bodyOffsetY": 28,
   "muzzleOffsetX": 40,
@@ -21,5 +21,6 @@
   "invulnBlinkAlpha": 0.45,
   "magnetMaxSpeedMul": 2,
   "magnetMinSpeedMul": 0.5,
-  "mineCap": 40
+  "mineCap": 40,
+  "minTelegraphMs": 600
 }

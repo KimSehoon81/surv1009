@@ -1,0 +1,148 @@
+{
+  "$comment": "고급 스킬(PRD §6.1·§6.3). slots=Q·E·R·F(action=controls.json 이름), unlocked=열림(Q만 시작부터, E는 S2·R은 S4·F는 S7 점령 시 — D19 메타 진행에서 연결), equip=장착 스킬. skills: tpCost=TP 소모, cooldownMs, timeline=timelines.json 이름(없으면 아직 미구현), icon=public/assets/skills 그림. tp: max 100, perKill(일반)·perEliteKill·perBossKill·perComboSuccess=충전량, perCardTp=카드 효과 TP(연합 잔효)는 그 효과 수치를 씀. 수치는 PRD 밖 값(D16 조정)",
+  "tp": {
+    "max": 100,
+    "start": 0,
+    "perKill": 1,
+    "perEliteKill": 10,
+    "perBossKill": 30,
+    "perComboSuccess": 10
+  },
+  "slots": [
+    {
+      "key": "Q",
+      "action": "skillQ",
+      "unlocked": true,
+      "equip": "AS03"
+    },
+    {
+      "key": "E",
+      "action": "skillE",
+      "unlocked": false,
+      "equip": null
+    },
+    {
+      "key": "R",
+      "action": "skillR",
+      "unlocked": false,
+      "equip": null
+    },
+    {
+      "key": "F",
+      "action": "skillF",
+      "unlocked": false,
+      "equip": null
+    }
+  ],
+  "skills": {
+    "AS03": {
+      "name": "기총소사",
+      "slot": "Q",
+      "unlock": "시작",
+      "tpCost": 30,
+      "cooldownMs": 12000,
+      "timeline": "AS03",
+      "icon": "AS03",
+      "desc": "전투기가 화면을 가로지르며 기총 사격, 라인 위 지속 피해"
+    },
+    "AS01": {
+      "name": "융단폭격",
+      "slot": "Q",
+      "unlock": "S1 점령",
+      "tpCost": 50,
+      "cooldownMs": 25000,
+      "icon": "AS01",
+      "desc": "폭격기 편대가 3파에 걸쳐 화면을 가로지르며 폭탄 투하"
+    },
+    "AS02": {
+      "name": "정밀 폭격",
+      "slot": "Q",
+      "unlock": "S8 점령",
+      "tpCost": 45,
+      "cooldownMs": 20000,
+      "icon": "AS02",
+      "desc": "단일 지점 초대형 폭발"
+    },
+    "AS05": {
+      "name": "포병 집중사격",
+      "slot": "E",
+      "unlock": "S2 점령",
+      "tpCost": 40,
+      "cooldownMs": 22000,
+      "icon": "AS05",
+      "desc": "커서 지점에 5초간 연속 포격"
+    },
+    "AS06": {
+      "name": "연합군 지원대대",
+      "slot": "E",
+      "unlock": "S3 점령",
+      "tpCost": 45,
+      "cooldownMs": 25000,
+      "icon": "AS06",
+      "desc": "좌우에서 대대가 진입해 10초간 사격"
+    },
+    "AS04": {
+      "name": "함포 일제사격",
+      "slot": "E",
+      "unlock": "S5 점령",
+      "tpCost": 50,
+      "cooldownMs": 28000,
+      "icon": "AS04",
+      "desc": "화면 밖 함정의 주포 일제 사격, 화면 절반 타격"
+    },
+    "AS08": {
+      "name": "공수 보급 투하",
+      "slot": "R",
+      "unlock": "S4 점령",
+      "tpCost": 35,
+      "cooldownMs": 30000,
+      "icon": "AS08",
+      "desc": "낙하산 상자: 회복 + 쿨다운 단축"
+    },
+    "AS07": {
+      "name": "기갑 돌파",
+      "slot": "R",
+      "unlock": "S6 점령",
+      "tpCost": 45,
+      "cooldownMs": 25000,
+      "icon": "AS07",
+      "desc": "전차 3대가 병렬 직선 돌파"
+    },
+    "AS10": {
+      "name": "전선 사수",
+      "slot": "F",
+      "unlock": "S7 점령",
+      "tpCost": 60,
+      "cooldownMs": 40000,
+      "icon": "AS10",
+      "desc": "방어 돔 10초, 피해 감소 + 반사"
+    },
+    "AS11": {
+      "name": "포위 섬멸",
+      "slot": "F",
+      "unlock": "S9 점령",
+      "tpCost": 70,
+      "cooldownMs": 45000,
+      "icon": "AS11",
+      "desc": "적을 중심으로 수축시킨 뒤 일제 폭발"
+    },
+    "AS09": {
+      "name": "총공세",
+      "slot": "F",
+      "unlock": "S10 점령",
+      "tpCost": 90,
+      "cooldownMs": 60000,
+      "icon": "AS09",
+      "desc": "전 화면 연속 폭발 + 3초 무적"
+    },
+    "AS12": {
+      "name": "연합 합동 타격",
+      "slot": "F",
+      "unlock": "S10 점령",
+      "tpCost": 90,
+      "cooldownMs": 60000,
+      "icon": "AS12",
+      "desc": "공습·포격·지원군 동시 발동"
+    }
+  }
+}

@@ -2,6 +2,7 @@ import type * as Phaser from 'phaser';
 import { Pool } from '../core/pool';
 import { SpatialHash } from '../core/spatialHash';
 import { steer } from '../core/behaviors';
+import { moveMode, stepAttack, type AttackEvent } from '../core/enemyAttack';
 import { stepKnockback } from '../core/feel';
 import { enemyScale } from '../core/scaling';
 import { accumulate, ringPoint, spawnRadius } from '../core/spawnLogic';
@@ -19,6 +20,11 @@ export interface SpawnConfig {
   separationChecks: number;
   poolSize: number;
   stress: number;
+}
+
+/** 공격 단계 이벤트를 전투 쪽(예고 마커·포탄·피해)으로 */
+export interface AttackHooks {
+  onAttack(e: Enemy, ev: AttackEvent, nowMs: number): void;
 }
 
 export interface Target {
@@ -91,7 +97,7 @@ export class EnemySystem {
     }
   }
 
-  update(dtMs: number, nowMs: number, timeScale: number, target: Target, cam: Phaser.Cameras.Scene2D.Camera): void {
+  update(dtMs: number, nowMs: number, timeScale: number, target: Target, cam: Phaser.Cameras.Scene2D.Camera, hooks?: AttackHooks, minTelegraphMs = 600): void {
     if (dtMs > 0) this.spawnTick(dtMs, target, nowMs);
     const list = this.pool.active;
     const despawnR = (this.spawnR + this.cfg.radiusMargin * 2) * this.cfg.despawnFactor;
@@ -107,11 +113,22 @@ export class EnemySystem {
       }
       if (dtMs > 0 && nowMs >= e.stunUntilMs) {
         e.ageMs += dtMs;
-        const dir = steer(e, e.behaviors, ctx);
-        const d = (e.speed * dtMs) / 1000;
+        // 공격 2층: 단계 상태기계가 이동 방식(자유·제자리·돌진)을 정한다
+        let mode = 'free';
+        if (e.attacks.length > 0) {
+          const evs = stepAttack(e.atk, e.attacks, dtMs, { x: e.x, y: e.y, targetX: target.x, targetY: target.y, sinceHurtMs: nowMs - e.lastHurtMs }, minTelegraphMs);
+          for (const ev of evs) hooks?.onAttack(e, ev, nowMs);
+          mode = moveMode(e.atk, e.attacks);
+        }
+        const dir = mode === 'free' ? steer(e, e.behaviors, ctx) : mode === 'dash' ? { x: e.atk.dirX, y: e.atk.dirY } : { x: 0, y: 0 };
+        const speed = mode === 'dash' ? (e.attacks[e.atk.index]?.speed ?? e.speed) : e.speed;
+        e.contactMult = mode === 'dash' ? (e.attacks[e.atk.index]?.damage ?? 1) : 1;
+        const d = (speed * dtMs) / 1000;
         e.setPosition(e.x + dir.x * d, e.y + dir.y * d);
-        if (dir.x < -0.05) e.sprite.setFlipX(true);
-        else if (dir.x > 0.05) e.sprite.setFlipX(false);
+        // 제자리 공격 중에는 목표 쪽을 본다
+        const face = mode === 'hold' ? target.x - e.x : dir.x;
+        if (face < -0.05) e.sprite.setFlipX(true);
+        else if (face > 0.05) e.sprite.setFlipX(false);
         // 너무 멀어진 적은 화면 밖 반대편으로 재배치(개체 수 유지, 뒤처진 적이 영영 안 오는 문제 방지)
         const dx = e.x - target.x;
         const dy = e.y - target.y;

@@ -6,6 +6,7 @@ import type { EnemyScale } from '../core/scaling';
 import type { Rng } from '../core/rng';
 import { createAnimState, triggerAction, updateAnimState, type AnimState } from '../core/animState';
 import { createKnockback, type Knockback } from '../core/feel';
+import { createAttackState, type AttackSpec, type AttackState } from '../core/enemyAttack';
 import type { UnitAnims } from '../systems/anims';
 
 export type EnemyId = keyof typeof enemyData.enemies;
@@ -39,6 +40,15 @@ export class Enemy implements Agent {
   readonly kb: Knockback = createKnockback();
   /** 국소 정지(일반 타격 2프레임): 이 시각(전투 시계)까지 넉백·애니메이션이 멈춤 */
   freezeUntilMs = 0;
+  /** 공격 부품(data attacks)과 단계 상태 */
+  attacks: readonly AttackSpec[] = [];
+  atk: AttackState = createAttackState([], Math.random);
+  /** 마지막으로 맞은 시각(방어 자세 조건) */
+  lastHurtMs = -Infinity;
+  /** 접촉 피해 배율(차징 돌진 중 등) */
+  contactMult = 1;
+  /** 피격 경직 없음(전차·보스) */
+  staggerImmune = false;
   private anims!: UnitAnims;
   private anim!: AnimState;
   private lastKey = '';
@@ -72,6 +82,12 @@ export class Enemy implements Agent {
     this.id = id;
     this.def = def;
     this.behaviors = def.behaviors as BehaviorSpec[];
+    const extra = def as { attacks?: AttackSpec[]; staggerImmune?: boolean };
+    this.attacks = extra.attacks ?? [];
+    this.atk = createAttackState(this.attacks, () => rng.next());
+    this.lastHurtMs = -Infinity;
+    this.contactMult = 1;
+    this.staggerImmune = extra.staggerImmune === true;
     this.maxHp = Math.max(1, Math.round(def.hp * scale.hp));
     this.hp = this.maxHp;
     this.attack = def.attack * scale.attack;

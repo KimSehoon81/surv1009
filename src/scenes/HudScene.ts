@@ -9,6 +9,7 @@ import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { InputMap, type InputAction } from '../systems/input';
 import { PIXEL_FONT, ensurePixelFont } from '../ui/pixelFont';
 import { CardHud } from '../ui/cardHud';
+import { SkillHud } from '../ui/skillHud';
 import type { CardEvent } from '../core/cards';
 import type { BattleScene } from './BattleScene';
 import { SceneKey } from './keys';
@@ -43,6 +44,7 @@ export class HudScene extends Phaser.Scene {
   private bannerText!: Phaser.GameObjects.Text;
   private levelUp: Phaser.GameObjects.Container | null = null;
   private cardHud!: CardHud;
+  private skillHud!: SkillHud;
   private readonly onCardEffect = (ev: CardEvent) => this.cardHud.showEffect(ev);
   private readonly onToast = (msg: string, color?: string) => this.cardHud.showText(msg, color);
   private levelUpOpenedAt = 0;
@@ -81,6 +83,7 @@ export class HudScene extends Phaser.Scene {
       pauseForBoard: (on) => this.battle.setOpsBoard(on),
       canOpenBoard: () => this.battle.canOpenBoard(),
     });
+    this.skillHud = new SkillHud(this, this.battle.skills, () => this.battle.clock.timeMs);
     this.battle.events.on('cards:effect', this.onCardEffect);
     this.battle.events.on('toast', this.onToast);
     this.battle.events.on('levelup', this.onLevelUp);
@@ -119,6 +122,7 @@ export class HudScene extends Phaser.Scene {
     this.ownedText.setVisible(paused).setText(paused ? this.ownedSummary() : '');
     this.bannerText.setVisible(b.bannerMessage !== null).setText(b.bannerMessage ?? '');
 
+    this.skillHud.update();
     if (this.levelUp) this.updateLevelUp(time);
     else this.cardHud.update(time);
     this.controls.endFrame();

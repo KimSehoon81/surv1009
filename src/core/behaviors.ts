@@ -54,6 +54,28 @@ export const BEHAVIORS: Record<string, BehaviorFn> = {
     out.x += (-dy / len) * s;
     out.y += (dx / len) * s;
   },
+  /** 목표와 거리 [min, max] 유지(원거리 적): 가까우면 물러나고 멀면 다가가며, 그 사이면 옆으로 천천히(side 비중) */
+  keepDistance(a, spec, ctx, out) {
+    const dx = ctx.targetX - a.x;
+    const dy = ctx.targetY - a.y;
+    const len = Math.hypot(dx, dy);
+    if (len < 1e-6) return;
+    const w = num(spec, 'weight', 1);
+    const ux = dx / len;
+    const uy = dy / len;
+    if (len < num(spec, 'min', 160)) {
+      out.x -= ux * w;
+      out.y -= uy * w;
+    } else if (len > num(spec, 'max', 260)) {
+      out.x += ux * w;
+      out.y += uy * w;
+    } else {
+      // 개체 위상으로 도는 방향을 나눠 한쪽으로 몰리지 않게
+      const side = num(spec, 'side', 0.3) * (a.phase < 0.5 ? 1 : -1);
+      out.x += -uy * side;
+      out.y += ux * side;
+    }
+  },
 };
 
 /** 행동 부품을 합친 이동 방향(길이 1, 기여가 없으면 0) */
