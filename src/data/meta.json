@@ -1,0 +1,23 @@
+{
+  "$comment": "런 정산(PRD §3·§8). merit=전공 포인트 식: perKill×처치 + perEliteKill×엘리트 + perLevel×레벨 + perMinute×분 + captureBonus(점령) + bossKill(보스 처치), 패배면 × defeatRatio(50%, PRD v0.2). D19 메타 진행에서 확장. tips=패배 원인 팁(core/results가 기록을 보고 고름, 위에서부터 먼저 맞는 것). checkpointKey=보스 진입 런 상태 저장 키(보스 재도전 1회 기반, D19 UI). meritKey=누적 전공 포인트 저장 키(D19 메타 진행이 씀)",
+  "merit": {
+    "perKill": 0.1,
+    "perEliteKill": 5,
+    "perLevel": 10,
+    "perMinute": 4,
+    "captureBonus": 150,
+    "bossKill": 50,
+    "defeatRatio": 0.5
+  },
+  "tips": {
+    "boss": "보스 작전 카드가 충전되는 3초 동안 집중 사격하면 취소되고 약점이 드러납니다",
+    "lob": "붉은 원은 포탄이 떨어질 자리입니다. 원 밖으로 비켜서세요",
+    "dash": "붉은 선은 전차 돌진 경로입니다. 옆으로 피하세요",
+    "early": "초반엔 경험치 별을 따라 움직이고, 레벨업에서 체력·이동속도를 챙겨 보세요",
+    "seals": "인장이 남아 있었습니다. Shift+Space로 확정 성공을 쓰세요",
+    "fewSubmits": "Space 한 번이면 추천 조합이 채워집니다. 카드를 자주 내세요",
+    "default": "조합 성공 5회마다 다음 레벨업에 전술 선택지가 붙습니다"
+  },
+  "checkpointKey": "amnok.bossCheckpoint",
+  "meritKey": "amnok.merit"
+}

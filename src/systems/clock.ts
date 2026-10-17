@@ -30,6 +30,8 @@ export class GameClock {
   private elapsedMs = 0;
   private lastScale = 1;
   private lastEffectDelta = 0;
+  /** 디버그 시간 가속(F6, 기본 1). 전투 시간만 빨라지고 이펙트·지속시간은 실시간 */
+  debugSpeed = 1;
 
   /** 이름 붙은 배율 적용. 여러 개가 동시에 있으면 가장 느린 값(최솟값)이 이긴다 */
   setScale(key: string, scale: number, durationMs = Infinity): void {
@@ -106,7 +108,7 @@ export class GameClock {
 
     let s = 1;
     for (const entry of this.modifiers.values()) if (entry.scale < s) s = entry.scale;
-    const scaled = flowingMs * s;
+    const scaled = flowingMs * s * this.debugSpeed;
     this.lastEffectDelta = real * s;
     this.lastScale = stopMs > 0 && flowingMs === 0 ? 0 : s;
 

@@ -13,6 +13,17 @@ const RED = parseColor(TM.color);
 const GUARD = parseColor(feelData.guardRing.guard);
 const WEAK = parseColor(feelData.guardRing.weak);
 
+/** 곡사 탄착점: 목표 하나 + count−1개를 spread 반지름 고리에 고르게 */
+export function lobPoints(tx: number, ty: number, spec: AttackSpec): { x: number; y: number }[] {
+  const n = Math.max(1, spec.count ?? 1);
+  const pts = [{ x: tx, y: ty }];
+  for (let i = 1; i < n; i++) {
+    const a = ((i - 1) / (n - 1)) * Math.PI * 2;
+    pts.push({ x: tx + Math.cos(a) * (spec.spread ?? 60), y: ty + Math.sin(a) * (spec.spread ?? 60) * 0.7 });
+  }
+  return pts;
+}
+
 /** 적 공격 예고 모양(붉은 공용 마커): 원(착탄 지점)·선(돌진 경로)·부채꼴(사격 범위) */
 export type ThreatShape =
   | { kind: 'circle'; x: number; y: number; r: number }
@@ -38,7 +49,9 @@ export interface EnemyAttackHost {
   feel: Feel;
   audio: AudioSink;
   /** 적 공격이 플레이어에게(공격력, 출처 위치). 무적·보호막·방어 판정은 호출부가 */
-  hitPlayer(attack: number, fromX: number, fromY: number): void;
+  hitPlayer(attack: number, fromX: number, fromY: number, cause: string): void;
+  /** 단계 이벤트 알림(보스 작전 카드 HUD 등) */
+  onEvent?(e: Enemy, ev: AttackEvent, spec: AttackSpec): void;
   player(): { x: number; y: number };
 }
 
@@ -72,20 +85,29 @@ export class EnemyAttackSystem {
   onAttack(e: Enemy, ev: AttackEvent, nowMs: number): void {
     const spec = e.attacks[ev.index] as AttackSpec | undefined;
     if (!spec) return;
+    this.host.onEvent?.(e, ev, spec);
     const st = e.atk;
     const tele = phaseMs(spec, 'telegraph', combat.minTelegraphMs);
+    const cause = (kind: string) => (e.tier === 'boss' ? `boss:${kind}` : kind);
     if (spec.type === 'lob') {
+      const pts = lobPoints(st.tx, st.ty, spec);
       if (ev.type === 'telegraph') {
         // 예고 시간 = 포탄 비행 시간(쏘는 순간 마커, 떨어지는 순간 피해)
-        this.telegraph({ kind: 'circle', x: st.tx, y: st.ty, r: spec.radius ?? 40 }, nowMs, tele);
-        this.shells.push({ fromX: e.x, fromY: e.y, tx: st.tx, ty: st.ty, startMs: nowMs, untilMs: nowMs + tele });
+        for (const p of pts) {
+          this.telegraph({ kind: 'circle', x: p.x, y: p.y, r: spec.radius ?? 40 }, nowMs, tele);
+          this.shells.push({ fromX: e.x, fromY: e.y, tx: p.x, ty: p.y, startMs: nowMs, untilMs: nowMs + tele });
+        }
         e.trigger('attack', nowMs);
         this.host.audio.play('enemy_mortar', e.x, e.y);
       } else if (ev.type === 'active') {
-        this.host.feel.hit('impact_s', st.tx, st.ty - combat.bodyOffsetY * 0.4, { groundY: st.ty });
         const p = this.host.player();
         const r = (spec.radius ?? 40) + combat.playerRadius;
-        if ((p.x - st.tx) ** 2 + (p.y - st.ty) ** 2 <= r * r) this.host.hitPlayer(e.attack * (spec.damage ?? 1), st.tx, st.ty);
+        let hit = false;
+        for (const q of pts) {
+          this.host.feel.hit('impact_s', q.x, q.y - combat.bodyOffsetY * 0.4, { groundY: q.y });
+          if (!hit && (p.x - q.x) ** 2 + (p.y - q.y) ** 2 <= r * r) hit = true;
+        }
+        if (hit) this.host.hitPlayer(e.attack * (spec.damage ?? 1), st.tx, st.ty, cause('lob'));
       }
     } else if (spec.type === 'chargeDash') {
       if (ev.type === 'telegraph') {
@@ -93,6 +115,39 @@ export class EnemyAttackSystem {
         this.telegraph({ kind: 'line', x: e.x, y: e.y, dirX: st.dirX, dirY: st.dirY, length, width: spec.width ?? 40 }, nowMs, tele);
         e.trigger('attack', nowMs);
       }
+    } else if (spec.type === 'fanShot') {
+      const range = spec.range?.[1] ?? 260;
+      const angle = spec.angleDeg ?? 60;
+      if (ev.type === 'telegraph') {
+        this.telegraph({ kind: 'fan', x: e.x, y: e.y, dirX: st.dirX, dirY: st.dirY, range, angleDeg: angle }, nowMs, tele);
+      } else if (ev.type === 'active') {
+        e.trigger('attack', nowMs);
+        this.host.audio.play('shot', e.x, e.y);
+        // 탄착 먼지 몇 개 + 부채꼴 안이면 피해
+        const base = Math.atan2(st.dirY, st.dirX);
+        for (let i = 0; i < 5; i++) {
+          const a = base + ((i / 4 - 0.5) * angle * Math.PI) / 180;
+          const d = range * (0.5 + 0.12 * i);
+          this.host.feel.hit('strafe_hit', e.x + Math.cos(a) * d, e.y + Math.sin(a) * d, { groundY: e.y + Math.sin(a) * d });
+        }
+        const p = this.host.player();
+        const dx = p.x - e.x;
+        const dy = p.y - e.y;
+        const dist = Math.hypot(dx, dy);
+        const off = Math.abs(Math.atan2(st.dirX * dy - st.dirY * dx, st.dirX * dx + st.dirY * dy));
+        if (dist <= range + combat.playerRadius && off <= ((angle / 2) * Math.PI) / 180) this.host.hitPlayer(e.attack * (spec.damage ?? 1), e.x, e.y, cause('fan'));
+      }
+    } else if (spec.type === 'opCard') {
+      // 판정 성공 뒤: 플레이어 자리에 대형 착탄 예고 → 실행
+      if (ev.type === 'telegraph') {
+        this.telegraph({ kind: 'circle', x: st.tx, y: st.ty, r: spec.radius ?? 150 }, nowMs, tele);
+        this.host.audio.play('strike_whistle', st.tx, st.ty);
+      } else if (ev.type === 'active') {
+        this.host.feel.hit('impact_l', st.tx, st.ty - combat.bodyOffsetY * 0.4, { groundY: st.ty });
+        const p = this.host.player();
+        const r = (spec.radius ?? 150) + combat.playerRadius;
+        if ((p.x - st.tx) ** 2 + (p.y - st.ty) ** 2 <= r * r) this.host.hitPlayer(e.attack * (spec.damage ?? 1), st.tx, st.ty, cause('card'));
+      } else if (ev.type === 'judged' && ev.result !== 'success') e.trigger('hit', nowMs);
     } else if (spec.type === 'guard') {
       if (ev.type === 'active') e.trigger('defend', nowMs);
     }

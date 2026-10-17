@@ -1,21 +1,6 @@
 {
-  "$comment": "스폰 규칙(D13에서 stages.json의 구간별 표로 확장). perSec=초당 스폰(스케일링 밀도 배율이 곱해짐), maxAlive=동시 상한, radiusMargin=화면 대각선 밖 여유(px), despawnFactor=스폰 거리의 몇 배 밖으로 멀어지면 회수·재배치, separationChecks=겹침 완화 때 개체당 최대 이웃 검사 수, stress=F2 스트레스 모드 개체 수. S1 초반 수치(레벨업 없음 기준, 소총 처치 속도 초당 약 1마리에 맞춤). 구간별 증가는 D13 stages.json",
+  "$comment": "적 스폰 엔진 수치(스폰 표·상한은 stages.json). radiusMargin=화면 대각선 밖 여유(px), despawnFactor=스폰 거리의 몇 배 밖으로 멀어지면 회수·재배치, separationChecks=겹침 완화 때 개체당 최대 이웃 검사 수, poolSize=적 풀 크기, stress=F2 스트레스 모드 개체 수",
   "S1": {
-    "maxAlive": 160,
-    "spawns": [
-      {
-        "enemy": "E01",
-        "perSec": 0.8
-      },
-      {
-        "enemy": "E02",
-        "perSec": 0.3
-      },
-      {
-        "enemy": "E03",
-        "perSec": 0.12
-      }
-    ],
     "radiusMargin": 48,
     "despawnFactor": 1.8,
     "separationChecks": 8,

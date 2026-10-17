@@ -36,8 +36,10 @@ export interface RunnerDeps {
   cards: CardSystem;
   progression: Progression;
   rng: Rng;
-  explode(x: number, y: number, radius: number, mult: number, fx: string | undefined, fxScale: number, impact: string | undefined): void;
-  damageEnemy(e: Enemy, mult: number, dirX: number, dirY: number, aoe: boolean): void;
+  explode(x: number, y: number, radius: number, mult: number, fx: string | undefined, fxScale: number, impact: string | undefined, tag?: string): void;
+  damageEnemy(e: Enemy, mult: number, dirX: number, dirY: number, aoe: boolean, tag?: string): void;
+  /** 스테이지 방해(포연 등) 하나 해제. 풀었으면 이름 */
+  clearStageDisruption?(): string | null;
   onPlayerHurt(amount: number): void;
   addTp(n: number): void;
   toast(msg: string, color?: string): void;
@@ -55,6 +57,8 @@ interface Marker {
 
 /** EffectContext 구현: 효과 레지스트리(systems/effects)가 전투에 손대는 유일한 통로 */
 export class EffectRunner implements EffectContext {
+  /** 피해 출처 표시(실패 잔효는 Object.create로 감싼 'residue' 실행기, 정산 집계) */
+  readonly tag: string | undefined = undefined;
   private timers: { atMs: number; fn: () => void }[] = [];
   private markers: Marker[] = [];
   private readonly gfx: Phaser.GameObjects.Graphics;
@@ -90,6 +94,7 @@ export class EffectRunner implements EffectContext {
       pierce: 0,
       damageMult: damage,
       rangePx,
+      tag: this.tag,
     };
     this.d.projectiles.fireBullet(spec, fromX, fromY, toX, toY);
   }
@@ -105,12 +110,13 @@ export class EffectRunner implements EffectContext {
       fx: GRENADE.fx,
       fxScale: GRENADE.fxScale,
       impact: GRENADE.impact,
+      tag: this.tag,
     };
     this.d.projectiles.lob(spec, this.d.player.x, this.d.player.y, toX, toY);
   }
 
   explode(x: number, y: number, radius: number, damage: number, fx: string, fxScale: number): void {
-    this.d.explode(x, y, radius, damage, fx, fxScale, 'impact_s');
+    this.d.explode(x, y, radius, damage, fx, fxScale, 'impact_s', this.tag);
   }
 
   nearestEnemies(n: number, rangePx: number): Point[] {
@@ -172,7 +178,7 @@ export class EffectRunner implements EffectContext {
           const r = half + e.radius;
           if ((e.x - px) ** 2 + (e.y - py) ** 2 > r * r) return;
           hit.add(e);
-          this.d.damageEnemy(e, damage, ux, uy, true);
+          this.d.damageEnemy(e, damage, ux, uy, true, this.tag);
           if (e.alive) startKnockback(e.kb, ux, uy, knockbackPx, 160);
         });
       });
@@ -262,6 +268,12 @@ export class EffectRunner implements EffectContext {
 
   /** 방해 하나 해제: 플레이어 디버프(가장 최근) → 카드 성공률 감소 순. 적 방해(재밍 등)는 해당 Day에 추가 */
   clearDisruption(): boolean {
+    const stage = this.d.clearStageDisruption?.();
+    if (stage) {
+      this.d.audio.play('buff_up');
+      this.toast(`${stage} 해제`);
+      return true;
+    }
     const p = this.d.player;
     for (let i = p.buffs.list.length - 1; i >= 0; i--) {
       const b = p.buffs.list[i];

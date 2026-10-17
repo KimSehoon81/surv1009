@@ -1,5 +1,5 @@
 {
-  "$comment": "적 정의(PRD §9.2). hp·attack은 스테이지 1 레벨 1 기준이며 core/scaling 배율이 곱해진다. speed=px/초, radius=충돌 반지름(px), xp=처치 시 경험치, speedJitter=개체별 속도 흔들림(±비율). behaviors는 core/behaviors의 부품 조합 attacks=공격 부품(core/enemyAttack: lob·guard·chargeDash) 단계 windup→telegraph(붉은 예고, 최소 combat.minTelegraphMs)→active→recover, cooldownMs, range=[최소,최대] 시작 거리, damage=공격력 배수. lob은 예고 시간 = 포탄 비행 시간(착탄 = active). guard: 최근 whenHurtMs 안에 맞으면 activeMs 동안 피해 −reduce, 이어서 recoverMs 동안 약점(받는 피해 ×weakMult). chargeDash: 예고선 뒤 speed px/초로 activeMs 돌진(부딪히면 접촉 피해 ×damage). staggerImmune=피격 경직 없음(전차·보스). E03·E04 수치는 PRD 밖 값",
+  "$comment": "적 정의(PRD §9.2). hp·attack은 스테이지 1 레벨 1 기준이며 core/scaling 배율이 곱해진다. speed=px/초, radius=충돌 반지름(px), xp=처치 시 경험치, speedJitter=개체별 속도 흔들림(±비율). behaviors는 core/behaviors의 부품 조합 attacks=공격 부품(core/enemyAttack: lob·guard·chargeDash) 단계 windup→telegraph(붉은 예고, 최소 combat.minTelegraphMs)→active→recover, cooldownMs, range=[최소,최대] 시작 거리, damage=공격력 배수. lob은 예고 시간 = 포탄 비행 시간(착탄 = active). guard: 최근 whenHurtMs 안에 맞으면 activeMs 동안 피해 −reduce, 이어서 recoverMs 동안 약점(받는 피해 ×weakMult). chargeDash: 예고선 뒤 speed px/초로 activeMs 돌진(부딪히면 접촉 피해 ×damage). staggerImmune=피격 경직 없음(전차·보스). E03·E04 수치는 PRD 밖 값 weight=보스·엘리트 패턴 시퀀서 가중치(준비된 것 중 가중치로 선택). lob count·spread=목표 + 둘레 고리 포탄 수·반지름. fanShot=제자리 부채꼴 사격(range=사거리, angleDeg). opCard=보스 작전 카드: windup 3초 충전(보스 HP바 위 카드) → chance 판정(카드와 같은 연속 실패 완충) → 성공 시 radius 대형 착탄 예고·실행, 실패 또는 충전 중 최대 체력의 cancelFrac 이상 피해로 취소되면 failRecoverMs 경직 + 약점(×weakMult). E05 수치는 PRD 밖 값",
   "enemies": {
     "E01": {
       "name": "인민군 보병",
@@ -113,6 +113,79 @@
           "speed": 380,
           "width": 44,
           "damage": 1.6
+        }
+      ]
+    },
+    "E05": {
+      "name": "도하작전 지휘관",
+      "tier": "boss",
+      "hp": 1800,
+      "attack": 12,
+      "defense": 6,
+      "speed": 36,
+      "speedJitter": 0,
+      "radius": 24,
+      "xp": 0,
+      "staggerImmune": true,
+      "behaviors": [
+        {
+          "type": "keepDistance",
+          "min": 150,
+          "max": 250,
+          "side": 0.5
+        }
+      ],
+      "attacks": [
+        {
+          "type": "lob",
+          "weight": 3,
+          "range": [
+            100,
+            420
+          ],
+          "cooldownMs": 5000,
+          "windupMs": 300,
+          "telegraphMs": 1000,
+          "activeMs": 50,
+          "recoverMs": 600,
+          "damage": 1.1,
+          "radius": 40,
+          "count": 5,
+          "spread": 80
+        },
+        {
+          "type": "fanShot",
+          "weight": 3,
+          "range": [
+            0,
+            280
+          ],
+          "cooldownMs": 4500,
+          "windupMs": 300,
+          "telegraphMs": 900,
+          "activeMs": 120,
+          "recoverMs": 600,
+          "damage": 1.3,
+          "angleDeg": 70
+        },
+        {
+          "type": "opCard",
+          "weight": 2,
+          "range": [
+            0,
+            600
+          ],
+          "cooldownMs": 11000,
+          "windupMs": 3000,
+          "telegraphMs": 1200,
+          "activeMs": 80,
+          "recoverMs": 700,
+          "damage": 2.4,
+          "radius": 150,
+          "chance": 0.3,
+          "cancelFrac": 0.06,
+          "failRecoverMs": 2000,
+          "weakMult": 1.5
         }
       ]
     }

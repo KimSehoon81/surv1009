@@ -32,7 +32,7 @@ describe('적 공격 단계 상태기계', () => {
     const at = (t: string) => log.find((l) => l[1] === t)?.[0] ?? -1;
     expect(at('telegraph')).toBeGreaterThanOrEqual(200);
     expect(at('active') - at('telegraph')).toBeGreaterThanOrEqual(600 - 16);
-    expect(log.map((l) => l[1])).toEqual(['telegraph', 'active', 'recover', 'end']);
+    expect(log.map((l) => l[1])).toEqual(['windup', 'telegraph', 'active', 'recover', 'end']);
     expect(s.phase).toBe('idle');
     expect(s.cooldowns[0]).toBeGreaterThan(2000);
     // 예고 시작 순간 목표 지점을 고정

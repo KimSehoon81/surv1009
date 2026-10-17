@@ -46,6 +46,7 @@ export class CardHud {
   private readonly tip: Phaser.GameObjects.Text;
   private hoverUid: number | null = null;
   private toastUntil = 0;
+  private readonly smokeGfx: Phaser.GameObjects.Graphics;
   private toastSetAt = -1;
   private judgeView: Phaser.GameObjects.Container | null = null;
   private judgeKey = -1;
@@ -58,9 +59,11 @@ export class CardHud {
     private readonly scene: Phaser.Scene,
     private readonly cards: CardSystem,
     private readonly controls: InputMap,
-    private readonly host: { pauseForBoard(on: boolean): void; canOpenBoard(): boolean },
+    private readonly host: { pauseForBoard(on: boolean): void; canOpenBoard(): boolean; smoke(): number },
   ) {
     this.gfx = scene.add.graphics();
+    // 포연(방해 a): 카드 위를 덮되 태그 아이콘·테두리는 가리지 않는다(PRD §5.4 v0.2)
+    this.smokeGfx = scene.add.graphics().setDepth(5);
     this.crack = scene.add.image(0, 0, overlayKey(scene, 'overlay_crack')).setVisible(false).setAlpha(0.85);
     this.info = text(scene, 12).setOrigin(0.5, 1);
     this.opLabel = scene.add.bitmapText(0, 0, PIXEL_FONT, 'OP', 7).setLetterSpacing(-1).setScale(2).setOrigin(0, 0.5);
@@ -156,6 +159,8 @@ export class CardHud {
     const now = this.cards.env().nowMs;
     const pv = this.cards.preview(this.shiftDown());
     const g = this.gfx.clear();
+    const smoke = this.host.smoke();
+    const sg = this.smokeGfx.clear();
     const coolLeft = Math.max(0, st.cooldownUntilMs - now);
 
     hand.forEach((card, i) => {
@@ -168,6 +173,16 @@ export class CardHud {
       img.setPosition(Math.round(x), Math.round(y)).setVisible(true).setAlpha(coolLeft > 0 && !sel ? 0.6 : 1);
       label.setText(String(i + 1)).setPosition(Math.round(x - FACE_W / 2), Math.round(y - FACE_H / 2 - 1)).setTint(sel ? COL.select : 0xffffff);
       if (sel) g.lineStyle(2, COL.select, 1).strokeRect(Math.round(x - FACE_W / 2) - 1, Math.round(y - FACE_H / 2) - 1, FACE_W + 2, FACE_H + 2);
+      if (smoke > 0) {
+        // 그림·이름 칸만(위 태그 줄·테두리 3px 제외), 덩어리 몇 개로 연기처럼
+        const l = Math.round(x - FACE_W / 2) + 3;
+        const t = Math.round(y - FACE_H / 2) + 15;
+        sg.fillStyle(0x8a8478, smoke).fillRect(l, t, FACE_W - 6, FACE_H - 18);
+        for (let k = 0; k < 3; k++) {
+          const wob = Math.sin(time / 400 + i * 1.7 + k * 2.1) * 4;
+          sg.fillStyle(0xb0aaa0, smoke * 0.6).fillCircle(l + 10 + k * 18 + wob, t + 20 + ((k * 23) % 40), 12);
+        }
+      }
       // 마이너스 카드: 12초 원형 타이머
       if (CARD_DATA.cards[card.id]?.tag === 'minus') {
         const k = Math.min(1, (now - card.drawnAtMs) / CARD_DATA.rules.minusLifeMs);
@@ -179,7 +194,9 @@ export class CardHud {
     // 툴팁: 마우스를 올린 카드의 이름·병과·효과(PRD §5.3.1)
     const hover = this.hoverUid !== null ? hand.find((c) => c.uid === this.hoverUid) : undefined;
     const hoverImg = hover ? this.images.get(hover.uid) : undefined;
-    if (hover && hoverImg) {
+    if (hover && hoverImg && smoke > 0) {
+      this.tip.setText('포연으로 잘 보이지 않음').setPosition(hoverImg.x, hoverImg.y - FACE_H / 2 - 20).setVisible(true);
+    } else if (hover && hoverImg) {
       const d = CARD_DATA.cards[hover.id] as { name: string; tag: string; desc?: string } | undefined;
       this.tip.setText(`${d?.name ?? hover.id} · ${TAG_NAMES[d?.tag ?? ''] ?? ''}\n${d?.desc ?? ''}`).setPosition(hoverImg.x, hoverImg.y - FACE_H / 2 - 20).setVisible(true);
     } else this.tip.setVisible(false);
@@ -210,6 +227,8 @@ export class CardHud {
       const a = this.cards.advice();
       this.info.setText(a ? `Space: 추천 — ${a.combo ? comboName(a.combo) : cardName(hand.find((c) => c.uid === a.uids[0])?.id ?? '')} ${Math.round(a.chance * 100)}%` : '');
     } else this.info.setText('');
+    // 포연: 수치 흐림
+    if (smoke > 0) this.info.setText(this.info.text.replace(/\d+%/g, '??%'));
 
     // 쿨다운(손패 위 막대)·드로우 진행(손패 아래 막대)
     const left = H.centerX - Math.max(total, FACE_W * 5 + H.gap * 4) / 2;

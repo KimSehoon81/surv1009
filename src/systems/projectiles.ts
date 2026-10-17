@@ -9,8 +9,8 @@ import { MAX_ENEMY_RADIUS, type Enemy } from '../entities/Enemy';
 /** 투사체가 적을 맞혔을 때(직선) / 착지했을 때(곡사) 전투 로직에 알린다 */
 export interface ProjectileHooks {
   /** (dirX, dirY): 투사체 진행 방향(넉백·스파크 방향) */
-  onHit(e: Enemy, damageMult: number, dirX: number, dirY: number): void;
-  onLand(x: number, y: number, radius: number, damageMult: number, fx: string | undefined, fxScale: number, impact: string | undefined): void;
+  onHit(e: Enemy, damageMult: number, dirX: number, dirY: number, tag: string | undefined): void;
+  onLand(x: number, y: number, radius: number, damageMult: number, fx: string | undefined, fxScale: number, impact: string | undefined, tag: string | undefined): void;
 }
 
 interface Projectile {
@@ -38,6 +38,8 @@ interface Projectile {
   fx: string | undefined;
   fxScale: number;
   impact: string | undefined;
+  /** 피해 출처 표시(실패 잔효 피해 집계 등) */
+  tag: string | undefined;
 }
 
 export interface BulletSpec {
@@ -48,6 +50,7 @@ export interface BulletSpec {
   pierce: number;
   damageMult: number;
   rangePx: number;
+  tag?: string;
 }
 
 export interface LobSpec {
@@ -61,6 +64,7 @@ export interface LobSpec {
   fxScale: number;
   /** 착지 지점 연출 프리셋(feel.json) */
   impact: string | undefined;
+  tag?: string;
 }
 
 
@@ -76,7 +80,7 @@ export class ProjectileSystem {
       () => ({
         sprite: scene.add.image(0, 0, '__DEFAULT').setActive(false).setVisible(false).setDepth(Depth.Projectile),
         lob: false, x: 0, y: 0, vx: 0, vy: 0, lifeMs: 0, radius: 4, pierceLeft: 0, damageMult: 1, hit: new Set<Enemy>(),
-        sx: 0, sy: 0, tx: 0, ty: 0, t: 0, flightMs: 1, arc: 0, aoe: 0, fx: undefined, fxScale: 1, impact: undefined,
+        sx: 0, sy: 0, tx: 0, ty: 0, t: 0, flightMs: 1, arc: 0, aoe: 0, fx: undefined, fxScale: 1, impact: undefined, tag: undefined,
       }),
       96,
     );
@@ -108,6 +112,7 @@ export class ProjectileSystem {
     p.radius = spec.radius;
     p.pierceLeft = spec.pierce;
     p.damageMult = spec.damageMult;
+    p.tag = spec.tag;
     p.sprite.setPosition(p.x, p.y).setRotation(Math.atan2(dy, dx));
   }
 
@@ -127,6 +132,7 @@ export class ProjectileSystem {
     p.fx = spec.fx;
     p.fxScale = spec.fxScale;
     p.impact = spec.impact;
+    p.tag = spec.tag;
     p.sprite.setPosition(fromX, fromY - this.bodyOffsetY);
   }
 
@@ -143,7 +149,7 @@ export class ProjectileSystem {
         const h = Math.sin(k * Math.PI) * p.arc;
         p.sprite.setPosition(gx, gy - this.bodyOffsetY * (1 - k) - h).setRotation(k * Math.PI * 4);
         if (k >= 1) {
-          hooks.onLand(p.tx, p.ty, p.aoe, p.damageMult, p.fx, p.fxScale, p.impact);
+          hooks.onLand(p.tx, p.ty, p.aoe, p.damageMult, p.fx, p.fxScale, p.impact, p.tag);
           this.release(p);
         }
         continue;
@@ -160,7 +166,7 @@ export class ProjectileSystem {
         const r = p.radius + e.radius;
         if (d2 > r * r) return;
         p.hit.add(e);
-        hooks.onHit(e, p.damageMult, p.vx, p.vy);
+        hooks.onHit(e, p.damageMult, p.vx, p.vy, p.tag);
         if (p.pierceLeft-- <= 0) {
           done = true;
           return true;

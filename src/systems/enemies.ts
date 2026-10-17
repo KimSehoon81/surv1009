@@ -13,8 +13,6 @@ import { Enemy, MAX_ENEMY_RADIUS, isEnemyId, type EnemyId } from '../entities/En
 import { registerUnitAnims, type UnitAnims } from './anims';
 
 export interface SpawnConfig {
-  maxAlive: number;
-  spawns: ReadonlyArray<{ enemy: string; perSec: number }>;
   radiusMargin: number;
   despawnFactor: number;
   separationChecks: number;
@@ -44,9 +42,14 @@ export class EnemySystem {
   level = 1;
   /** 스트레스 모드: 동시 개체를 cfg.stress로 채움 */
   stress = false;
+  /** 지금 스폰 표·밀도 배율·동시 상한(스테이지 진행이 바꾼다) */
+  spawns: ReadonlyArray<{ enemy: string; perSec: number }> = [];
+  spawnMult = 1;
+  maxAliveNormal = 160;
   private readonly acc = new Map<string, number>();
   private readonly anims = new Map<EnemyId, UnitAnims>();
   private readonly spawnR = spawnRadius(LOGICAL_WIDTH, LOGICAL_HEIGHT, 0);
+  private readonly rand = (): number => this.rng.next();
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -54,7 +57,12 @@ export class EnemySystem {
     private readonly rng: Rng,
   ) {
     this.pool = new Pool(() => new Enemy(scene), cfg.poolSize);
-    for (const s of cfg.spawns) if (!isEnemyId(s.enemy)) throw new Error(`스폰 표의 알 수 없는 적: ${s.enemy}`);
+  }
+
+  setSpawns(spawns: ReadonlyArray<{ enemy: string; perSec: number }>, mult: number): void {
+    if (spawns !== this.spawns) for (const s of spawns) if (!isEnemyId(s.enemy)) throw new Error(`스폰 표의 알 수 없는 적: ${s.enemy}`);
+    this.spawns = spawns;
+    this.spawnMult = mult;
   }
 
   get alive(): number {
@@ -71,27 +79,28 @@ export class EnemySystem {
   }
 
   private get maxAlive(): number {
-    return this.stress ? this.cfg.stress : this.cfg.maxAlive;
+    return this.stress ? this.cfg.stress : this.maxAliveNormal;
   }
 
-  spawn(id: EnemyId, x: number, y: number, nowMs: number): Enemy | null {
-    if (this.pool.size >= this.maxAlive) return null;
+  /** force: 상한을 넘어도 등장(엘리트·보스) */
+  spawn(id: EnemyId, x: number, y: number, nowMs: number, force = false): Enemy | null {
+    if (!force && this.pool.size >= this.maxAlive) return null;
     const e = this.pool.acquire();
     e.spawn(id, this.animsFor(id), x, y, enemyScale(this.stage, this.level), this.rng, nowMs);
     return e;
   }
 
   /** 플레이어 주변 화면 밖 원형 위치에 스폰 */
-  spawnAround(id: EnemyId, target: Target, nowMs: number): Enemy | null {
+  spawnAround(id: EnemyId, target: Target, nowMs: number, force = false): Enemy | null {
     const p = ringPoint(target.x, target.y, this.spawnR + this.cfg.radiusMargin * (1 + this.rng.next()), this.rng.next() * Math.PI * 2);
-    return this.spawn(id, p.x, p.y, nowMs);
+    return this.spawn(id, p.x, p.y, nowMs, force);
   }
 
   /** 스트레스 모드를 켜면 즉시 상한까지 채운다 */
   setStress(on: boolean, target: Target, nowMs: number): void {
     this.stress = on;
     if (!on) return;
-    const ids = this.cfg.spawns.map((s) => s.enemy as EnemyId);
+    const ids = this.spawns.map((s) => s.enemy as EnemyId);
     while (this.pool.size < this.maxAlive) {
       if (!this.spawnAround(this.rng.pick(ids), target, nowMs)) break;
     }
@@ -116,7 +125,7 @@ export class EnemySystem {
         // 공격 2층: 단계 상태기계가 이동 방식(자유·제자리·돌진)을 정한다
         let mode = 'free';
         if (e.attacks.length > 0) {
-          const evs = stepAttack(e.atk, e.attacks, dtMs, { x: e.x, y: e.y, targetX: target.x, targetY: target.y, sinceHurtMs: nowMs - e.lastHurtMs }, minTelegraphMs);
+          const evs = stepAttack(e.atk, e.attacks, dtMs, { x: e.x, y: e.y, targetX: target.x, targetY: target.y, sinceHurtMs: nowMs - e.lastHurtMs, rand: this.rand }, minTelegraphMs);
           for (const ev of evs) hooks?.onAttack(e, ev, nowMs);
           mode = moveMode(e.atk, e.attacks);
         }
@@ -181,8 +190,8 @@ export class EnemySystem {
   }
 
   private spawnTick(dtMs: number, target: Target, nowMs: number): void {
-    const density = enemyScale(this.stage, this.level).density;
-    for (const s of this.cfg.spawns) {
+    const density = enemyScale(this.stage, this.level).density * this.spawnMult;
+    for (const s of this.spawns) {
       const r = accumulate(this.acc.get(s.enemy) ?? 0, s.perSec * density, dtMs);
       this.acc.set(s.enemy, r.acc);
       for (let i = 0; i < r.count; i++) {

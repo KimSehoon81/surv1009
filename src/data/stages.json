@@ -1,0 +1,188 @@
+{
+  "$comment": "스테이지 정의(PRD §3 타임라인·§7.1·§5.4). 공통 스키마: floor=floor.json 키, maxAlive=동시 적 상한, phases=[{from,to(null=끝까지),spawns:[{enemy,perSec}]}](시각은 전투 시계 초), pacing=스폰 밀도 배율 구간(대군집 ×1.8 90초 → 숨 고르기 ×0.5 20초, label이 있으면 HUD 예고), elites=[{at,enemy,warnSec}](등장 warnSec초 전 예고), boss={enemy,trigger:{level,time},warnSec,spawnMult}(Lv 도달 또는 time 중 먼저, warnSec초 경고 뒤 등장, 보스전 동안 일반 스폰 ×spawnMult), disruptions=[{type,category(a=카드를 가림),firstAt,intervalSec,durationSec,warnSec,minEnemiesOnScreen,priority,source}]. rules: 새 요소(적 첫 등장·엘리트·방해·NPC)는 newElementGapSec초에 1개 이하(테스트로 검사), 방해 동시 최대 maxDisruptions·카드 가림 maxCardObscuring. S1 시각: 1:30 척후병, 2:30 박격포병, 4:00 T-34, 5:00 첫 포연, 6:00 NPC(D14), 7:30 숨 고르기, 8~12분 대군집 2회, Lv10 또는 13:00 보스",
+  "rules": {
+    "newElementGapSec": 60,
+    "maxDisruptions": 2,
+    "maxCardObscuring": 1
+  },
+  "stages": {
+    "S1": {
+      "name": "낙동강 방어선",
+      "region": "경상도",
+      "floor": "S1",
+      "maxAlive": 160,
+      "phases": [
+        {
+          "from": 0,
+          "to": 90,
+          "spawns": [
+            {
+              "enemy": "E01",
+              "perSec": 0.8
+            }
+          ]
+        },
+        {
+          "from": 90,
+          "to": 150,
+          "spawns": [
+            {
+              "enemy": "E01",
+              "perSec": 0.85
+            },
+            {
+              "enemy": "E02",
+              "perSec": 0.3
+            }
+          ]
+        },
+        {
+          "from": 150,
+          "to": 240,
+          "spawns": [
+            {
+              "enemy": "E01",
+              "perSec": 0.9
+            },
+            {
+              "enemy": "E02",
+              "perSec": 0.3
+            },
+            {
+              "enemy": "E03",
+              "perSec": 0.08
+            }
+          ]
+        },
+        {
+          "from": 240,
+          "to": 480,
+          "spawns": [
+            {
+              "enemy": "E01",
+              "perSec": 1.0
+            },
+            {
+              "enemy": "E02",
+              "perSec": 0.4
+            },
+            {
+              "enemy": "E03",
+              "perSec": 0.12
+            }
+          ]
+        },
+        {
+          "from": 480,
+          "to": 720,
+          "spawns": [
+            {
+              "enemy": "E01",
+              "perSec": 1.2
+            },
+            {
+              "enemy": "E02",
+              "perSec": 0.5
+            },
+            {
+              "enemy": "E03",
+              "perSec": 0.16
+            }
+          ]
+        },
+        {
+          "from": 720,
+          "to": null,
+          "spawns": [
+            {
+              "enemy": "E01",
+              "perSec": 1.3
+            },
+            {
+              "enemy": "E02",
+              "perSec": 0.5
+            },
+            {
+              "enemy": "E03",
+              "perSec": 0.18
+            }
+          ]
+        }
+      ],
+      "pacing": [
+        {
+          "from": 450,
+          "to": 470,
+          "mult": 0.5,
+          "label": "숨 고르기"
+        },
+        {
+          "from": 480,
+          "to": 570,
+          "mult": 1.8,
+          "label": "대군집 접근!"
+        },
+        {
+          "from": 570,
+          "to": 590,
+          "mult": 0.5,
+          "label": "숨 고르기"
+        },
+        {
+          "from": 620,
+          "to": 710,
+          "mult": 1.8,
+          "label": "대군집 접근!"
+        },
+        {
+          "from": 710,
+          "to": 730,
+          "mult": 0.5,
+          "label": "숨 고르기"
+        }
+      ],
+      "elites": [
+        {
+          "at": 240,
+          "enemy": "E04",
+          "warnSec": 3
+        },
+        {
+          "at": 540,
+          "enemy": "E04",
+          "warnSec": 3
+        },
+        {
+          "at": 680,
+          "enemy": "E04",
+          "warnSec": 3
+        }
+      ],
+      "boss": {
+        "enemy": "E05",
+        "trigger": {
+          "level": 10,
+          "time": 780
+        },
+        "warnSec": 15,
+        "spawnMult": 0.6
+      },
+      "disruptions": [
+        {
+          "type": "smoke",
+          "category": "a",
+          "firstAt": 300,
+          "intervalSec": 80,
+          "durationSec": 10,
+          "warnSec": 10,
+          "minEnemiesOnScreen": 15,
+          "priority": 1,
+          "source": "stage"
+        }
+      ],
+      "npcAt": [
+        360
+      ]
+    }
+  }
+}

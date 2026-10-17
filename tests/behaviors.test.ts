@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import enemies from '../src/data/enemies.json';
-import spawn from '../src/data/spawn.json';
+import stagesData from '../src/data/stages.json';
 import { BEHAVIORS, steer, type BehaviorSpec } from '../src/core/behaviors';
 
 const agent = (x: number, y: number, ageMs = 0, phase = 0) => ({ x, y, ageMs, phase });
@@ -32,6 +32,6 @@ describe('behaviors', () => {
       for (const b of e.behaviors) expect(BEHAVIORS[b.type], `${id}:${b.type}`).toBeTypeOf('function');
       for (const k of ['hp', 'speed', 'radius'] as const) expect(e[k], `${id}.${k}`).toBeGreaterThan(0);
     }
-    for (const s of spawn.S1.spawns) expect(enemies.enemies).toHaveProperty(s.enemy);
+    for (const ph of stagesData.stages.S1.phases) for (const s of ph.spawns) expect(enemies.enemies).toHaveProperty(s.enemy);
   });
 });

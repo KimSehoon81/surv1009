@@ -8,6 +8,8 @@ export const params = {
   gallery: q.has('gallery'),
   /** 디버그 키·표시 */
   debug: import.meta.env.DEV || q.has('debug'),
+  /** 스테이지(stages.json 키) */
+  stage: q.get('stage') ?? 'S1',
   /** 바닥 무늬 등 시드 */
   seed: q.get('seed') ?? 'amnok',
 };

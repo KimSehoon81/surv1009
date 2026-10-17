@@ -9,6 +9,9 @@ import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { InputMap, type InputAction } from '../systems/input';
 import { PIXEL_FONT, ensurePixelFont } from '../ui/pixelFont';
 import { CardHud } from '../ui/cardHud';
+import { cardBackKey } from '../ui/cardFace';
+import enemiesData from '../data/enemies.json';
+import type { Enemy } from '../entities/Enemy';
 import { SkillHud } from '../ui/skillHud';
 import type { CardEvent } from '../core/cards';
 import type { BattleScene } from './BattleScene';
@@ -45,6 +48,24 @@ export class HudScene extends Phaser.Scene {
   private levelUp: Phaser.GameObjects.Container | null = null;
   private cardHud!: CardHud;
   private skillHud!: SkillHud;
+  /** 예고(엘리트·방해·보스): 문구와 끝 시각(전투 시계) */
+  private warnText!: Phaser.GameObjects.Text;
+  private warn: { msg: string; untilMs: number } | null = null;
+  private bossGfx!: Phaser.GameObjects.Graphics;
+  private bossName!: Phaser.GameObjects.Text;
+  private bossCard!: Phaser.GameObjects.Image;
+  private bossInfo!: Phaser.GameObjects.Text;
+  private bossJudge: { msg: string; color: string; untilReal: number } | null = null;
+  private resultPanel: Phaser.GameObjects.Container | null = null;
+  private readonly onWarn = (msg: string, inSec: number) => {
+    this.warn = { msg, untilMs: this.battle.clock.timeMs + inSec * 1000 };
+  };
+  private readonly onBossJudged = (result: string) => {
+    const t = this.time.now + 1600;
+    if (result === 'success') this.bossJudge = { msg: '적 작전 성공 — 대형 포격 예고!', color: '#ff6050', untilReal: t };
+    else this.bossJudge = { msg: result === 'cancel' ? '충전 취소 — 약점 노출!' : '적 작전 실패 — 약점 노출!', color: '#ffe14d', untilReal: t };
+  };
+  private readonly onResult = () => this.showResult();
   private readonly onCardEffect = (ev: CardEvent) => this.cardHud.showEffect(ev);
   private readonly onToast = (msg: string, color?: string) => this.cardHud.showText(msg, color);
   private levelUpOpenedAt = 0;
@@ -82,7 +103,17 @@ export class HudScene extends Phaser.Scene {
     this.cardHud = new CardHud(this, this.battle.cards, this.controls, {
       pauseForBoard: (on) => this.battle.setOpsBoard(on),
       canOpenBoard: () => this.battle.canOpenBoard(),
+      // 포연: 40~70% 사이로 일렁임
+      smoke: () => (this.battle.disruptions.has('smoke') ? 0.55 + 0.15 * Math.sin(this.time.now / 300) : 0),
     });
+    this.warnText = this.add.text(LOGICAL_WIDTH / 2, 66, '', { ...textStyle(16, '#ff8060'), stroke: '#1a1410', strokeThickness: 3 }).setOrigin(0.5).setVisible(false);
+    this.bossGfx = this.add.graphics();
+    this.bossName = this.add.text(LOGICAL_WIDTH / 2, 30, '', { ...textStyle(12, '#ffd0c0'), stroke: '#1a1410', strokeThickness: 3 }).setOrigin(0.5, 1).setVisible(false);
+    this.bossCard = this.add.image(LOGICAL_WIDTH / 2, 92, cardBackKey(this)).setVisible(false);
+    this.bossInfo = this.add.text(LOGICAL_WIDTH / 2, 142, '', { ...textStyle(12, '#ffe14d'), stroke: '#1a1410', strokeThickness: 3 }).setOrigin(0.5).setVisible(false);
+    this.battle.events.on('warn', this.onWarn);
+    this.battle.events.on('boss:judged', this.onBossJudged);
+    this.battle.events.on('result', this.onResult);
     this.skillHud = new SkillHud(this, this.battle.skills, () => this.battle.clock.timeMs);
     this.battle.events.on('cards:effect', this.onCardEffect);
     this.battle.events.on('toast', this.onToast);
@@ -93,6 +124,9 @@ export class HudScene extends Phaser.Scene {
       this.battle.events.off('levelupClosed', this.onLevelUpClosed);
       this.battle.events.off('cards:effect', this.onCardEffect);
       this.battle.events.off('toast', this.onToast);
+      this.battle.events.off('warn', this.onWarn);
+      this.battle.events.off('boss:judged', this.onBossJudged);
+      this.battle.events.off('result', this.onResult);
       this.cardHud.destroy();
       this.controls.destroy();
     });
@@ -123,9 +157,89 @@ export class HudScene extends Phaser.Scene {
     this.bannerText.setVisible(b.bannerMessage !== null).setText(b.bannerMessage ?? '');
 
     this.skillHud.update();
-    if (this.levelUp) this.updateLevelUp(time);
+    this.drawWarn(time);
+    this.drawBoss(time);
+    if (this.resultPanel) {
+      if (this.controls.justDown('redeploy')) b.redeploy();
+    } else if (this.levelUp) this.updateLevelUp(time);
     else this.cardHud.update(time);
     this.controls.endFrame();
+  }
+
+  /** 예고 문구 + 남은 초(마지막 3초는 깜빡임) */
+  private drawWarn(time: number): void {
+    const w = this.warn;
+    const left = w ? (w.untilMs - this.battle.clock.timeMs) / 1000 : 0;
+    if (!w || left <= 0) {
+      this.warnText.setVisible(false);
+      this.warn = null;
+      return;
+    }
+    this.warnText.setText(`⚠ ${w.msg}  ${Math.ceil(left)}`).setVisible(left > 3 || Math.floor(time / 200) % 2 === 0);
+  }
+
+  /** 보스 체력바 + 작전 카드(충전·취소 게이지·판정 결과) */
+  private drawBoss(time: number): void {
+    const e: Enemy | null = this.battle.boss;
+    const g = this.bossGfx.clear();
+    const show = e !== null && e.alive;
+    this.bossName.setVisible(show);
+    if (!show || !e) {
+      this.bossCard.setVisible(false);
+      this.bossInfo.setVisible(false);
+      return;
+    }
+    const w = 360;
+    const x = LOGICAL_WIDTH / 2 - w / 2;
+    const y = 34;
+    this.bossName.setText((enemiesData.enemies as Record<string, { name: string }>)[e.id]?.name ?? e.id);
+    g.fillStyle(0x1a1410, 0.9).fillRect(x - 2, y - 2, w + 4, 10);
+    g.fillStyle(0x3a1a14, 1).fillRect(x, y, w, 6);
+    g.fillStyle(0xd84030, 1).fillRect(x, y, Math.round((w * Math.max(0, e.hp)) / e.maxHp), 6);
+    const spec = e.atk.index >= 0 ? e.attacks[e.atk.index] : undefined;
+    const charging = spec?.type === 'opCard' && e.atk.phase === 'windup';
+    this.bossCard.setVisible(charging).setScale(0.5);
+    if (charging && spec) {
+      const k = 1 - Math.max(0, e.atk.phaseLeftMs) / Math.max(1, spec.windupMs ?? 1);
+      const cancel = Math.min(1, e.atk.chargeDamage / (spec.cancelFrac ?? 1));
+      // 충전(붉은 막대)·취소 게이지(금색 막대)
+      g.fillStyle(0x1a1410, 0.9).fillRect(LOGICAL_WIDTH / 2 - 32, 128, 64, 10);
+      g.fillStyle(0xff5040, 1).fillRect(LOGICAL_WIDTH / 2 - 31, 129, Math.round(62 * k), 3);
+      g.fillStyle(0xffd040, 1).fillRect(LOGICAL_WIDTH / 2 - 31, 134, Math.round(62 * cancel), 3);
+      this.bossCard.setAlpha(0.7 + 0.3 * Math.abs(Math.sin(time / 120)));
+      this.bossInfo.setText('적 작전 카드 충전 — 집중 사격으로 취소!').setColor('#ffe14d').setPosition(LOGICAL_WIDTH / 2, 150).setVisible(true);
+    } else if (this.bossJudge && time < this.bossJudge.untilReal) {
+      this.bossInfo.setText(this.bossJudge.msg).setColor(this.bossJudge.color).setPosition(LOGICAL_WIDTH / 2, 62).setVisible(true);
+    } else this.bossInfo.setVisible(false);
+  }
+
+  /** 결과 화면(점령·전사): 기록·전공 포인트·팁, Enter 다시 출정 */
+  private showResult(): void {
+    const r = this.battle.result;
+    if (!r || this.resultPanel) return;
+    this.hideLevelUp();
+    const rec = r.record;
+    const root = this.add.container(0, 0);
+    root.add(this.add.rectangle(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT, 0x000000, 0.7).setOrigin(0));
+    const title = rec.victory ? `${this.battle.stage.name} 점령` : '전사';
+    root.add(this.add.text(LOGICAL_WIDTH / 2, 86, title, textStyle(26, rec.victory ? '#ffe14d' : '#ff8060')).setOrigin(0.5));
+    const mm = Math.floor(rec.timeSec / 60);
+    const ss = String(Math.floor(rec.timeSec % 60)).padStart(2, '0');
+    const lines = [
+      `시간 ${mm}:${ss}    레벨 ${rec.level}    처치 ${rec.kills}${rec.eliteKills > 0 ? ` (엘리트 ${rec.eliteKills})` : ''}`,
+      `전공 포인트 +${r.merit}${rec.victory ? '' : '  (전사: 50%)'}`,
+      '',
+      '작전 기록',
+      `제출 ${rec.submits}회 · 실제 성공률 ${r.rate}% · 최장 연패 ${rec.longestFailStreak} · 인장 사용 ${rec.sealsUsed} · 잔효 피해 ${rec.residueDamage}`,
+    ];
+    root.add(this.add.text(LOGICAL_WIDTH / 2, 140, lines.join('\n'), { ...textStyle(14, '#e8dcc0'), align: 'center', lineSpacing: 6 }).setOrigin(0.5, 0));
+    if (r.tip) root.add(this.add.text(LOGICAL_WIDTH / 2, 320, `팁: ${r.tip}`, { ...textStyle(13, '#7fd8ff'), align: 'center', wordWrap: { width: 640 } }).setOrigin(0.5, 0));
+    const again = this.add.text(LOGICAL_WIDTH / 2, 400, 'Enter  다시 출정 (같은 구성)', textStyle(16, '#ffffff')).setOrigin(0.5);
+    again.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.battle.redeploy());
+    root.add(again);
+    root.setAlpha(0);
+    this.tweens.add({ targets: root, alpha: 1, duration: 300 });
+    this.resultPanel = root;
   }
 
   private drawXp(): void {
