@@ -49,6 +49,8 @@ export interface FiredEvent {
   damage: number;
   radius: number;
   durationMs: number;
+  /** 앞당긴 큐(마커·포탄 비행 등)면 뒤따를 본 큐 이름(휘슬 끝 정렬 등) */
+  for?: string;
   /** 반복 안에서 몇 번째(0부터)와 전체 수 */
   index: number;
   count: number;
@@ -115,7 +117,7 @@ export function expandTimeline(def: TimelineDef, origin: ExpandOrigin, rand: () 
       for (const p of pre) {
         if (p.lead <= 0) continue;
         const lead = Math.round(p.lead * 1000);
-        out.push({ ...base, atMs: Math.max(0, atMs - lead), cue: p.cue, damage: 0, durationMs: Math.min(lead, atMs), order: order++ });
+        out.push({ ...base, atMs: Math.max(0, atMs - lead), cue: p.cue, damage: 0, durationMs: Math.min(lead, atMs), for: cue, order: order++ });
       }
       out.push({ ...base, atMs, cue, damage: ev.damage ?? 0, durationMs: 0, order: order++ });
     }

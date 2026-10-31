@@ -6,3 +6,4 @@ dist-zip/
 # npm run assets가 매번 생성
 src/assets/available.json
 __pycache__/
+tools/audio/out/

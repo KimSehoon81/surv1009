@@ -201,6 +201,11 @@ export class BattleScene extends Phaser.Scene {
     this.feel = new Feel(this, this.clock, this.fx, rng.fork('feel'));
     this.audio = new AudioSystem(this, rng.fork('audio'));
     this.feel.setAudio(this.audio);
+    this.audio.playBgm(this.stage.bgm ?? null);
+    // 큰 착탄 직전 0.2초 무음(타임라인 훅, PRD §6.2)
+    this.events.on('timeline:hook', (hook: string) => {
+      if (hook === 'pre_impact_silence') this.audio.silence(200);
+    });
     const battle = this;
     this.cards = new CardSystem(
       {
@@ -350,6 +355,7 @@ export class BattleScene extends Phaser.Scene {
       this.controls.destroy();
       this.floor.destroy();
       this.audio.destroy();
+      this.events.off('timeline:hook');
       this.scene.stop(SceneKey.Hud);
     });
     this.scene.launch(SceneKey.Hud);
@@ -641,6 +647,7 @@ export class BattleScene extends Phaser.Scene {
         if (b) {
           this.boss = b;
           this.events.emit('boss:spawn', b);
+          this.audio.playBgm(this.stage.bossBgm ?? null);
         }
         break;
       }
@@ -750,6 +757,7 @@ export class BattleScene extends Phaser.Scene {
       // 저장 못 해도 결과 화면은 보인다
     }
     this.events.emit('result', this.result);
+    this.audio.playBgm(null);
   }
 
   /** 다시 출정(같은 구성) */

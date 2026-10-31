@@ -44,6 +44,9 @@ export interface StageDef {
   boss: { enemy: string; trigger: { level: number; time: number }; warnSec: number; spawnMult: number };
   disruptions: readonly DisruptionDef[];
   npcAt?: readonly number[];
+  /** 배경 음악(sfx.json bgm.tracks 이름, 파일이 없으면 무음) */
+  bgm?: string;
+  bossBgm?: string;
   /** npcAt 시각마다 차례로 나올 NPC */
   npcs?: readonly string[];
 }

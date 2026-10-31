@@ -124,6 +124,7 @@ docs/mockup/
 - 앞 무음 5ms 이하, 피크 −1dB 안팎. 같은 소리 3가지 변형이 있으면 `hit_1`, `hit_2`, `hit_3`
 - 만드는 방법: BGM은 상업 이용 가능한 요금제의 AI 음악 생성기(칩튠 + 군악 스네어) 또는 BeepBox. 효과음 겹(폭발 꼬리 등)은 CC0(Kenney 등)만. 생성 날짜·요금제·약관을 크레딧 표에 기록, 비상업(NC) 라이선스 금지
 - 표현 원칙: 비명·고통 음성 없음, 실제 군가·국가·당시 방송 음원 금지
+- 합성음을 파일로 굽기: `npm run audio:bake`(tools/audio/out에 WAV, ffmpeg가 있으면 OGG·MP3). 소리 확인: 주소 `?gallery=audio`(클릭 재생, Shift+클릭 10연타, BGM·볼륨). 넣은 파일은 [CREDITS.md](CREDITS.md)에 기록
 
 ## 8. 표현 원칙 체크 (PRD §1)
 

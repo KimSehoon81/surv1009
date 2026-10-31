@@ -20,6 +20,7 @@ import type { AudioSink } from './audio';
 const RIFLE = weaponsData.weapons.rifle;
 const GRENADE = weaponsData.weapons.grenade;
 const MARK = feelData.allyMarker;
+const WHISTLE = 'strike_whistle';
 /** 직선 돌파를 몇 토막으로 나눠 앞에서부터 쓸고 지나갈지, 토막 사이 간격 */
 const LINE_STEPS = 5;
 const LINE_STEP_MS = 50;
@@ -219,10 +220,14 @@ export class EffectRunner implements EffectContext {
     this.d.audio.play(this.d.debuffIds.has(id) ? 'debuff' : 'buff_up');
   }
 
-  marker(at: Point, radius: number, ms: number): void {
+  marker(at: Point, radius: number, ms: number, whistle = false): void {
     this.markers.push({ x: at.x, y: at.y, r: radius, startMs: this.nowMs, untilMs: this.nowMs + ms });
-    // 포격 예고는 휘파람(짧은 범위 표시는 소리 없음)
-    if (ms >= 400) this.d.audio.play('strike_whistle', at.x, at.y);
+    if (!whistle) return;
+    // 휘슬은 끝이 착탄 순간에 맞게: 착탄 시각 − 소리 길이에 시작(전투 시계라 일시정지·슬로모와 어긋나지 않음)
+    const len = this.d.audio.durationMs?.(WHISTLE) ?? 0;
+    const x = at.x;
+    const y = at.y;
+    this.schedule(Math.max(0, ms - len), () => this.d.audio.play(WHISTLE, x, y));
   }
 
   schedule(delayMs: number, fn: () => void): void {

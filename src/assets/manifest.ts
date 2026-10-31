@@ -140,8 +140,28 @@ export function createManifest(available: readonly string[]) {
     };
   };
 
+  /**
+   * 소리 파일(선택): audio/<이름>.ogg|mp3|wav, 없으면 변형 <이름>_1, _2 …. 하나도 없으면 빈 배열(합성음·무음).
+   */
+  const audio = (name: string): { key: string; urls: string[] }[] => {
+    const one = (n: string) => {
+      const urls = ['ogg', 'mp3', 'wav'].map((ext) => resolve(`audio/${n}.${ext}`)).filter((u): u is string => u !== null);
+      return urls.length > 0 ? { key: `audio_${n}`, urls } : null;
+    };
+    const base = one(name);
+    if (base) return [base];
+    const out: { key: string; urls: string[] }[] = [];
+    for (let i = 1; i <= 8; i++) {
+      const v = one(`${name}_${i}`);
+      if (!v) break;
+      out.push(v);
+    }
+    return out;
+  };
+
   return {
     has: (relPath: string) => files.has(relPath),
+    audio,
     count: () => files.size,
     factionOf,
     sheetKey,

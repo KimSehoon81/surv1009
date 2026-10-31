@@ -1,4 +1,4 @@
-// URL 파라미터(개발·테스트용). 예: ?char=A02&debug=1&seed=test, ?gallery=1
+// URL 파라미터(개발·테스트용). 예: ?char=A02&debug=1&seed=test, ?gallery=1(그래픽)·?gallery=audio(소리)
 const q = new URLSearchParams(typeof location === 'undefined' ? '' : location.search);
 
 export const params = {
@@ -6,6 +6,8 @@ export const params = {
   char: q.get('char') ?? 'A01',
   /** 그래픽 갤러리 화면으로 시작 */
   gallery: q.has('gallery'),
+  /** 소리 검수 화면 */
+  audioGallery: q.get('gallery') === 'audio',
   /** 디버그 키·표시 */
   debug: import.meta.env.DEV || q.has('debug'),
   /** 스테이지(stages.json 키) */

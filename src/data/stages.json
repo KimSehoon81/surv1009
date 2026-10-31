@@ -1,5 +1,5 @@
 {
-  "$comment": "스테이지 정의(PRD §3 타임라인·§7.1·§5.4). 공통 스키마: floor=floor.json 키, maxAlive=동시 적 상한, phases=[{from,to(null=끝까지),spawns:[{enemy,perSec}]}](시각은 전투 시계 초), pacing=스폰 밀도 배율 구간(대군집 ×1.8 90초 → 숨 고르기 ×0.5 20초, label이 있으면 HUD 예고), elites=[{at,enemy,warnSec}](등장 warnSec초 전 예고), boss={enemy,trigger:{level,time},warnSec,spawnMult}(Lv 도달 또는 time 중 먼저, warnSec초 경고 뒤 등장, 보스전 동안 일반 스폰 ×spawnMult), disruptions=[{type,category(a=카드를 가림),firstAt,intervalSec,durationSec,warnSec,minEnemiesOnScreen,priority,source}]. rules: 새 요소(적 첫 등장·엘리트·방해·NPC)는 newElementGapSec초에 1개 이하(테스트로 검사), 방해 동시 최대 maxDisruptions·카드 가림 maxCardObscuring. S1 시각: 1:30 척후병, 2:30 박격포병, 4:00 T-34, 5:00 첫 포연, 6:00·10:00 NPC(종군기자 → 군의관), 7:30 숨 고르기, 8~12분 대군집 2회, Lv10 또는 13:00 보스 npcs=이 스테이지에 나오는 NPC 순서(npcAt 시각마다 차례로)",
+  "$comment": "스테이지 정의(PRD §3 타임라인·§7.1·§5.4). 공통 스키마: floor=floor.json 키, maxAlive=동시 적 상한, phases=[{from,to(null=끝까지),spawns:[{enemy,perSec}]}](시각은 전투 시계 초), pacing=스폰 밀도 배율 구간(대군집 ×1.8 90초 → 숨 고르기 ×0.5 20초, label이 있으면 HUD 예고), elites=[{at,enemy,warnSec}](등장 warnSec초 전 예고), boss={enemy,trigger:{level,time},warnSec,spawnMult}(Lv 도달 또는 time 중 먼저, warnSec초 경고 뒤 등장, 보스전 동안 일반 스폰 ×spawnMult), disruptions=[{type,category(a=카드를 가림),firstAt,intervalSec,durationSec,warnSec,minEnemiesOnScreen,priority,source}]. rules: 새 요소(적 첫 등장·엘리트·방해·NPC)는 newElementGapSec초에 1개 이하(테스트로 검사), 방해 동시 최대 maxDisruptions·카드 가림 maxCardObscuring. S1 시각: 1:30 척후병, 2:30 박격포병, 4:00 T-34, 5:00 첫 포연, 6:00·10:00 NPC(종군기자 → 군의관), 7:30 숨 고르기, 8~12분 대군집 2회, Lv10 또는 13:00 보스 npcs=이 스테이지에 나오는 NPC 순서(npcAt 시각마다 차례로) bgm·bossBgm=sfx.json bgm.tracks 이름(파일이 없으면 무음)",
   "rules": {
     "newElementGapSec": 60,
     "maxDisruptions": 2,
@@ -187,7 +187,9 @@
       "npcs": [
         "N01",
         "N02"
-      ]
+      ],
+      "bgm": "bgm_stage01",
+      "bossBgm": "bgm_boss"
     }
   }
 }

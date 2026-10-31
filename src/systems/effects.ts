@@ -32,8 +32,8 @@ export interface EffectContext {
   /** 플레이어 피해(최대 체력 비율, 쓰러뜨리지 않음) + 기절 */
   hurtPlayer(pct: number, stunMs: number): void;
   addBuff(id: string, mods: StatMod[], ms: number): void;
-  /** 아군 범위 예고 마커(청록, PRD §6.4) */
-  marker(at: Point, radius: number, ms: number): void;
+  /** 아군 범위 예고 마커(청록, PRD §6.4). whistle이면 착탄 순간에 끝나도록 휘슬 */
+  marker(at: Point, radius: number, ms: number, whistle?: boolean): void;
   /** 전투 시계 기준 지연 실행 */
   schedule(delayMs: number, fn: () => void): void;
   flashEnemiesOnScreen(ms: number): void;
@@ -90,7 +90,7 @@ export const EFFECTS: Record<string, EffectHandler> = {
       const s = num(p, 'spreadPx', 0);
       const at = { x: base.x + (ctx.rand() - 0.5) * 2 * s, y: base.y + (ctx.rand() - 0.5) * 2 * s };
       const delay = num(p, 'delayMs', 600) + i * num(p, 'intervalMs', 0);
-      ctx.marker(at, r, delay);
+      ctx.marker(at, r, delay, true);
       ctx.schedule(delay, () => ctx.explode(at.x, at.y, r, num(p, 'damage', 1) * power, str(p, 'fx', 'explosion_s'), num(p, 'fxScale', 1)));
     }
   },

@@ -41,6 +41,8 @@ export interface CueDef {
   prop?: { sheet: string; frames: readonly number[]; fps: number; fpsEnd?: number; ms: number; scale: number };
   countdown?: { from: number; sfx?: string };
   hook?: string;
+  /** 이 착탄 앞 예고 마커에서 휘슬(착탄 순간에 끝나게) */
+  whistle?: boolean;
   bullets?: { count: number; spreadDeg: number; rangePx: number; muzzle?: boolean };
   gunner?: { screen: readonly number[]; slide: readonly number[]; face: number; inMs: number; fireMs: number; outMs: number; intervalMs: number; rangePx: number; scale: number };
   arc?: { side: 'left' | 'right'; height: number };
@@ -193,7 +195,7 @@ export class TimelineSystem {
   private fire(ev: FiredEvent, power: number): void {
     const d = this.d;
     if (ev.cue === MARKER_CUE) {
-      d.effects.marker(ev, ev.radius || 40, ev.durationMs);
+      d.effects.marker(ev, ev.radius || 40, ev.durationMs, CUES[ev.for ?? '']?.whistle === true);
       return;
     }
     const c = CUES[ev.cue];

@@ -10,6 +10,7 @@
   "scripts": {
     "assets": "node tools/gen-asset-list.mjs",
     "assets:check": "tsx tools/check-assets.ts",
+    "audio:bake": "tsx tools/audio/bake.mjs",
     "predev": "npm run assets",
     "dev": "vite",
     "prebuild": "npm run assets",
