@@ -10,6 +10,7 @@ import { InputMap, type InputAction } from '../systems/input';
 import { PIXEL_FONT, ensurePixelFont } from '../ui/pixelFont';
 import { CardHud } from '../ui/cardHud';
 import { cardBackKey } from '../ui/cardFace';
+import guideData from '../data/guide.json';
 import enemiesData from '../data/enemies.json';
 import type { Enemy } from '../entities/Enemy';
 import { SkillHud } from '../ui/skillHud';
@@ -57,6 +58,12 @@ export class HudScene extends Phaser.Scene {
   private bossInfo!: Phaser.GameObjects.Text;
   private bossJudge: { msg: string; color: string; untilReal: number } | null = null;
   private resultPanel: Phaser.GameObjects.Container | null = null;
+  private hpBar!: Phaser.GameObjects.Graphics;
+  /** 가이드 팁: 대기열, 지금 보이는 것의 끝 시각(실시간) */
+  private guideText!: Phaser.GameObjects.Text;
+  private readonly guideQueue: string[] = [];
+  private guideUntil = 0;
+  private readonly onGuide = (text: string) => this.guideQueue.push(text);
   private readonly onWarn = (msg: string, inSec: number) => {
     this.warn = { msg, untilMs: this.battle.clock.timeMs + inSec * 1000 };
   };
@@ -111,6 +118,13 @@ export class HudScene extends Phaser.Scene {
     this.bossName = this.add.text(LOGICAL_WIDTH / 2, 30, '', { ...textStyle(12, '#ffd0c0'), stroke: '#1a1410', strokeThickness: 3 }).setOrigin(0.5, 1).setVisible(false);
     this.bossCard = this.add.image(LOGICAL_WIDTH / 2, 92, cardBackKey(this)).setVisible(false);
     this.bossInfo = this.add.text(LOGICAL_WIDTH / 2, 142, '', { ...textStyle(12, '#ffe14d'), stroke: '#1a1410', strokeThickness: 3 }).setOrigin(0.5).setVisible(false);
+    this.hpBar = this.add.graphics();
+    this.add.bitmapText(12, 28, PIXEL_FONT, 'HP', 7).setLetterSpacing(-1).setScale(2);
+    this.guideText = this.add
+      .text(LOGICAL_WIDTH / 2, 120, '', { ...textStyle(14, '#ffe14d'), backgroundColor: '#000000c0', padding: { x: 10, y: 5 } })
+      .setOrigin(0.5)
+      .setVisible(false);
+    this.battle.events.on('guide', this.onGuide);
     this.battle.events.on('warn', this.onWarn);
     this.battle.events.on('boss:judged', this.onBossJudged);
     this.battle.events.on('result', this.onResult);
@@ -125,6 +139,7 @@ export class HudScene extends Phaser.Scene {
       this.battle.events.off('cards:effect', this.onCardEffect);
       this.battle.events.off('toast', this.onToast);
       this.battle.events.off('warn', this.onWarn);
+      this.battle.events.off('guide', this.onGuide);
       this.battle.events.off('boss:judged', this.onBossJudged);
       this.battle.events.off('result', this.onResult);
       this.cardHud.destroy();
@@ -157,6 +172,8 @@ export class HudScene extends Phaser.Scene {
     this.bannerText.setVisible(b.bannerMessage !== null).setText(b.bannerMessage ?? '');
 
     this.skillHud.update();
+    this.drawHp();
+    this.drawGuide(time);
     this.drawWarn(time);
     this.drawBoss(time);
     if (this.resultPanel) {
@@ -164,6 +181,33 @@ export class HudScene extends Phaser.Scene {
     } else if (this.levelUp) this.updateLevelUp(time);
     else this.cardHud.update(time);
     this.controls.endFrame();
+  }
+
+  /** 좌상단 체력(Lv·경험치 아래) */
+  private drawHp(): void {
+    const p = this.battle.player;
+    const g = this.hpBar.clear();
+    const x = 64;
+    const y = 32;
+    const w = 200;
+    const k = Math.max(0, p.hp) / p.maxHp;
+    g.fillStyle(0x1a1410, 0.9).fillRect(x - 1, y - 1, w + 2, 8);
+    g.fillStyle(0x5a2020, 1).fillRect(x, y, w, 6);
+    g.fillStyle(k > 0.3 ? 0x6fd06f : 0xff5040, 1).fillRect(x, y, Math.round(w * k), 6);
+  }
+
+  /** 가이드 팁 한 줄씩(대기열) */
+  private drawGuide(time: number): void {
+    if (time < this.guideUntil) return;
+    const next = this.guideQueue.shift();
+    if (!next) {
+      this.guideText.setVisible(false);
+      return;
+    }
+    this.guideText.setText(`▶ ${next}`).setVisible(true).setAlpha(0);
+    this.tweens.add({ targets: this.guideText, alpha: 1, duration: 200 });
+    this.guideUntil = time + guideData.showMs;
+    this.battle.audio.play('select');
   }
 
   /** 예고 문구 + 남은 초(마지막 3초는 깜빡임) */

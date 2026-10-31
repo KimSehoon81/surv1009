@@ -28,6 +28,11 @@ import { CARD_DATA, CardSystem } from '../systems/cards';
 import { EffectRunner } from '../systems/effectRunner';
 import { TIMELINES, TimelineSystem } from '../systems/timeline';
 import { MineSystem } from '../systems/mines';
+import { NpcSystem, type NpcId } from '../systems/npcs';
+import { save } from '../systems/save';
+import { Guide, type GuideState } from '../core/guide';
+import guideData from '../data/guide.json';
+import npcData from '../data/npcs.json';
 import { EnemyAttackSystem } from '../systems/enemyAttacks';
 import { SkillSlots, type CastReject, type SkillDef } from '../core/skills';
 import { damageTakenMult } from '../core/enemyAttack';
@@ -60,6 +65,8 @@ const TIMELINE_IDS = Object.keys(TIMELINES);
 const TP = skillsData.tp;
 const TP_BY_TIER: Record<string, number> = { normal: TP.perKill, elite: TP.perEliteKill, boss: TP.perBossKill };
 const SKILL_ACTIONS = skillsData.slots.map((s) => s.action as InputAction);
+// ?reset=1: 페이지당 한 번 저장 초기화(가이드·첫 판 다시 보기)
+let resetDone = false;
 const STAGES = stagesData.stages as unknown as Record<string, StageDef>;
 const DISRUPTION_NAMES: Record<string, string> = { smoke: '포연' };
 const CAST_REJECT: Record<CastReject, string> = { locked: '잠긴 슬롯', empty: '장착한 스킬 없음', cooldown: '재사용 대기 중', tp: 'TP 부족', unimplemented: '준비 중인 스킬' };
@@ -109,6 +116,9 @@ export class BattleScene extends Phaser.Scene {
   stage!: StageDef;
   director!: StageDirector;
   disruptions!: Disruptions;
+  /** 첫 플레이 가이드(상황 발생형 팁) */
+  guide!: Guide;
+  private npcs!: NpcSystem;
   /** 살아 있는 보스(HUD 체력바·작전 카드) */
   boss: Enemy | null = null;
   /** 결과 화면에 넘긴 기록(점령·전사 뒤) */
@@ -200,7 +210,10 @@ export class BattleScene extends Phaser.Scene {
         stage: () => 1,
         sealOpReduction: () => Math.round(battle.player.stats.sealOpReduction),
         canAct: () => !battle.run.defeated && !battle.run.captured && !battle.progression.isOpen && !battle.clock.hasScale('pause') && !battle.opsOpen,
-        onResult: (success) => battle.feel.hit(success ? 'card_success' : 'card_fail', battle.player.x, battle.player.y - combat.bodyOffsetY),
+        onResult: (success) => {
+          battle.feel.hit(success ? 'card_success' : 'card_fail', battle.player.x, battle.player.y - combat.bodyOffsetY);
+          if (!success) battle.tip('firstFail');
+        },
         onEffect: (ev) => {
           battle.events.emit('cards:effect', ev);
           battle.onCardEvent(ev);
@@ -269,6 +282,8 @@ export class BattleScene extends Phaser.Scene {
         if (ev.type === 'judged' && e === this.boss) this.events.emit('boss:judged', ev.result);
       },
     });
+    this.npcs = new NpcSystem(this, rng.fork('npcs'));
+    this.setupGuide();
     this.timelines = new TimelineSystem({
       scene: this,
       clock: this.clock,
@@ -377,6 +392,14 @@ export class BattleScene extends Phaser.Scene {
       this.skillInput(now);
       this.effects.update();
       this.timelines.update();
+      this.npcs.update(now, target, {
+        onTalk: (id, text) => this.toast(`${npcData.npcs[id].name}: "${text}"`, '#e8dcc0'),
+        onGive: (id) => {
+          for (const fx of npcData.npcs[id].effects) runEffect(fx.effect, this.effects, fx.params as Params, 1);
+          this.audio.play('heal');
+        },
+      });
+      this.guideTick(now);
       this.mines.update(now, this.enemies.grid, target, {
         onExplode: (x, y, spec) => {
           this.timelines.cue('mine_blast', x, y);
@@ -621,10 +644,47 @@ export class BattleScene extends Phaser.Scene {
         }
         break;
       }
+      case 'npc':
+        this.npcs.spawn(ev.npc as NpcId, p, now);
+        this.toast(`${npcData.npcs[ev.npc as NpcId]?.name ?? ev.npc} 등장 — 다가가서 만나기`, '#6fd06f');
+        break;
       case 'pacing':
         this.toast(ev.label, ev.mult > 1 ? '#ff8060' : '#7fd8ff');
         break;
     }
+  }
+
+  /** 가이드 준비: 저장에서 본 팁·켜짐을 읽고, 첫 판이면 첫 손패에 연습 짝(공군+정보) */
+  private setupGuide(): void {
+    if (params.reset && !resetDone) {
+      resetDone = true;
+      for (const k of ['guide', 'profile.firstRunDone']) save.remove(k);
+    }
+    const state = save.get<GuideState>('guide', { enabled: true, seen: [] });
+    this.guide = new Guide(guideData.tips, state, (s) => save.set('guide', s));
+    if (this.guide.enabled && !save.get('profile.firstRunDone', false)) {
+      this.cards.seedPractice(guideData.practicePair);
+      save.set('profile.firstRunDone', true);
+    }
+  }
+
+  /** 상황이 처음 생기면 한 줄 팁(HUD) */
+  tip(id: string): void {
+    const text = this.guide?.trigger(id);
+    if (text) this.events.emit('guide', text);
+  }
+
+  private guideTick(now: number): void {
+    if (!this.guide.enabled) return;
+    const t = now / 1000;
+    const hand = this.cards.state.hand;
+    if (t >= guideData.moveAtSec) this.tip('move');
+    if (t >= guideData.firstCardAtSec && hand.length > 0) this.tip('firstCard');
+    if (this.guide.has('firstCard') && t >= guideData.firstCardAtSec + 15 && this.cards.advice()?.combo) this.tip('firstPair');
+    if (this.progression.level >= 3) this.tip('lv3');
+    if (this.cards.state.seals > 0) this.tip('firstSeal');
+    if (hand.some((c) => CARD_DATA.cards[c.id]?.tag === 'minus')) this.tip('firstMinus');
+    if (this.disruptions.active.length > 0) this.tip('firstDisruption');
   }
 
   /** 보스 진입 순간 런 상태 저장(보스 재도전 1회 기반, 재도전 UI는 D19) */

@@ -20,7 +20,7 @@ import skillsData from '../data/skills.json';
 function battleAssets(): AssetSpec[] {
   // 스테이지의 모든 적(구간 스폰·엘리트·보스)
   const st = stagesData.stages.S1;
-  const enemyIds = [...new Set([...st.phases.flatMap((p) => p.spawns.map((s) => s.enemy)), ...st.elites.map((e) => e.enemy), st.boss.enemy])];
+  const enemyIds = [...new Set([...st.phases.flatMap((p) => p.spawns.map((s) => s.enemy)), ...st.elites.map((e) => e.enemy), st.boss.enemy, ...st.npcs])];
   const units = [...Object.keys(characters.characters), ...enemyIds].flatMap((id) => manifest.unitSheets(id));
   // UI 그림: 무기 투사체, 경험치 별, 레벨업 업그레이드 아이콘(데이터가 참조하는 것 전부)
   const weaponSprites = Object.values(weaponData.weapons).map((w) => w.sprite);

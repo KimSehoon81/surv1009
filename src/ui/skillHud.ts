@@ -2,22 +2,22 @@ import type * as Phaser from 'phaser';
 import skillsData from '../data/skills.json';
 import { manifest } from '../assets/manifest';
 import type { SkillSlots } from '../core/skills';
-import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
+import { LOGICAL_WIDTH } from '../config/display';
 import { PIXEL_FONT } from './pixelFont';
 
 const BOX = 34;
 const GAP = 6;
 const RIGHT = 16;
-const BOTTOM = 12;
+const TOP = 20;
 
-/** 고급 스킬 슬롯 4칸(Q·E·R·F)과 TP 게이지(화면 오른쪽 아래, PRD §6.1·§11) */
+/** 고급 스킬 슬롯 4칸(Q·E·R·F)과 TP 게이지(화면 오른쪽 위, PRD §11 HUD 배치) */
 export class SkillHud {
   private readonly gfx: Phaser.GameObjects.Graphics;
   private readonly icons: (Phaser.GameObjects.Image | null)[] = [];
   private readonly costs: Phaser.GameObjects.BitmapText[] = [];
   private readonly tpText: Phaser.GameObjects.BitmapText;
   private readonly x0 = LOGICAL_WIDTH - RIGHT - 4 * BOX - 3 * GAP;
-  private readonly y0 = LOGICAL_HEIGHT - BOTTOM - BOX;
+  private readonly y0 = TOP;
 
   constructor(
     scene: Phaser.Scene,
@@ -29,7 +29,7 @@ export class SkillHud {
       const x = this.x0 + i * (BOX + GAP);
       const def = slot.skillId ? skillsData.skills[slot.skillId as keyof typeof skillsData.skills] : undefined;
       this.icons.push(def ? scene.add.image(x + BOX / 2, this.y0 + BOX / 2, manifest.image('skills', def.icon, 32, 32).key) : null);
-      scene.add.bitmapText(x + 1, this.y0 - 9, PIXEL_FONT, slot.key, 7).setLetterSpacing(-1);
+      scene.add.bitmapText(x + 2, this.y0 + 2, PIXEL_FONT, slot.key, 7).setLetterSpacing(-1).setDepth(1);
       this.costs.push(
         scene.add
           .bitmapText(x + BOX - 1, this.y0 + BOX - 1, PIXEL_FONT, def ? String(def.tpCost) : '', 7)
@@ -37,7 +37,7 @@ export class SkillHud {
           .setLetterSpacing(-1),
       );
     });
-    this.tpText = scene.add.bitmapText(this.x0, this.y0 - 24, PIXEL_FONT, 'TP', 7).setLetterSpacing(-1);
+    this.tpText = scene.add.bitmapText(this.x0, this.y0 - 16, PIXEL_FONT, 'TP', 7).setLetterSpacing(-1);
   }
 
   update(): void {
@@ -47,7 +47,7 @@ export class SkillHud {
     // TP 게이지
     const w = 4 * BOX + 3 * GAP - 34;
     const bx = this.x0 + 34;
-    const by = this.y0 - 22;
+    const by = this.y0 - 14;
     this.tpText.setText(`TP ${Math.floor(s.tp)}`);
     g.fillStyle(0x1a1410, 0.9).fillRect(bx - 1, by - 1, w + 2, 7);
     g.fillStyle(0x2a2a3a, 1).fillRect(bx, by, w, 5);

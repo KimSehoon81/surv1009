@@ -91,7 +91,10 @@ export interface CardEnv {
 
 export type CardAction =
   | { type: 'tick'; dtMs: number }
-  | { type: 'submit'; uids: readonly number[]; useSeal?: boolean }
+  /** forceSuccess: 연습 카드(첫 플레이 가이드) 확정 성공. 인장과 같은 경로지만 인장을 쓰지 않음 */
+  | { type: 'submit'; uids: readonly number[]; useSeal?: boolean; forceSuccess?: boolean }
+  /** 손패의 마이너스 카드 전부 정화(군의관 NPC) */
+  | { type: 'purgeMinus' }
   | { type: 'add'; id: string; disguised?: boolean }
   | { type: 'shuffleHand' }
   | { type: 'primeIntel' }
@@ -224,7 +227,7 @@ export function cardStep(state: CardState, action: CardAction, env: CardEnv, rng
       tick(s, action.dtMs, env, rng, data, events);
       break;
     case 'submit':
-      submit(s, action.uids, action.useSeal ?? false, env, rng, data, events);
+      submit(s, action.uids, action.useSeal ?? false, env, rng, data, events, action.forceSuccess ?? false);
       break;
     case 'add': {
       if (!data.cards[action.id]) break;
@@ -252,6 +255,12 @@ export function cardStep(state: CardState, action: CardAction, env: CardEnv, rng
     case 'penalty':
       s.penalties.push({ value: action.value, submits: action.submits });
       break;
+    case 'purgeMinus': {
+      const minus = s.hand.filter((c) => data.cards[c.id]?.tag === 'minus');
+      removeFromHand(s, minus);
+      for (const c of minus) events.push({ type: 'purified', card: c });
+      break;
+    }
     case 'grantOp':
       addOp(s, action.amount, env, data, events);
       break;
@@ -372,7 +381,7 @@ function removeFromHand(s: CardState, cards: readonly CardInstance[]): void {
   s.hand = s.hand.filter((c) => !ids.has(c.uid));
 }
 
-function submit(s: CardState, uids: readonly number[], useSeal: boolean, env: CardEnv, rng: Rng, data: CardData, events: CardEvent[]): void {
+function submit(s: CardState, uids: readonly number[], useSeal: boolean, env: CardEnv, rng: Rng, data: CardData, events: CardEvent[], force = false): void {
   const v = validate(s, uids, useSeal, env, data);
   if (typeof v === 'string') {
     events.push({ type: 'rejected', reason: v });
@@ -387,8 +396,8 @@ function submit(s: CardState, uids: readonly number[], useSeal: boolean, env: Ca
   }
 
   const chance = chanceFor(s, v, useSeal, env, data);
-  const actual = useSeal ? 1 : r.pity ? pityChance(chance.final, s.failStreak) : chance.final;
-  const success = useSeal || rng.next() < actual;
+  const actual = useSeal || force ? 1 : r.pity ? pityChance(chance.final, s.failStreak) : chance.final;
+  const success = useSeal || force || rng.next() < actual;
   const match = matchCombo(tagged(v.real, data), data.combos, s.comboCooldowns, env.nowMs);
 
   s.stats.submits++;

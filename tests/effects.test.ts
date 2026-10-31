@@ -40,6 +40,8 @@ function fakeCtx() {
       penalty: (v, n) => calls.push(`penalty:${v}:${n}`),
       grantOp: (n) => calls.push(`op:${n}`),
       shuffleHand: () => calls.push('shuffle'),
+      give: (id) => calls.push(`give:${id}`),
+      purgeMinus: () => calls.push('purge'),
     },
     progression: { bonus: (b) => bonus.push(b), addRerolls: (n) => calls.push(`rerolls:${n}`) },
     addTp: (n) => calls.push(`tp:${n}`),

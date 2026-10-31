@@ -12,6 +12,7 @@ import {
   type CardData,
   type CardEnv,
   type CardEvent,
+  type CardInstance,
   type CardRules,
   type CardState,
   type SubmitPreview,
@@ -68,6 +69,8 @@ export class CardSystem {
   lastReject: { reason: string; atReal: number } | null = null;
   private selectStartReal: number | null = null;
   private selectExpired = false;
+  /** 연습 카드 uid(첫 플레이 가이드): 이 카드가 들어간 첫 제출은 확정 성공 */
+  readonly practice = new Set<number>();
   /** 연출용 이벤트 목록(HUD가 매 프레임 가져가 비움) */
   readonly feed: CardEvent[] = [];
 
@@ -102,10 +105,19 @@ export class CardSystem {
   /** 지금 고른 카드로 내면(미리보기) */
   preview(useSeal = false): SubmitPreview | null {
     if (this.selected.length === 0) return null;
-    return previewSubmit(this.state, this.selected, useSeal, this.env(), CARD_DATA);
+    const pv = previewSubmit(this.state, this.selected, useSeal, this.env(), CARD_DATA);
+    // 연습 카드가 들어가면 확정 성공으로 보여 준다
+    if (pv.chance && this.selected.some((uid) => this.practice.has(uid))) return { ...pv, chance: { ...pv.chance, final: 1 }, lose: undefined };
+    return pv;
   }
 
   advice(): Advice | null {
+    // 연습 짝이 손에 다 있으면 그것을 추천(첫 판: Space 두 번이면 정밀 폭격 확정 성공)
+    const practice = this.state.hand.filter((c) => this.practice.has(c.uid)).map((c) => c.uid);
+    if (practice.length > 0 && practice.length === this.practice.size) {
+      const pv = previewSubmit(this.state, practice, false, this.env(), CARD_DATA);
+      if (pv.ok) return { uids: practice, combo: pv.combo ?? null, chance: 1, lose: null, score: Infinity };
+    }
     return recommend(this.state, this.env(), CARD_DATA);
   }
 
@@ -162,13 +174,15 @@ export class CardSystem {
       this.host.audio.play('card_select', undefined, undefined, { combo: 3 });
       return;
     }
-    const r = cardStep(this.state, { type: 'submit', uids: this.selected, useSeal }, this.env(), this.rng, CARD_DATA);
+    const forceSuccess = this.selected.some((uid) => this.practice.has(uid));
+    const r = cardStep(this.state, { type: 'submit', uids: this.selected, useSeal, forceSuccess }, this.env(), this.rng, CARD_DATA);
     const rejected = r.events.find((e) => e.type === 'rejected');
     if (rejected) {
       this.reject(rejected.reason, nowReal);
       return;
     }
     this.apply(r);
+    if (forceSuccess) this.practice.clear();
     this.selected = [];
     const judged = r.events.find((e): e is JudgedEvent => e.type === 'judged');
     if (!judged) {
@@ -206,7 +220,7 @@ export class CardSystem {
   }
 
   /** 카드 효과가 카드 상태를 바꿀 때(척후 보고·오보·잔효 OP·지휘 혼선·콤보 보급·통신 복구) */
-  act(action: Extract<CardAction, { type: 'primeIntel' | 'penalty' | 'grantOp' | 'shuffleHand' | 'drawNow' | 'clearPenalty' }>): CardEvent[] {
+  act(action: Extract<CardAction, { type: 'primeIntel' | 'penalty' | 'grantOp' | 'shuffleHand' | 'drawNow' | 'clearPenalty' | 'purgeMinus' }>): CardEvent[] {
     const r = cardStep(this.state, action, this.env(), this.rng, CARD_DATA);
     this.apply(r);
     if (action.type === 'shuffleHand') this.selected = [];
@@ -250,7 +264,18 @@ export class CardSystem {
   }
 
   /** 디버그·NPC: 카드 지급 */
-  give(id: string): void {
-    this.apply(cardStep(this.state, { type: 'add', id }, this.env(), this.rng, CARD_DATA));
+  give(id: string): CardInstance | null {
+    const r = cardStep(this.state, { type: 'add', id }, this.env(), this.rng, CARD_DATA);
+    this.apply(r);
+    const d = r.events.find((e) => e.type === 'drawn');
+    return d && d.type === 'drawn' ? d.card : null;
+  }
+
+  /** 첫 판 첫 손패에 연습 카드(공군+정보 짝)를 넣는다 */
+  seedPractice(ids: readonly string[]): void {
+    for (const id of ids) {
+      const c = this.give(id);
+      if (c) this.practice.add(c.uid);
+    }
   }
 }

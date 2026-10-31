@@ -38,7 +38,7 @@ export interface EffectContext {
   schedule(delayMs: number, fn: () => void): void;
   flashEnemiesOnScreen(ms: number): void;
   toast(msg: string, color?: string): void;
-  cards: { primeIntel(): void; penalty(value: number, submits: number): void; grantOp(n: number): void; shuffleHand(): void };
+  cards: { primeIntel(): void; penalty(value: number, submits: number): void; grantOp(n: number): void; shuffleHand(): void; give(id: string): void; purgeMinus(): void };
   progression: { bonus(b: { count?: number; rarePlusBonus?: number; valueMultiplier?: number }): void; addRerolls(n: number): void };
   addTp(n: number): void;
   /** 방해 하나 해제(없으면 false) */
@@ -192,6 +192,18 @@ export const EFFECTS: Record<string, EffectHandler> = {
 
   tp(ctx, p, power) {
     ctx.addTp(num(p, 'amount', 5) * power);
+  },
+
+  /** 카드 지급(NPC 종군기자 등): ids(쉼표 구분) 중 하나 */
+  giveCard(ctx, p) {
+    const ids = str(p, 'ids').split(',').map((x) => x.trim()).filter(Boolean);
+    const id = ids[Math.floor(ctx.rand() * ids.length)];
+    if (id) ctx.cards.give(id);
+  },
+
+  /** 손패 마이너스 카드 정화(군의관) */
+  purgeMinus(ctx) {
+    ctx.cards.purgeMinus();
   },
 
   /** 철조망(공병 실패 잔효): 주변 적 잠깐 멈춤 */

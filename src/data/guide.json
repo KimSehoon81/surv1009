@@ -1,0 +1,20 @@
+{
+  "$comment": "첫 플레이 가이드(PRD §5.2 v0.2). tips=상황 ID → 한 줄 문구(나중 i18n 대상), 처음 그 상황이 생길 때 한 번만. moveAtSec=이동 팁 시각, firstCardAtSec=첫 카드 팁 시각. practicePair=첫 판 첫 손패에 넣는 공군+정보 짝(정밀 폭격), 이 카드가 들어간 첫 제출은 확정 성공(연습). showMs=팁 표시 시간. 저장 키: guide(enabled·seen), profile.firstRunDone",
+  "moveAtSec": 5,
+  "firstCardAtSec": 12,
+  "showMs": 4500,
+  "practicePair": [
+    "P04",
+    "P10"
+  ],
+  "tips": {
+    "move": "WASD로 이동, 사격은 자동",
+    "firstCard": "Space 두 번이면 추천 조합으로 작전 개시 (연습 카드: 정밀 폭격 성공 확정, 1~5로 직접 골라도 됨)",
+    "firstFail": "실패해도 OP +1, 10이 모이면 확정 성공 인장",
+    "firstPair": "짝 카드를 함께 내면 큰 스킬, 성공률 상승",
+    "lv3": "Q로 고급 스킬 (TP 소모)",
+    "firstSeal": "Shift+Space로 인장 걸고 제출 = 확정 성공",
+    "firstMinus": "마이너스 카드: 단독으로 내면 OP 3으로 폐기, 조합에 끼우면 무리수",
+    "firstDisruption": "방해는 10초 후 걷힘, 통신 복구 카드로 즉시 해제"
+  }
+}

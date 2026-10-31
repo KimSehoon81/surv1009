@@ -247,6 +247,8 @@ export class EffectRunner implements EffectContext {
     penalty: (value: number, submits: number): void => void this.d.cards.act({ type: 'penalty', value, submits }),
     grantOp: (n: number): void => void this.d.cards.act({ type: 'grantOp', amount: n }),
     shuffleHand: (): void => void this.d.cards.act({ type: 'shuffleHand' }),
+    give: (id: string): void => void this.d.cards.give(id),
+    purgeMinus: (): void => void this.d.cards.act({ type: 'purgeMinus' }),
   };
 
   readonly progression = {

@@ -44,6 +44,8 @@ export interface StageDef {
   boss: { enemy: string; trigger: { level: number; time: number }; warnSec: number; spawnMult: number };
   disruptions: readonly DisruptionDef[];
   npcAt?: readonly number[];
+  /** npcAt 시각마다 차례로 나올 NPC */
+  npcs?: readonly string[];
 }
 
 export type StageEvent =
@@ -53,7 +55,8 @@ export type StageEvent =
   | { type: 'boss'; enemy: string }
   | { type: 'disruptionWarn'; def: DisruptionDef; inSec: number }
   | { type: 'disruption'; def: DisruptionDef }
-  | { type: 'pacing'; label: string; mult: number };
+  | { type: 'pacing'; label: string; mult: number }
+  | { type: 'npc'; npc: string };
 
 export function phaseAt(stage: StageDef, t: number): StagePhase {
   return stage.phases.find((p) => t >= p.from && (p.to === null || t < p.to)) ?? (stage.phases[stage.phases.length - 1] as StagePhase);
@@ -95,6 +98,7 @@ export class StageDirector {
   /** 예고한 방해의 시작 시각(-1이면 없음) */
   private disruptionPending: number[];
   private lastPacing: PacingEntry | null = null;
+  private npcNext = 0;
 
   constructor(readonly stage: StageDef) {
     this.eliteDone = stage.elites.map(() => false);
@@ -150,6 +154,13 @@ export class StageDirector {
     if (this.bossAt !== null && !this.bossSpawned && t >= this.bossAt) {
       this.bossSpawned = true;
       ev.push({ type: 'boss', enemy: b.enemy });
+    }
+    const npcAt = st.npcAt ?? [];
+    while (this.npcNext < npcAt.length && t >= (npcAt[this.npcNext] ?? Infinity)) {
+      const list = st.npcs ?? [];
+      const npc = list[this.npcNext % Math.max(1, list.length)];
+      this.npcNext++;
+      if (npc) ev.push({ type: 'npc', npc });
     }
     const pace = pacingAt(st, t);
     if (pace !== this.lastPacing) {

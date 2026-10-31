@@ -1,0 +1,38 @@
+{
+  "$comment": "NPC(PRD §9.3). 진영 neutral: 적의 공격 대상이 아니고 피격 판정 없음. 접촉하면 대화(talkMs) → 지급 동작 + effects(systems/effects 레지스트리 재사용: giveCard ids 중 하나 지급, heal, purgeMinus 손패 마이너스 정화). lifeMs 안에 만나지 못하면 떠남. 등장 시각은 stages.json npcAt, 종류는 stages.json npcs에서 차례로. distance=플레이어에게서 등장 거리 px",
+  "distance": 200,
+  "contactRadius": 28,
+  "talkMs": 900,
+  "lifeMs": 30000,
+  "fadeMs": 500,
+  "npcs": {
+    "N01": {
+      "name": "종군기자",
+      "talk": "전황 기록 중입니다. 정찰 자료를 드리죠!",
+      "effects": [
+        {
+          "effect": "giveCard",
+          "params": {
+            "ids": "P10,P13,P11"
+          }
+        }
+      ]
+    },
+    "N02": {
+      "name": "야전 군의관",
+      "talk": "부상자 처치합니다. 나쁜 소식도 걷어 드리죠!",
+      "effects": [
+        {
+          "effect": "heal",
+          "params": {
+            "pct": 0.25
+          }
+        },
+        {
+          "effect": "purgeMinus",
+          "params": {}
+        }
+      ]
+    }
+  }
+}
