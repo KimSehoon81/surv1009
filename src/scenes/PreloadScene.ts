@@ -3,6 +3,7 @@ import floorData from '../data/floor.json';
 import characters from '../data/characters.json';
 import stagesData from '../data/stages.json';
 import sfxData from '../data/sfx.json';
+import { resetProfile } from '../systems/save';
 import feelData from '../data/feel.json';
 import weaponData from '../data/weapons.json';
 import upgradesData from '../data/upgrades.json';
@@ -83,6 +84,7 @@ export class PreloadScene extends Phaser.Scene {
   create(): void {
     const result = ensureTextures(this, this.specs);
     console.info(`[assets] 파일 ${result.fromFile}개, 자리표시자 ${result.placeholders}개`);
-    this.scene.start(params.audioGallery ? SceneKey.AudioGallery : params.gallery ? SceneKey.Gallery : SceneKey.Battle);
+    if (params.reset) resetProfile();
+    this.scene.start(params.audioGallery ? SceneKey.AudioGallery : params.gallery ? SceneKey.Gallery : params.quickBattle ? SceneKey.Battle : SceneKey.Menu);
   }
 }

@@ -12,6 +12,8 @@ export const params = {
   debug: import.meta.env.DEV || q.has('debug'),
   /** 스테이지(stages.json 키) */
   stage: q.get('stage') ?? 'S1',
+  /** 메뉴를 건너뛰고 바로 전투(?debug=1·?battle=1, ?menu=1이면 메뉴부터) */
+  quickBattle: (q.has('debug') || q.has('battle')) && !q.has('menu'),
   /** 저장 초기화(첫 실행 흐름 확인용, ?reset=1) */
   reset: q.has('reset'),
   /** 바닥 무늬 등 시드 */

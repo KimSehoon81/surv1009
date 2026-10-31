@@ -5,6 +5,9 @@ export const SceneKey = {
   Gallery: 'Gallery',
   Hud: 'Hud',
   AudioGallery: 'AudioGallery',
+  Menu: 'Menu',
+  Map: 'Map',
+  Prep: 'Prep',
 } as const;
 
 export type SceneKey = (typeof SceneKey)[keyof typeof SceneKey];

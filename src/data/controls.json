@@ -1,5 +1,5 @@
 {
-  "$comment": "키 배치(PRD §3). 액션 이름 → Phaser 키 이름 목록. D29·D42에서 키 재설정이 이 표를 바꾼다. debug*는 개발용(디버그 모드에서만). levelPick1~4·levelReroll은 레벨업 창(전투 정지 중)에서만 쓰여 전투 키와 상황이 겹치지 않는다(PRD §3 키 재설정 규칙). cardSelect1~5·cardSubmit(Shift와 함께면 인장 제출)·cardClear·opsBoard는 전투 중 카드 조작(PRD §3 v0.2). skillQ·E·R·F는 고급 스킬 슬롯(W는 이동과 겹쳐 F). R은 levelReroll과 같지만 레벨업 창이 열리면 스킬 입력이 막혀 상황이 겹치지 않는다",
+  "$comment": "키 배치(PRD §3). 액션 이름 → Phaser 키 이름 목록. D29·D42에서 키 재설정이 이 표를 바꾼다. debug*는 개발용(디버그 모드에서만). levelPick1~4·levelReroll은 레벨업 창(전투 정지 중)에서만 쓰여 전투 키와 상황이 겹치지 않는다(PRD §3 키 재설정 규칙). cardSelect1~5·cardSubmit(Shift와 함께면 인장 제출)·cardClear·opsBoard는 전투 중 카드 조작(PRD §3 v0.2). skillQ·E·R·F는 고급 스킬 슬롯(W는 이동과 겹쳐 F). ui*·toMap은 메뉴·지도·결과 화면 전용(전투 키와 상황이 겹치지 않음). R은 levelReroll과 같지만 레벨업 창이 열리면 스킬 입력이 막혀 상황이 겹치지 않는다",
   "keys": {
     "up": [
       "W",
@@ -64,6 +64,28 @@
     ],
     "redeploy": [
       "ENTER"
+    ],
+    "toMap": [
+      "M"
+    ],
+    "uiConfirm": [
+      "ENTER",
+      "SPACE"
+    ],
+    "uiBack": [
+      "ESC"
+    ],
+    "uiPrev": [
+      "LEFT",
+      "UP",
+      "A",
+      "W"
+    ],
+    "uiNext": [
+      "RIGHT",
+      "DOWN",
+      "D",
+      "S"
     ],
     "skillQ": [
       "Q"

@@ -29,9 +29,11 @@ import { EffectRunner } from '../systems/effectRunner';
 import { TIMELINES, TimelineSystem } from '../systems/timeline';
 import { MineSystem } from '../systems/mines';
 import { NpcSystem, type NpcId } from '../systems/npcs';
-import { save } from '../systems/save';
+import { loadProfile, updateProfile } from '../systems/save';
+import { recordRun } from '../core/save';
+import type { BattlePayload, MapPayload } from '../types/scenes';
 import { PerfMeter } from '../systems/perfMeter';
-import { Guide, type GuideState } from '../core/guide';
+import { Guide } from '../core/guide';
 import guideData from '../data/guide.json';
 import npcData from '../data/npcs.json';
 import { EnemyAttackSystem } from '../systems/enemyAttacks';
@@ -66,8 +68,6 @@ const TIMELINE_IDS = Object.keys(TIMELINES);
 const TP = skillsData.tp;
 const TP_BY_TIER: Record<string, number> = { normal: TP.perKill, elite: TP.perEliteKill, boss: TP.perBossKill };
 const SKILL_ACTIONS = skillsData.slots.map((s) => s.action as InputAction);
-// ?reset=1: 페이지당 한 번 저장 초기화(가이드·첫 판 다시 보기)
-let resetDone = false;
 const STAGES = stagesData.stages as unknown as Record<string, StageDef>;
 const DISRUPTION_NAMES: Record<string, string> = { smoke: '포연' };
 const CAST_REJECT: Record<CastReject, string> = { locked: '잠긴 슬롯', empty: '장착한 스킬 없음', cooldown: '재사용 대기 중', tp: 'TP 부족', unimplemented: '준비 중인 스킬' };
@@ -146,8 +146,16 @@ export class BattleScene extends Phaser.Scene {
   private hooks!: ProjectileHooks;
   private weaponHooks!: WeaponHooks;
 
+  /** 이번 판 구성(다시 출정은 같은 값) */
+  payload!: BattlePayload;
+
   constructor() {
     super(SceneKey.Battle);
+  }
+
+  init(data: Partial<BattlePayload>): void {
+    const char = data.char ?? (isCharacterId(params.char) ? params.char : 'A01');
+    this.payload = { stage: data.stage ?? params.stage, char };
   }
 
   create(): void {
@@ -166,7 +174,7 @@ export class BattleScene extends Phaser.Scene {
       residueDamage: 0,
       lastHitBy: 'contact',
     });
-    this.stage = STAGES[params.stage] ?? (STAGES.S1 as StageDef);
+    this.stage = STAGES[this.payload.stage] ?? (STAGES.S1 as StageDef);
     this.director = new StageDirector(this.stage);
     this.disruptions = new Disruptions(stagesData.rules.maxDisruptions, stagesData.rules.maxCardObscuring);
     this.boss = null;
@@ -185,8 +193,7 @@ export class BattleScene extends Phaser.Scene {
     this.controls = new InputMap(this);
     this.floor = new Floor(this, floorData[this.stage.floor as keyof typeof floorData] as FloorConfig, params.seed);
 
-    const start: CharacterId = isCharacterId(params.char) ? params.char : 'A01';
-    this.player = new Player(this, 0, 0, start);
+    this.player = new Player(this, 0, 0, this.payload.char);
     this.enemies = new EnemySystem(this, spawnData.S1, rng.fork('enemies'));
     this.enemies.maxAliveNormal = this.stage.maxAlive;
     const first = this.director.spawnsAt(0);
@@ -678,15 +685,17 @@ export class BattleScene extends Phaser.Scene {
 
   /** 가이드 준비: 저장에서 본 팁·켜짐을 읽고, 첫 판이면 첫 손패에 연습 짝(공군+정보) */
   private setupGuide(): void {
-    if (params.reset && !resetDone) {
-      resetDone = true;
-      for (const k of ['guide', 'profile.firstRunDone']) save.remove(k);
-    }
-    const state = save.get<GuideState>('guide', { enabled: true, seen: [] });
-    this.guide = new Guide(guideData.tips, state, (s) => save.set('guide', s));
-    if (this.guide.enabled && !save.get('profile.firstRunDone', false)) {
+    const prof = loadProfile();
+    this.guide = new Guide(guideData.tips, { enabled: prof.settings.guide, seen: prof.flags.guideSeen }, (s) =>
+      updateProfile((d) => {
+        d.flags.guideSeen = s.seen;
+      }),
+    );
+    if (this.guide.enabled && !prof.flags.firstRunDone) {
       this.cards.seedPractice(guideData.practicePair);
-      save.set('profile.firstRunDone', true);
+      updateProfile((d) => {
+        d.flags.firstRunDone = true;
+      });
     }
   }
 
@@ -712,18 +721,16 @@ export class BattleScene extends Phaser.Scene {
   /** 보스 진입 순간 런 상태 저장(보스 재도전 1회 기반, 재도전 UI는 D19) */
   private saveCheckpoint(): void {
     const data = {
-      stage: params.stage,
+      stage: this.payload.stage,
       char: this.player.id,
       level: this.progression.level,
       timeSec: Math.round(this.clock.timeMs / 1000),
       upgrades: this.progression.history.map((h) => h.id),
       savedAt: Date.now(),
     };
-    try {
-      localStorage.setItem(metaData.checkpointKey, JSON.stringify(data));
-    } catch {
-      // 저장소가 막힌 환경(시크릿 창 등)에서는 건너뜀
-    }
+    updateProfile((d) => {
+      d.flags.bossCheckpoint = data;
+    });
   }
 
   /** 보스 처치 → 점령: 깃발 + 슬로모, 잠시 뒤 결과 화면 */
@@ -765,19 +772,22 @@ export class BattleScene extends Phaser.Scene {
     this.result = { record, merit, tip: victory ? '' : defeatTip(record, metaData.tips), rate: actualRate(record) };
     this.clock.pause('result');
     this.bannerMessage = null;
-    try {
-      const key = metaData.meritKey;
-      localStorage.setItem(key, String(Number(localStorage.getItem(key) ?? 0) + merit));
-    } catch {
-      // 저장 못 해도 결과 화면은 보인다
-    }
+    updateProfile((d) => recordRun(d, this.payload.stage, victory, record.timeSec, merit));
     this.events.emit('result', this.result);
     this.audio.playBgm(null);
   }
 
   /** 다시 출정(같은 구성) */
   redeploy(): void {
-    this.scene.restart();
+    this.scene.restart(this.payload);
+  }
+
+  /** 결과 뒤 작전지도로 */
+  toMap(): void {
+    const r = this.result;
+    const payload: MapPayload = r ? { lastResult: { stage: this.payload.stage, victory: r.record.victory, merit: r.merit }, focus: this.payload.stage } : { focus: this.payload.stage };
+    this.scene.stop(SceneKey.Hud);
+    this.scene.start(SceneKey.Map, payload);
   }
 
   private drawHpBar(): void {

@@ -178,6 +178,7 @@ export class HudScene extends Phaser.Scene {
     this.drawBoss(time);
     if (this.resultPanel) {
       if (this.controls.justDown('redeploy')) b.redeploy();
+      else if (this.controls.justDown('toMap')) b.toMap();
     } else if (this.levelUp) this.updateLevelUp(time);
     else this.cardHud.update(time);
     this.controls.endFrame();
@@ -278,9 +279,11 @@ export class HudScene extends Phaser.Scene {
     ];
     root.add(this.add.text(LOGICAL_WIDTH / 2, 140, lines.join('\n'), { ...textStyle(14, '#e8dcc0'), align: 'center', lineSpacing: 6 }).setOrigin(0.5, 0));
     if (r.tip) root.add(this.add.text(LOGICAL_WIDTH / 2, 320, `팁: ${r.tip}`, { ...textStyle(13, '#7fd8ff'), align: 'center', wordWrap: { width: 640 } }).setOrigin(0.5, 0));
-    const again = this.add.text(LOGICAL_WIDTH / 2, 400, 'Enter  다시 출정 (같은 구성)', textStyle(16, '#ffffff')).setOrigin(0.5);
+    const again = this.add.text(LOGICAL_WIDTH / 2 - 120, 400, 'Enter  다시 출정', textStyle(16, '#ffffff')).setOrigin(0.5);
     again.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.battle.redeploy());
-    root.add(again);
+    const map = this.add.text(LOGICAL_WIDTH / 2 + 120, 400, 'M  작전지도', textStyle(16, '#ffffff')).setOrigin(0.5);
+    map.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.battle.toMap());
+    root.add([again, map]);
     root.setAlpha(0);
     this.tweens.add({ targets: root, alpha: 1, duration: 300 });
     this.resultPanel = root;

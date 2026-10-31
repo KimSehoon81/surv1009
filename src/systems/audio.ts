@@ -19,7 +19,7 @@ import {
 import type { Rng } from '../core/rng';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { manifest } from '../assets/manifest';
-import { save } from './save';
+import { loadProfile, updateProfile } from './save';
 
 /** 소리를 내는 쪽이 아는 것은 이것뿐(feel 프리셋의 sfx, 총구, 보급품 등) */
 export interface AudioSink {
@@ -37,7 +37,6 @@ export interface VolumeSettings {
   sfx: number;
   ui: number;
 }
-const VOLUME_KEY = 'settings.volume';
 export const DEFAULT_VOLUME: VolumeSettings = { master: 1, bgm: 1, sfx: 1, ui: 1 };
 
 type BusName = 'bgm' | 'sfx' | 'ui' | 'amb';
@@ -96,7 +95,7 @@ export class AudioSystem implements AudioSink {
   private readonly ducks: { spec: DuckSpec; start: number }[] = [];
   private readonly warned = new Set<string>();
   private newPitchSt = 0;
-  private volume: VolumeSettings = { ...DEFAULT_VOLUME, ...save.get<Partial<VolumeSettings>>(VOLUME_KEY, {}) };
+  private volume: VolumeSettings = { ...DEFAULT_VOLUME, ...loadProfile().settings.volume };
   /** 이 시각(오디오 시계 ms)까지 효과음 버스 무음(큰 착탄 직전 0.2초) */
   private silenceUntil = 0;
   private bgm: { name: string; src: AudioBufferSourceNode; gain: GainNode } | null = null;
@@ -341,7 +340,10 @@ export class AudioSystem implements AudioSink {
   /** 볼륨 설정(0~1) 바꾸고 저장 */
   setVolume(bus: keyof VolumeSettings, v: number): void {
     this.volume[bus] = Math.max(0, Math.min(1, v));
-    save.set(VOLUME_KEY, this.volume);
+    const vol = { ...this.volume };
+    updateProfile((d) => {
+      d.settings.volume = vol;
+    });
     if (bus === 'master' && this.master && this.ctx) this.master.gain.setTargetAtTime(sfxData.buses.master * this.volume.master, this.ctx.currentTime, 0.02);
   }
 
