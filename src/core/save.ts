@@ -13,7 +13,11 @@ export interface StageRecord {
 export interface SaveData {
   v: number;
   stages: Record<string, StageRecord>;
-  unlocks: { chars: string[]; skills: string[] };
+  unlocks: { chars: string[]; skills: string[]; cards?: string[] };
+  /** 마지막 출정 구성(출정 준비 화면이 다음에 그대로 보여 줌) */
+  loadout?: Loadout;
+  /** 덱 프리셋(1칸) */
+  deckPreset?: string[];
   merit: number;
   /** 스타팅 포인트 강화 단계(D19) */
   startUpgrades: Record<string, number>;
@@ -27,6 +31,13 @@ export interface SaveData {
     /** 보스 진입 순간 런 상태(보스 재도전 1회 기반, D19) */
     bossCheckpoint?: unknown;
   };
+}
+
+export interface Loadout {
+  char: string;
+  deck: string[];
+  /** 슬롯 키(Q·E·R·F) → 스킬 ID */
+  skills: Record<string, string | null>;
 }
 
 export function defaultSave(): SaveData {

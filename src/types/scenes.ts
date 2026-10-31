@@ -18,4 +18,8 @@ export interface PrepPayload {
 export interface BattlePayload {
   stage: string;
   char: CharacterId;
+  /** 덱 20장(없으면 기본 덱) */
+  deck?: string[];
+  /** 슬롯 키 → 장착 스킬(없으면 skills.json equip) */
+  skills?: Record<string, string | null>;
 }

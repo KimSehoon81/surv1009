@@ -1,5 +1,5 @@
 {
-  "$comment": "카드 카탈로그(PRD §5.3.1). tag: infantry 보병, artillery 포병, armor 기갑, air 공군, navy 해군, intel 정보, engineer 공병, medical 의무, allied 연합, minus 마이너스. grade: common < rare < legendary(실패 시 낮은 등급부터 소멸), minus는 마이너스. effect=원자 효과 ID(systems/effects.ts 레지스트리), params=그 수치(damage는 공격력 배수, pct는 최대 체력 비율, ms·delayMs는 전투 시계). power(무리수 실패 2배·조합 대체 2배)는 피해·회복·버프 크기에 곱해짐. failResidue=실패로 사라진 카드의 병과별 약한 흔적(PRD §5.1 v0.2, 해군·기갑은 PRD 표에 없어 같은 계열로 추가). comboFallbackPower=조합 스킬 연출(D10~D11) 전까지 조합 성공 시 쓰인 카드 효과를 이 배수로 대신 냄. starterDeck=기본 덱 20장(P12·P14·P16은 해금 카드, PRD 밖 구성). desc=툴팁 문구",
+  "$comment": "카드 카탈로그(PRD §5.3.1). tag: infantry 보병, artillery 포병, armor 기갑, air 공군, navy 해군, intel 정보, engineer 공병, medical 의무, allied 연합, minus 마이너스. grade: common < rare < legendary(실패 시 낮은 등급부터 소멸), minus는 마이너스. effect=원자 효과 ID(systems/effects.ts 레지스트리), params=그 수치(damage는 공격력 배수, pct는 최대 체력 비율, ms·delayMs는 전투 시계). power(무리수 실패 2배·조합 대체 2배)는 피해·회복·버프 크기에 곱해짐. failResidue=실패로 사라진 카드의 병과별 약한 흔적(PRD §5.1 v0.2, 해군·기갑은 PRD 표에 없어 같은 계열로 추가). comboFallbackPower=조합 스킬 연출(D10~D11) 전까지 조합 성공 시 쓰인 카드 효과를 이 배수로 대신 냄. starterDeck=기본 덱 20장(P12·P14·P16은 해금 카드, PRD 밖 구성). desc=툴팁 문구 deckRules(D18 덱 편집): size=덱 장수(정확히), maxCopies=등급별 같은 카드 최대 장수, 마이너스 카드는 덱에 못 넣음, lockedByDefault=처음엔 잠긴 카드(점령 보상으로 해금, D19)",
   "tags": {
     "infantry": "보병",
     "artillery": "포병",
@@ -407,5 +407,18 @@
       }
     }
   },
-  "comboFallbackPower": 2
+  "comboFallbackPower": 2,
+  "deckRules": {
+    "size": 20,
+    "maxCopies": {
+      "common": 3,
+      "rare": 2,
+      "legendary": 1
+    },
+    "lockedByDefault": [
+      "P12",
+      "P14",
+      "P16"
+    ]
+  }
 }

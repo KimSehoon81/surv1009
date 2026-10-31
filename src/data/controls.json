@@ -75,6 +75,30 @@
     "uiBack": [
       "ESC"
     ],
+    "uiUp": [
+      "UP",
+      "W"
+    ],
+    "uiDown": [
+      "DOWN",
+      "S"
+    ],
+    "uiLeft": [
+      "LEFT",
+      "A"
+    ],
+    "uiRight": [
+      "RIGHT",
+      "D"
+    ],
+    "uiInc": [
+      "PLUS",
+      "NUMPAD_ADD"
+    ],
+    "uiDec": [
+      "MINUS",
+      "NUMPAD_SUBTRACT"
+    ],
     "uiPrev": [
       "LEFT",
       "UP",

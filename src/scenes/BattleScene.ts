@@ -155,7 +155,7 @@ export class BattleScene extends Phaser.Scene {
 
   init(data: Partial<BattlePayload>): void {
     const char = data.char ?? (isCharacterId(params.char) ? params.char : 'A01');
-    this.payload = { stage: data.stage ?? params.stage, char };
+    this.payload = { stage: data.stage ?? params.stage, char, ...(data.deck ? { deck: data.deck } : {}), ...(data.skills ? { skills: data.skills } : {}) };
   }
 
   create(): void {
@@ -180,7 +180,7 @@ export class BattleScene extends Phaser.Scene {
     this.boss = null;
     this.result = null;
     this.skills = new SkillSlots(
-      skillsData.slots.map((sl) => ({ key: sl.key, skillId: sl.equip, locked: !sl.unlocked, readyAtMs: 0 })),
+      skillsData.slots.map((sl) => ({ key: sl.key, skillId: this.payload.skills?.[sl.key] ?? sl.equip, locked: !sl.unlocked, readyAtMs: 0 })),
       skillsData.skills as Record<string, SkillDef>,
       TP.max,
     );
@@ -236,6 +236,7 @@ export class BattleScene extends Phaser.Scene {
         },
       },
       rng.fork('cards'),
+      this.payload.deck ?? cardsData.starterDeck,
     );
     this.weapons = new WeaponSystem();
     this.equipStartingWeapons();
