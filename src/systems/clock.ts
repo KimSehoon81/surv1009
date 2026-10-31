@@ -32,6 +32,9 @@ export class GameClock {
   private lastEffectDelta = 0;
   /** 디버그 시간 가속(F6, 기본 1). 전투 시간만 빨라지고 이펙트·지속시간은 실시간 */
   debugSpeed = 1;
+  /** 측정: 흐른 실시간(완전 정지 제외)과 그중 히트스톱으로 멈춘 시간(PRD §4.4 정지 비율 20% 이하) */
+  realTotalMs = 0;
+  hitstopTotalMs = 0;
 
   /** 이름 붙은 배율 적용. 여러 개가 동시에 있으면 가장 느린 값(최솟값)이 이긴다 */
   setScale(key: string, scale: number, durationMs = Infinity): void {
@@ -104,6 +107,8 @@ export class GameClock {
     // 히트스톱이 프레임 중간에 끝나면 남은 실시간은 정상 배율로 흐르게 나눈다
     const stopMs = Math.min(this.hitstopRemainingMs, real);
     this.hitstopRemainingMs -= stopMs;
+    this.realTotalMs += real;
+    this.hitstopTotalMs += stopMs;
     const flowingMs = real - stopMs;
 
     let s = 1;
@@ -155,5 +160,7 @@ export class GameClock {
     this.elapsedMs = 0;
     this.lastScale = 1;
     this.lastEffectDelta = 0;
+    this.realTotalMs = 0;
+    this.hitstopTotalMs = 0;
   }
 }

@@ -111,7 +111,19 @@ export class CardSystem {
     return pv;
   }
 
+  private adviceCache: { sig: string; advice: Advice | null } | null = null;
+
+  /** 추천 조합. 손패·인장·보너스가 그대로면 지난 계산을 다시 쓴다(HUD·가이드가 매 프레임 부름) */
   advice(): Advice | null {
+    const st = this.state;
+    const sig = `${st.hand.map((c) => c.uid).join(',')}|${st.seals}|${st.intelPrimed}|${st.penalties.length}|${this.practice.size}|${this.host.stats().blockIntel}|${this.host.stats().luck}|${Object.values(st.comboCooldowns).filter((t) => t > this.host.clock.timeMs).length}`;
+    if (this.adviceCache?.sig === sig) return this.adviceCache.advice;
+    const advice = this.computeAdvice();
+    this.adviceCache = { sig, advice };
+    return advice;
+  }
+
+  private computeAdvice(): Advice | null {
     // 연습 짝이 손에 다 있으면 그것을 추천(첫 판: Space 두 번이면 정밀 폭격 확정 성공)
     const practice = this.state.hand.filter((c) => this.practice.has(c.uid)).map((c) => c.uid);
     if (practice.length > 0 && practice.length === this.practice.size) {

@@ -216,7 +216,7 @@ export class Feel {
       const mul = KB_BY_TIER[opt.target.tier] ?? 1;
       startKnockback(opt.target.kb, dirX, dirY, p.knockbackPx * mul, p.knockbackMs);
     }
-    if (p.number && visible) this.numbers.show(p.number, x, y - 6, opt.amount);
+    if (p.number && visible) this.numbers.show(p.number, x, y - 6, opt.amount, opt.target);
     if (full) {
       if (p.sparks) this.particles.emit('spark', x, groundY, p.sparks, height, -dirX, -dirY);
       if (p.smoke) this.particles.emit('smoke', x, groundY, p.smoke, height);

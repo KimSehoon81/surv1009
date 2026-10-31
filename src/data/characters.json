@@ -13,7 +13,7 @@
         "range": 170,
         "critChance": 0.05,
         "critMult": 2.0,
-        "magnet": 48,
+        "magnet": 90,
         "luck": 0
       },
       "weapons": [
@@ -32,7 +32,7 @@
         "range": 150,
         "critChance": 0.05,
         "critMult": 2.0,
-        "magnet": 48,
+        "magnet": 90,
         "luck": 0
       },
       "weapons": [
@@ -51,7 +51,7 @@
         "range": 230,
         "critChance": 0.05,
         "critMult": 2.0,
-        "magnet": 48,
+        "magnet": 90,
         "luck": 0
       },
       "weapons": [

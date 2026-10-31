@@ -20,6 +20,8 @@ export interface PickupConfig {
   /** 흡수 최고·최저 속도(pullSpeed 배수) */
   maxSpeedMul: number;
   minSpeedMul: number;
+  /** 떨어진 지 이 시간이 지나면 거리와 상관없이 날아옴(D16: 회피하느라 못 줍는 별 보정) */
+  autoAttractMs?: number;
 }
 
 const BASE_SCALE = 0.5;
@@ -74,7 +76,7 @@ export class PickupSystem {
     for (const p of this.pool.active) p.attracted = true;
   }
 
-  update(dtMs: number, px: number, py: number, magnet: number): number {
+  update(dtMs: number, px: number, py: number, magnet: number, nowMs = 0): number {
     if (dtMs <= 0) return 0;
     let gained = 0;
     const list = this.pool.active;
@@ -89,7 +91,7 @@ export class PickupSystem {
         this.release(p);
         continue;
       }
-      if (!p.attracted && d <= magnet) p.attracted = true;
+      if (!p.attracted && (d <= magnet || (this.cfg.autoAttractMs !== undefined && nowMs - p.bornMs >= this.cfg.autoAttractMs))) p.attracted = true;
       if (p.attracted) {
         p.speed = Math.min(p.speed + this.cfg.accel * dt, this.cfg.pullSpeed * this.cfg.maxSpeedMul);
         const step = Math.min(d, Math.max(this.cfg.pullSpeed * this.cfg.minSpeedMul, p.speed) * dt);

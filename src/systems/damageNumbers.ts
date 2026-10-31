@@ -19,6 +19,8 @@ export interface NumbersData extends NumberAnimConfig {
   scale: number;
   lifeMs: number;
   spreadPx: number;
+  /** 같은 대상·같은 스타일 숫자를 이 시간 안이면 하나로 합산(연사 숫자 폭주 방지) */
+  mergeMs?: number;
   styles: Record<string, NumberStyleData>;
 }
 
@@ -31,6 +33,10 @@ interface Num {
   scale: number;
   jitterPx: number;
   jitterMs: number;
+  /** 합산용: 맞은 대상, 스타일, 지금까지 합 */
+  key: object | null;
+  style: string;
+  sum: number;
 }
 
 /** 데미지 숫자(PRD §4.4: 동시 40개 상한, 넘치면 가장 오래된 것 재사용). 시간은 전투 시계 */
@@ -61,15 +67,31 @@ export class DamageNumbers {
         scale: 1,
         jitterPx: 0,
         jitterMs: 0,
+        key: null,
+        style: '',
+        sum: 0,
       }),
       cfg.cap,
     );
   }
 
   /** (x, y): 숫자가 시작할 월드 좌표(보통 맞은 몸통 위). value가 없으면 스타일의 text(예: KILL) */
-  show(styleName: string, x: number, y: number, value?: number | string): void {
+  show(styleName: string, x: number, y: number, value?: number | string, key?: object): void {
     const st = this.styles.get(styleName);
     if (!st) return;
+    // 같은 적이 mergeMs 안에 또 맞으면 새 숫자 대신 합산
+    if (key && typeof value === 'number') {
+      const merge = this.cfg.mergeMs ?? 0;
+      for (const m of this.pool.active) {
+        if (m.key === key && m.style === styleName && m.ageMs < merge) {
+          m.sum += value;
+          m.text.setText(String(Math.round(m.sum)));
+          m.ageMs = 0;
+          this.draw(m);
+          return;
+        }
+      }
+    }
     const label = value === undefined ? (st.text ?? '') : String(typeof value === 'number' ? Math.round(value) : value);
     if (!label) return;
     const { item: n } = this.pool.acquire();
@@ -80,6 +102,9 @@ export class DamageNumbers {
     n.scale = this.cfg.scale * st.scale;
     n.jitterPx = st.jitterPx ?? 0;
     n.jitterMs = st.jitterMs ?? 0;
+    n.key = key ?? null;
+    n.style = styleName;
+    n.sum = typeof value === 'number' ? value : 0;
     n.text.setText(label).setTint(st.tint).setActive(true).setVisible(true);
     this.draw(n);
   }

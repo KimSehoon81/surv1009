@@ -30,6 +30,7 @@ import { TIMELINES, TimelineSystem } from '../systems/timeline';
 import { MineSystem } from '../systems/mines';
 import { NpcSystem, type NpcId } from '../systems/npcs';
 import { save } from '../systems/save';
+import { PerfMeter } from '../systems/perfMeter';
 import { Guide, type GuideState } from '../core/guide';
 import guideData from '../data/guide.json';
 import npcData from '../data/npcs.json';
@@ -119,6 +120,8 @@ export class BattleScene extends Phaser.Scene {
   /** 첫 플레이 가이드(상황 발생형 팁) */
   guide!: Guide;
   private npcs!: NpcSystem;
+  /** 구간별 프레임 시간(디버그 표시·성능 측정) */
+  readonly perf = new PerfMeter();
   /** 살아 있는 보스(HUD 체력바·작전 카드) */
   boss: Enemy | null = null;
   /** 결과 화면에 넘긴 기록(점령·전사 뒤) */
@@ -196,6 +199,7 @@ export class BattleScene extends Phaser.Scene {
       accel: combat.magnetAccel,
       maxSpeedMul: combat.magnetMaxSpeedMul,
       minSpeedMul: combat.magnetMinSpeedMul,
+      autoAttractMs: combat.pickupAutoAttractMs,
     });
     this.fx = new FxSystem(this, feelData.fxCap);
     this.feel = new Feel(this, this.clock, this.fx, rng.fork('feel'));
@@ -334,6 +338,7 @@ export class BattleScene extends Phaser.Scene {
         `weapons ${this.weapons.equipped.map((w) => w.id).join(',')} shots ${this.projectiles.active} fx ${this.fx.active}`,
         `cards hand ${this.cards.state.hand.map((c) => c.id).join(',')} sel ${this.cards.selected.length} op ${this.cards.state.op} seals ${this.cards.state.seals} deck ${this.cards.state.drawPile.length}`,
         `lv ${this.progression.level} (${Math.round(this.progression.progress * 100)}%) pending ${this.progression.pending} rerolls ${this.progression.rerolls}`,
+        `ms ${this.perf.summary()} · 시간 ×${this.clock.debugSpeed} · 정지 ${((this.clock.hitstopTotalMs / Math.max(1, this.clock.realTotalMs)) * 100).toFixed(1)}%`,
         `effects pending ${this.effects.pending} timelines ${this.timelines.active} buffs ${this.player.buffs.list.map((b) => b.id).join(',') || '-'} tp ${Math.round(this.skills.tp)} combos ${this.run.comboSuccesses} tactical ${this.progression.tacticalSlots}`,
         `xp ${this.run.xp} kills ${this.run.kills} gems ${this.pickups.active} taken ${this.run.damageTaken} blocks ${this.run.blocks}`,
         `feel particles ${this.feel.particles.active}/${this.feel.particles.cap} numbers ${this.feel.numbers.active} combo ${this.feel.combo.count}`,
@@ -373,6 +378,7 @@ export class BattleScene extends Phaser.Scene {
     const scale = this.clock.scale;
     const p = this.player;
     if (params.debug && !this.clock.hasScale('pause')) this.debugKeys(now);
+    this.perf.start();
 
     p.update(this.controls, dt, now, scale);
     const cam = this.cameras.main;
@@ -380,24 +386,29 @@ export class BattleScene extends Phaser.Scene {
     p.sprite.setDepth(Depth.Player);
     const target = { x: p.x, y: p.y, radius: combat.playerRadius };
     if (!this.run.defeated && !this.run.captured) this.stageTick(now);
+    this.perf.lap('stage');
     this.enemies.update(dt, now, scale, target, cam, this.enemyAttacks, combat.minTelegraphMs);
     this.enemyAttacks.update(now, this.enemies.pool.active);
+    this.perf.lap('enemies');
     if (!this.run.defeated && !this.run.captured) {
       this.weapons.update(dt, now, p, this.enemies.grid, this.projectiles, this.weaponHooks);
       this.projectiles.update(dt, this.enemies.grid, this.hooks);
       this.contactDamage(now);
       // 경험치 배율(전공 훈장 등)은 주울 때 곱한다
-      const gained = this.pickups.update(dt, p.x, p.y, p.stats.magnet) * p.stats.xpMul;
+      const gained = this.pickups.update(dt, p.x, p.y, p.stats.magnet, now) * p.stats.xpMul;
       if (gained > 0) {
         this.audio.play('pickup');
         this.progression.addXp(gained);
       }
       this.run.xp += gained;
+      this.perf.lap('combat');
       if (this.progression.pending > 0 && !this.progression.isOpen) this.openLevelUp();
       this.cards.update(dt, time);
       this.skillInput(now);
+      this.perf.lap('cards');
       this.effects.update();
       this.timelines.update();
+      this.perf.lap('skills');
       this.npcs.update(now, target, {
         onTalk: (id, text) => this.toast(`${npcData.npcs[id].name}: "${text}"`, '#e8dcc0'),
         onGive: (id) => {
@@ -414,14 +425,18 @@ export class BattleScene extends Phaser.Scene {
         },
       });
       this.comboSupply(now);
+      this.perf.lap('misc');
     }
     this.fx.update(this.clock.effectScale);
     this.feel.update(this.clock.effectDeltaMs);
+    this.perf.lap('feel');
     this.audio.update({ paused: this.clock.hardPaused, slowmo: this.clock.hasScale('slowmo'), judge: this.clock.hasScale('judge') }, cam.midPoint.x, cam.midPoint.y);
+    this.perf.lap('audio');
     // 피격 무적 중 깜빡임
     p.sprite.setAlpha(now < p.invulnUntilMs && Math.floor(now / combat.invulnBlinkMs) % 2 === 0 ? combat.invulnBlinkAlpha : 1);
     this.drawHpBar();
     this.floor.update(cam);
+    this.perf.lap('floor');
     this.debug.update(delta);
     this.controls.endFrame();
   }
