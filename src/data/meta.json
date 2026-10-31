@@ -1,5 +1,5 @@
 {
-  "$comment": "런 정산(PRD §3·§8). merit=전공 포인트 식: perKill×처치 + perEliteKill×엘리트 + perLevel×레벨 + perMinute×분 + captureBonus(점령) + bossKill(보스 처치), 패배면 × defeatRatio(50%, PRD v0.2). D19 메타 진행에서 확장. tips=패배 원인 팁(core/results가 기록을 보고 고름, 위에서부터 먼저 맞는 것) 누적 전공·점령 기록·보스 체크포인트는 세이브(core/save, D17). startUpgrades=스타팅 포인트 항목(PRD §8.2, 작전 숙련은 v0.2 결정대로 인장 OP 감소). 비용·적용은 D19",
+  "$comment": "런 정산(PRD §3·§8). merit=전공 포인트 식: perKill×처치 + perEliteKill×엘리트 + perLevel×레벨 + perMinute×분 + captureBonus(점령) + bossKill(보스 처치), 패배면 × defeatRatio(50%, PRD v0.2). D19 메타 진행에서 확장. tips=패배 원인 팁(core/results가 기록을 보고 고름, 위에서부터 먼저 맞는 것) 누적 전공·점령 기록·보스 체크포인트는 세이브(core/save, D17). startUpgrades=스타팅 포인트 항목(PRD §8.2, 작전 숙련은 v0.2 결정대로 인장 OP 감소). 비용·적용은 D19. costs=단계별 전공 포인트 비용(길이 = 최대 단계), perLevel=단계당 효과(core/meta runInit 한곳에서만 적용): levels=시작 레벨 +1(레벨업 선택지 대기), handSize=손패 +1, seals=인장, damageMul=시작 무기 피해 +비율, tp=시작 TP, sealOpReduction=인장 필요 OP −1",
   "merit": {
     "perKill": 0.1,
     "perEliteKill": 5,
@@ -22,32 +22,72 @@
     "startLevel": {
       "name": "시작 레벨",
       "effect": "Lv1 대신 최대 Lv3에서 시작",
-      "maxLevel": 2
+      "maxLevel": 2,
+      "costs": [
+        150,
+        300
+      ],
+      "perLevel": {
+        "levels": 1
+      }
     },
     "startHand": {
       "name": "시작 손패",
       "effect": "손패 5 → 6장",
-      "maxLevel": 1
+      "maxLevel": 1,
+      "costs": [
+        200
+      ],
+      "perLevel": {
+        "handSize": 1
+      }
     },
     "startSeal": {
       "name": "시작 인장",
       "effect": "확정 성공 인장 1개로 시작",
-      "maxLevel": 1
+      "maxLevel": 1,
+      "costs": [
+        150
+      ],
+      "perLevel": {
+        "seals": 1
+      }
     },
     "startWeapon": {
       "name": "시작 무기",
       "effect": "기본 무기 레벨 +1",
-      "maxLevel": 2
+      "maxLevel": 2,
+      "costs": [
+        120,
+        240
+      ],
+      "perLevel": {
+        "damageMul": 0.15
+      }
     },
     "startTp": {
       "name": "시작 TP",
-      "effect": "TP 30으로 시작",
-      "maxLevel": 2
+      "effect": "단계마다 TP +15(최대 30)로 시작",
+      "maxLevel": 2,
+      "costs": [
+        100,
+        200
+      ],
+      "perLevel": {
+        "tp": 15
+      }
     },
     "opMastery": {
       "name": "작전 숙련",
       "effect": "인장 필요 OP −1(v0.2)",
-      "maxLevel": 2
+      "maxLevel": 2,
+      "costs": [
+        200,
+        400
+      ],
+      "perLevel": {
+        "sealOpReduction": 1
+      }
     }
   }
 }

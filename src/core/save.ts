@@ -13,7 +13,7 @@ export interface StageRecord {
 export interface SaveData {
   v: number;
   stages: Record<string, StageRecord>;
-  unlocks: { chars: string[]; skills: string[]; cards?: string[] };
+  unlocks: { chars: string[]; skills: string[]; cards?: string[]; slots?: string[]; flags?: string[] };
   /** 마지막 출정 구성(출정 준비 화면이 다음에 그대로 보여 줌) */
   loadout?: Loadout;
   /** 덱 프리셋(1칸) */

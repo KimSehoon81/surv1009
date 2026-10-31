@@ -42,6 +42,8 @@ export interface ListItem {
   onSelect?(): void;
   /** +/− 키, 마우스 [−][+] */
   onAdjust?(delta: number): void;
+  /** 포커스했을 때 보여 줄 설명 */
+  hint?: string;
 }
 
 /** 세로 목록: 한 화면에 rows줄, 포커스가 넘치면 스크롤 */

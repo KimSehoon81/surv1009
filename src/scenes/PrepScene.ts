@@ -6,6 +6,7 @@ import characters from '../data/characters.json';
 import skillsData from '../data/skills.json';
 import mapData from '../data/map.json';
 import metaData from '../data/meta.json';
+import { buyStartUpgrade, nextCost, openSlots, type StartUpgradeDef } from '../core/meta';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { addCard, available, countBy, maxCopies, recommendedDeck, removeCard, validateDeck, type DeckCard, type DeckError, type DeckRules } from '../core/deckBuild';
 import type { Loadout } from '../core/save';
@@ -36,6 +37,8 @@ export class PrepScene extends Phaser.Scene {
   private charList!: UiList;
   private deckList!: UiList;
   private skillList!: UiList;
+  private shopList!: UiList;
+  private meritText!: Phaser.GameObjects.Text;
   private deckTitle!: Phaser.GameObjects.Text;
   private charInfo!: Phaser.GameObjects.Text;
   private charImg!: Phaser.GameObjects.Image;
@@ -81,14 +84,13 @@ export class PrepScene extends Phaser.Scene {
     // 우: 스킬 슬롯·스타팅 포인트·지역 정보
     panel(this, 596, 40, 352, 400, '고급 스킬 슬롯');
     this.skillList = new UiList(this, 600, 64, 344, 4);
-    const ups = Object.entries(metaData.startUpgrades)
-      .map(([k, u]) => `${u.name} ${prof.startUpgrades[k] ?? 0}/${u.maxLevel}`)
-      .join(' · ');
-    this.add.text(604, 150, '스타팅 포인트', uiText(13, UI.hi));
-    this.add.text(604, 170, `${ups}\n전공 포인트 ${prof.merit} (구매는 작전지도 상점, D19)`, { ...uiText(11), wordWrap: { width: 336 }, lineSpacing: 3 });
+    this.add.text(604, 146, '스타팅 포인트 (Enter 구매)', uiText(13, UI.hi));
+    this.meritText = this.add.text(940, 146, '', uiText(12, UI.hi)).setOrigin(1, 0);
+    const hint = this.add.text(604, 270, '', uiText(11, UI.dim));
+    this.shopList = new UiList(this, 600, 166, 344, 6, 17, (it) => hint.setText(it?.hint ?? ''));
     const node = mapData.nodes.find((n) => n.id === this.payload.stage);
-    this.add.text(604, 270, '지역 정보', uiText(13, UI.hi));
-    this.add.text(604, 290, node ? `주요 적: ${node.enemies}\n보스: ${node.boss}\n방해: ${node.disruption}\n대응: ${node.counter}` : '', { ...uiText(11), wordWrap: { width: 336 }, lineSpacing: 3 });
+    this.add.text(604, 290, '지역 정보', uiText(13, UI.hi));
+    this.add.text(604, 310, node ? `주요 적: ${node.enemies}\n보스: ${node.boss}\n방해: ${node.disruption}\n대응: ${node.counter}` : '', { ...uiText(11), wordWrap: { width: 336 }, lineSpacing: 3 });
 
     // 아래: 덱 버튼 + 출정
     const by = 470;
@@ -100,9 +102,9 @@ export class PrepScene extends Phaser.Scene {
     this.add.text(12, LOGICAL_HEIGHT - 22, '←→ 칸 이동 · ↑↓ 고르기 · Enter 실행 · +/− 덱 장수 · Esc 작전지도', uiText(11, UI.dim));
     this.message = this.add.text(LOGICAL_WIDTH / 2, by + 34, '', uiText(12, UI.hi)).setOrigin(0.5);
 
-    this.focus = new FocusGroup([this.charList, this.deckList, this.skillList, btnRec, btnDef, btnSave, btnLoad, btnGo]);
+    this.focus = new FocusGroup([this.charList, this.deckList, this.skillList, this.shopList, btnRec, btnDef, btnSave, btnLoad, btnGo]);
     // 첫 포커스는 출정: 기본 구성 그대로 Enter 한 번이면 출정
-    this.focus.focus(7);
+    this.focus.focus(8);
     this.refresh();
   }
 
@@ -170,13 +172,37 @@ export class PrepScene extends Phaser.Scene {
         };
       }),
     );
-    // 스킬 슬롯: 열린 슬롯만 장착, Enter로 해금된 스킬 중 돌려 고르기
+    // 스타팅 포인트 상점(§8.2)
+    const defs = metaData.startUpgrades as Record<string, StartUpgradeDef>;
+    this.meritText.setText(`전공 ${prof.merit}`);
+    this.shopList.setItems(
+      Object.entries(defs).map(([id, d]) => {
+        const lv = prof.startUpgrades[id] ?? 0;
+        const cost = nextCost(prof, id, defs);
+        return {
+          label: `${d.name} ${lv}/${d.maxLevel}`,
+          right: cost === null ? '최대' : `${cost}`,
+          color: cost !== null && prof.merit >= cost ? UI.text : UI.dim,
+          hint: d.effect,
+          onSelect: () => {
+            const r = buyStartUpgrade(loadProfile(), id, defs);
+            if (r.ok) {
+              updateProfile(() => r.save);
+              this.say(`${d.name} 강화! (${d.effect})`, UI.good);
+            } else this.say(r.error === 'merit' ? '전공 포인트가 모자랍니다' : r.error === 'max' ? '이미 최대 단계' : '알 수 없는 항목', UI.bad);
+            this.refresh();
+          },
+        };
+      }),
+    );
+    // 스킬 슬롯: 열린 슬롯만 장착(세이브 해금), Enter로 해금된 스킬 중 돌려 고르기
+    const open = openSlots(prof);
     this.skillList.setItems(
       skillsData.slots.map((slot) => {
         const choices = prof.unlocks.skills.filter((id) => SKILLS[id]?.slot === slot.key);
         const cur = l.skills[slot.key];
         const def = cur ? SKILLS[cur] : undefined;
-        if (!slot.unlocked) {
+        if (!open.includes(slot.key)) {
           const next = Object.values(SKILLS).find((s) => s.slot === slot.key);
           return { label: `${slot.key}  잠김`, right: next ? `${next.unlock}` : '', disabled: true };
         }

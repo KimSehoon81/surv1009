@@ -11,6 +11,8 @@ import { PIXEL_FONT, ensurePixelFont } from '../ui/pixelFont';
 import { CardHud } from '../ui/cardHud';
 import { cardBackKey } from '../ui/cardFace';
 import guideData from '../data/guide.json';
+import skillsData from '../data/skills.json';
+import cardsData from '../data/cards.json';
 import enemiesData from '../data/enemies.json';
 import type { Enemy } from '../entities/Enemy';
 import { SkillHud } from '../ui/skillHud';
@@ -279,6 +281,23 @@ export class HudScene extends Phaser.Scene {
     ];
     root.add(this.add.text(LOGICAL_WIDTH / 2, 140, lines.join('\n'), { ...textStyle(14, '#e8dcc0'), align: 'center', lineSpacing: 6 }).setOrigin(0.5, 0));
     if (r.tip) root.add(this.add.text(LOGICAL_WIDTH / 2, 320, `팁: ${r.tip}`, { ...textStyle(13, '#7fd8ff'), align: 'center', wordWrap: { width: 640 } }).setOrigin(0.5, 0));
+    // 새로 해금됨(첫 점령)
+    if (r.unlocked.length > 0) {
+      const chars = r.unlocked.filter((u) => u.kind === 'char').length;
+      const names = r.unlocked
+        .filter((u) => u.kind !== 'char')
+        .map((u) =>
+          u.kind === 'skill'
+            ? `고급 스킬 ${(skillsData.skills as Record<string, { name: string }>)[u.id]?.name ?? u.id}`
+            : u.kind === 'card'
+              ? `카드 ${(cardsData.cards as Record<string, { name: string }>)[u.id]?.name ?? u.id}`
+              : u.kind === 'slot'
+                ? `${u.id} 슬롯`
+                : '엔딩·뉴게임+',
+        );
+      const text = `새로 해금됨  ${[chars > 0 ? `캐릭터 ${chars}명` : '', ...names].filter(Boolean).join(' · ')}`;
+      root.add(this.add.text(LOGICAL_WIDTH / 2, 320, text, { ...textStyle(14, '#ffe14d'), align: 'center', wordWrap: { width: 700 } }).setOrigin(0.5, 0));
+    }
     const again = this.add.text(LOGICAL_WIDTH / 2 - 120, 400, 'Enter  다시 출정', textStyle(16, '#ffffff')).setOrigin(0.5);
     again.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.battle.redeploy());
     const map = this.add.text(LOGICAL_WIDTH / 2 + 120, 400, 'M  작전지도', textStyle(16, '#ffffff')).setOrigin(0.5);

@@ -30,7 +30,8 @@ import { TIMELINES, TimelineSystem } from '../systems/timeline';
 import { MineSystem } from '../systems/mines';
 import { NpcSystem, type NpcId } from '../systems/npcs';
 import { loadProfile, updateProfile } from '../systems/save';
-import { recordRun } from '../core/save';
+import { applyCapture, openSlots, runInit, type StartUpgradeDef, type Unlock, type UnlockEntry } from '../core/meta';
+import unlocksData from '../data/unlocks.json';
 import type { BattlePayload, MapPayload } from '../types/scenes';
 import { PerfMeter } from '../systems/perfMeter';
 import { Guide } from '../core/guide';
@@ -125,7 +126,7 @@ export class BattleScene extends Phaser.Scene {
   /** 살아 있는 보스(HUD 체력바·작전 카드) */
   boss: Enemy | null = null;
   /** 결과 화면에 넘긴 기록(점령·전사 뒤) */
-  result: { record: RunRecord; merit: number; tip: string; rate: number } | null = null;
+  result: { record: RunRecord; merit: number; tip: string; rate: number; unlocked: Unlock[] } | null = null;
   /** 고급 스킬 슬롯(Q·E·R·F)과 TP. HUD가 읽음 */
   skills!: SkillSlots;
   /** 적 공격 예고·포탄 */
@@ -180,7 +181,8 @@ export class BattleScene extends Phaser.Scene {
     this.boss = null;
     this.result = null;
     this.skills = new SkillSlots(
-      skillsData.slots.map((sl) => ({ key: sl.key, skillId: this.payload.skills?.[sl.key] ?? sl.equip, locked: !sl.unlocked, readyAtMs: 0 })),
+      // 열린 슬롯은 세이브(해금 스케줄)에서
+      skillsData.slots.map((sl) => ({ key: sl.key, skillId: this.payload.skills?.[sl.key] ?? sl.equip, locked: !openSlots(loadProfile()).includes(sl.key), readyAtMs: 0 })),
       skillsData.skills as Record<string, SkillDef>,
       TP.max,
     );
@@ -338,6 +340,7 @@ export class BattleScene extends Phaser.Scene {
       pullAll: () => this.pickups.attractAll(),
     };
 
+    this.applyRunStart();
     this.debug = new DebugOverlay(this, this.clock, params.debug, () => {
       const p = this.player;
       return [
@@ -372,6 +375,21 @@ export class BattleScene extends Phaser.Scene {
       this.scene.stop(SceneKey.Hud);
     });
     this.scene.launch(SceneKey.Hud);
+  }
+
+  /** 스타팅 포인트(§8.2): 세이브에서 계산한 런 시작 상태를 이번 판에 적용(레벨은 선택지 대기로) */
+  private applyRunStart(): void {
+    const rs = runInit(loadProfile(), metaData.startUpgrades as Record<string, StartUpgradeDef>);
+    if (rs.handSizeBonus > 0) this.player.addMods([{ stat: 'handSize', op: 'add', value: rs.handSizeBonus }]);
+    if (rs.sealOpReduction > 0) this.player.addMods([{ stat: 'sealOpReduction', op: 'add', value: rs.sealOpReduction }]);
+    if (rs.weaponDamageMul > 0) for (const id of this.player.weapons) this.weapons.addMods(id, [{ stat: 'damageMult', op: 'mul', value: rs.weaponDamageMul }]);
+    if (rs.seals > 0) this.cards.state = { ...this.cards.state, seals: Math.min(CARD_DATA.rules.maxSeals, this.cards.state.seals + rs.seals) };
+    if (rs.tp > 0) this.skills.addTp(rs.tp);
+    if (rs.level > 1) {
+      let need = 0;
+      for (let lv = 1; lv < rs.level; lv++) need += xpToNext(lv, levels.xp);
+      this.progression.addXp(need);
+    }
   }
 
   private equipStartingWeapons(): void {
@@ -770,10 +788,16 @@ export class BattleScene extends Phaser.Scene {
       lastHitBy: this.run.lastHitBy,
     };
     const merit = meritPoints(record, metaData.merit);
-    this.result = { record, merit, tip: victory ? '' : defeatTip(record, metaData.tips), rate: actualRate(record) };
+    // 정산: 점령 기록·전공·첫 점령 해금(core/meta)
+    let unlocked: Unlock[] = [];
+    updateProfile((d) => {
+      const r = applyCapture(d, this.payload.stage, { victory, timeSec: record.timeSec, merit }, unlocksData.stages as Record<string, UnlockEntry>);
+      unlocked = r.unlocked;
+      return r.save;
+    });
+    this.result = { record, merit, tip: victory ? '' : defeatTip(record, metaData.tips), rate: actualRate(record), unlocked };
     this.clock.pause('result');
     this.bannerMessage = null;
-    updateProfile((d) => recordRun(d, this.payload.stage, victory, record.timeSec, merit));
     this.events.emit('result', this.result);
     this.audio.playBgm(null);
   }
