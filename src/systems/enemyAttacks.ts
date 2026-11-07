@@ -62,6 +62,8 @@ export interface EnemyAttackHost {
 export class EnemyAttackSystem {
   private threats: Threat[] = [];
   private shells: Shell[] = [];
+  /** 저격 탄도(아주 짧게) */
+  private tracers: { x1: number; y1: number; x2: number; y2: number; untilMs: number }[] = [];
   private readonly gfx: Phaser.GameObjects.Graphics;
   private readonly air: Phaser.GameObjects.Graphics;
 
@@ -115,6 +117,23 @@ export class EnemyAttackSystem {
         this.telegraph({ kind: 'line', x: e.x, y: e.y, dirX: st.dirX, dirY: st.dirY, length, width: spec.width ?? 40 }, nowMs, tele);
         e.trigger('attack', nowMs);
       }
+    } else if (spec.type === 'aimLine') {
+      const length = spec.range?.[1] ?? 400;
+      const width = spec.width ?? 10;
+      if (ev.type === 'telegraph') {
+        // 저격 예고선: 고정 방향의 가는 붉은 선
+        this.telegraph({ kind: 'line', x: e.x, y: e.y - combat.bodyOffsetY * 0.5, dirX: st.dirX, dirY: st.dirY, length, width }, nowMs, tele);
+        e.trigger('attack', nowMs);
+      } else if (ev.type === 'active') {
+        this.host.audio.play('shot', e.x, e.y);
+        const sx = e.x;
+        const sy = e.y;
+        this.tracers.push({ x1: sx, y1: sy - combat.bodyOffsetY * 0.5, x2: sx + st.dirX * length, y2: sy + st.dirY * length - combat.bodyOffsetY * 0.5, untilMs: nowMs + 90 });
+        const p = this.host.player();
+        const t = Math.max(0, Math.min(length, (p.x - sx) * st.dirX + (p.y - sy) * st.dirY));
+        const r = width / 2 + combat.playerRadius;
+        if ((p.x - (sx + st.dirX * t)) ** 2 + (p.y - (sy + st.dirY * t)) ** 2 <= r * r) this.host.hitPlayer(e.attack * (spec.damage ?? 1), sx, sy, cause('aim'));
+      }
     } else if (spec.type === 'fanShot') {
       const range = spec.range?.[1] ?? 260;
       const angle = spec.angleDeg ?? 60;
@@ -160,6 +179,8 @@ export class EnemyAttackSystem {
     const g = this.gfx.clear();
     for (const t of this.threats) this.drawThreat(g, t, nowMs);
     const a = this.air.clear();
+    this.tracers = this.tracers.filter((t) => t.untilMs > nowMs);
+    for (const t of this.tracers) a.lineStyle(2, 0xfff4d0, 0.9).lineBetween(t.x1, t.y1, t.x2, t.y2);
     for (const s of this.shells) {
       const k = (nowMs - s.startMs) / Math.max(1, s.untilMs - s.startMs);
       const x = s.fromX + (s.tx - s.fromX) * k;

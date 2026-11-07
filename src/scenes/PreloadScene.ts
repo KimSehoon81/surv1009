@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import floorData from '../data/floor.json';
 import characters from '../data/characters.json';
 import stagesData from '../data/stages.json';
+import enemiesData from '../data/enemies.json';
 import sfxData from '../data/sfx.json';
 import { resetProfile } from '../systems/save';
 import feelData from '../data/feel.json';
@@ -23,7 +24,8 @@ import skillsData from '../data/skills.json';
 function battleAssets(): AssetSpec[] {
   // 스테이지의 모든 적(구간 스폰·엘리트·보스)
   const st = stagesData.stages.S1;
-  const enemyIds = [...new Set([...st.phases.flatMap((p) => p.spawns.map((s) => s.enemy)), ...st.elites.map((e) => e.enemy), st.boss.enemy, ...st.npcs])];
+  // 정의된 적 전부(어느 스테이지·디버그 묶음에서든 나올 수 있음, 없는 그림은 자리표시자) + 스테이지 NPC
+  const enemyIds = [...new Set([...Object.keys(enemiesData.enemies), ...st.npcs])];
   // 구현된 캐릭터만(미구현 골격은 시트 없음)
   const units = [...Object.keys(characters.characters).filter(isImplemented), ...enemyIds].flatMap((id) => manifest.unitSheets(id));
   // UI 그림: 무기 투사체, 경험치 별, 레벨업 업그레이드 아이콘(데이터가 참조하는 것 전부)

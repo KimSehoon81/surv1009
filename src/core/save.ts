@@ -24,6 +24,8 @@ export interface SaveData {
   settings: {
     volume: { master: number; bgm: number; sfx: number; ui: number };
     guide: boolean;
+    /** 자동 조준이 방해원·위협 적 우선(G6, 기본 켬) */
+    threatFirst?: boolean;
   };
   flags: {
     guideSeen: string[];

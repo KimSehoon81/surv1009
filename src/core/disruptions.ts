@@ -1,5 +1,6 @@
 // 방해 관리자(PRD §5.4 v0.2): 동시 최대 2개, 카드를 가리는 방해(분류 a)는 1개. 상태만 두고 표현은 HUD가 읽는다.
-// source = 방해를 건 쪽(stage·적 ID·NPC). 적이 건 방해는 그 적을 처치하면 풀린다(G6, 해당 Day에 연결).
+// source = 방해를 건 쪽(stage·적 ID·NPC). 적이 건 방해(G6, D22)는 sources(적 개체 ID)를 모으고,
+// 원인 적이 모두 죽으면 풀린다(시간 제한 없음). 이후 방해원 적도 같은 규칙을 쓴다.
 
 export interface ActiveDisruption {
   type: string;
@@ -7,6 +8,8 @@ export interface ActiveDisruption {
   source: string;
   priority: number;
   untilSec: number;
+  /** 원인 적 개체 ID(비면 시간제 방해). 모두 처치되면 해제 */
+  sources?: string[];
 }
 
 export class Disruptions {
@@ -47,6 +50,41 @@ export class Disruptions {
     const gone = this.active.filter((a) => a.untilSec <= nowSec);
     if (gone.length > 0) this.active = this.active.filter((a) => a.untilSec > nowSec);
     return gone;
+  }
+
+  /**
+   * 적이 거는 방해: 같은 종류가 있으면 원인만 더하고, 없으면 새로 건다(시간 무제한, 원인이 모두 죽으면 해제).
+   * 자리가 없고 우선순위도 낮으면 거절(false).
+   */
+  addSource(d: { type: string; category: string; priority: number }, sourceId: string): boolean {
+    const same = this.active.find((a) => a.type === d.type);
+    if (same) {
+      same.sources ??= [];
+      if (!same.sources.includes(sourceId)) same.sources.push(sourceId);
+      same.untilSec = Infinity;
+      return true;
+    }
+    const ok = this.add({ ...d, source: 'enemy', durationSec: Infinity }, 0);
+    const added = this.active.find((a) => a.type === d.type);
+    if (ok && added) added.sources = [sourceId];
+    return ok;
+  }
+
+  /** 원인 적이 죽음: 그 적이 건 방해에서 빼고, 원인이 하나도 안 남은 방해는 해제. 해제된 목록 */
+  removeSource(sourceId: string): ActiveDisruption[] {
+    const gone: ActiveDisruption[] = [];
+    for (const a of this.active) {
+      if (!a.sources?.includes(sourceId)) continue;
+      a.sources = a.sources.filter((s) => s !== sourceId);
+      if (a.sources.length === 0) gone.push(a);
+    }
+    if (gone.length > 0) this.active = this.active.filter((a) => !gone.includes(a));
+    return gone;
+  }
+
+  /** 지금 이 방해의 원인 적 ID들 */
+  sourcesOf(type: string): readonly string[] {
+    return this.active.find((a) => a.type === type)?.sources ?? [];
   }
 
   /** 하나 해제(통신 복구): 가장 최근 것 */

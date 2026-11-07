@@ -54,6 +54,22 @@ export const BEHAVIORS: Record<string, BehaviorFn> = {
     out.x += (-dy / len) * s;
     out.y += (dx / len) * s;
   },
+  /** 반원 포위: 목표 둘레(radius)를 옆으로 돌아 들어간다(개체 위상으로 시계·반시계를 나눔). chase와 섞어 쓴다 */
+  flank(a, spec, ctx, out) {
+    const dx = a.x - ctx.targetX;
+    const dy = a.y - ctx.targetY;
+    const len = Math.hypot(dx, dy);
+    if (len < 1e-6) return;
+    const ring = num(spec, 'radius', 130);
+    const w = num(spec, 'weight', 1);
+    const ux = dx / len;
+    const uy = dy / len;
+    const side = a.phase < 0.5 ? 1 : -1;
+    // 멀면 옆으로 크게 돌고, 둘레에 가까워질수록 옆 성분을 줄이고 안으로
+    const around = Math.min(1, Math.max(0.15, (len - ring * 0.5) / ring));
+    out.x += -uy * side * w * around - ux * w * ((len - ring) / ring);
+    out.y += ux * side * w * around - uy * w * ((len - ring) / ring);
+  },
   /** 목표와 거리 [min, max] 유지(원거리 적): 가까우면 물러나고 멀면 다가가며, 그 사이면 옆으로 천천히(side 비중) */
   keepDistance(a, spec, ctx, out) {
     const dx = ctx.targetX - a.x;

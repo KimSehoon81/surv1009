@@ -48,6 +48,14 @@ export class CardHud {
   private toastUntil = 0;
   private readonly smokeGfx: Phaser.GameObjects.Graphics;
   private toastSetAt = -1;
+  private readonly pendingToggles: { index: number; at: number }[] = [];
+
+  /** 카드 선택 요청: 방해 지연이 있으면 대기열로 */
+  private requestToggle(index: number, time: number): void {
+    const delay = this.host.selectDelayMs();
+    if (delay <= 0) this.cards.toggle(index);
+    else this.pendingToggles.push({ index, at: time + delay });
+  }
   private judgeView: Phaser.GameObjects.Container | null = null;
   private judgeKey = -1;
   private board: Phaser.GameObjects.Container | null = null;
@@ -59,7 +67,7 @@ export class CardHud {
     private readonly scene: Phaser.Scene,
     private readonly cards: CardSystem,
     private readonly controls: InputMap,
-    private readonly host: { pauseForBoard(on: boolean): void; canOpenBoard(): boolean; smoke(): number },
+    private readonly host: { pauseForBoard(on: boolean): void; canOpenBoard(): boolean; smoke(): number; noise(): boolean; selectDelayMs(): number },
   ) {
     this.gfx = scene.add.graphics();
     // 포연(방해 a): 카드 위를 덮되 태그 아이콘·테두리는 가리지 않는다(PRD §5.4 v0.2)
@@ -115,7 +123,12 @@ export class CardHud {
       if (c.justDown('pause')) this.toggleBoard();
       return;
     }
-    for (let i = 0; i < 5; i++) if (c.justDown(`cardSelect${i + 1}` as 'cardSelect1')) this.cards.toggle(i);
+    for (let i = 0; i < 5; i++) if (c.justDown(`cardSelect${i + 1}` as 'cardSelect1')) this.requestToggle(i, time);
+    // 통신 노이즈: 선택이 늦게 들어감(HUD 입력 대기열, 규칙은 그대로)
+    while (this.pendingToggles.length > 0 && (this.pendingToggles[0]?.at ?? Infinity) <= time) {
+      const t = this.pendingToggles.shift();
+      if (t) this.cards.toggle(t.index);
+    }
     if (c.justDown('cardSubmit')) this.cards.submit(this.shiftDown(), time);
     if (c.justDown('cardClear')) this.cards.clear();
   }
@@ -142,7 +155,7 @@ export class CardHud {
       img.on('pointerdown', (p: Phaser.Input.Pointer) => {
         if (!p.leftButtonDown()) return;
         const i = this.cards.state.hand.findIndex((h) => h.uid === card.uid);
-        if (i >= 0) this.cards.toggle(i);
+        if (i >= 0) this.requestToggle(i, this.scene.time.now);
       });
       this.images.set(card.uid, img);
       this.labels.set(card.uid, this.scene.add.bitmapText(0, 0, PIXEL_FONT, '', 7).setLetterSpacing(-1).setScale(2).setOrigin(0, 1));
@@ -160,6 +173,7 @@ export class CardHud {
     const pv = this.cards.preview(this.shiftDown());
     const g = this.gfx.clear();
     const smoke = this.host.smoke();
+    const noise = this.host.noise();
     const sg = this.smokeGfx.clear();
     const coolLeft = Math.max(0, st.cooldownUntilMs - now);
 
@@ -173,6 +187,17 @@ export class CardHud {
       img.setPosition(Math.round(x), Math.round(y)).setVisible(true).setAlpha(coolLeft > 0 && !sel ? 0.6 : 1);
       label.setText(String(i + 1)).setPosition(Math.round(x - FACE_W / 2), Math.round(y - FACE_H / 2 - 1)).setTint(sel ? COL.select : 0xffffff);
       if (sel) g.lineStyle(2, COL.select, 1).strokeRect(Math.round(x - FACE_W / 2) - 1, Math.round(y - FACE_H / 2) - 1, FACE_W + 2, FACE_H + 2);
+      if (noise) {
+        // 통신 노이즈: 그림·이름 칸에 지직거리는 가로줄과 색 번짐(태그 아이콘·테두리는 가리지 않음)
+        const l = Math.round(x - FACE_W / 2) + 3;
+        const t = Math.round(y - FACE_H / 2) + 15;
+        for (let k = 0; k < 7; k++) {
+          const yy = t + ((Math.floor(time / 60) * 13 + k * 11 + i * 7) % (FACE_H - 20));
+          sg.fillStyle(k % 2 ? 0xd0e0ff : 0x203040, 0.55).fillRect(l, yy, FACE_W - 6, 2);
+        }
+        sg.fillStyle(0xff40a0, 0.12).fillRect(l + 2, t, FACE_W - 8, FACE_H - 18);
+        sg.fillStyle(0x40e0ff, 0.12).fillRect(l - 1, t + 1, FACE_W - 8, FACE_H - 18);
+      }
       if (smoke > 0) {
         // 그림·이름 칸만(위 태그 줄·테두리 3px 제외), 덩어리 몇 개로 연기처럼
         const l = Math.round(x - FACE_W / 2) + 3;

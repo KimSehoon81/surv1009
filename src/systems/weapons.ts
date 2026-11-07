@@ -74,14 +74,15 @@ export class WeaponSystem {
     this.equipped.length = 0;
   }
 
-  update(dtMs: number, nowMs: number, player: Player, grid: SpatialHash<Enemy>, projectiles: ProjectileSystem, hooks: WeaponHooks = {}): void {
+  /** prefer: 사거리 안에 있으면 먼저 노릴 적(자동 조준 '위협 우선', G6) */
+  update(dtMs: number, nowMs: number, player: Player, grid: SpatialHash<Enemy>, projectiles: ProjectileSystem, hooks: WeaponHooks = {}, prefer?: (e: Enemy) => boolean): void {
     if (dtMs <= 0) return;
     const stats = player.stats;
     for (const w of this.equipped) {
       w.cooldownMs -= dtMs;
       if (w.cooldownMs > 0) continue;
       const range = this.param(w, 'range', stats.range);
-      const target = grid.nearest(player.x, player.y, range, (e) => e.alive);
+      const target = (prefer && grid.nearest(player.x, player.y, range, (e) => e.alive && prefer(e))) || grid.nearest(player.x, player.y, range, (e) => e.alive);
       if (!target) {
         w.cooldownMs = 0; // 적이 없으면 장전 상태로 대기(여러 발이 쌓이지 않게)
         continue;

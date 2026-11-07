@@ -201,3 +201,30 @@ describe('보스 작전 카드·패턴 시퀀서', () => {
     expect([...picked].sort()).toEqual(['fanShot', 'lob', 'opCard']);
   });
 });
+
+describe('방해원(적이 거는 방해, D22)', () => {
+  const noise = { type: 'noise', category: 'a', priority: 2 };
+  it('원인 적이 모두 죽어야 풀리고, 시간으로는 안 풀림', () => {
+    const m = new Disruptions(2, 1);
+    expect(m.addSource(noise, 'e1')).toBe(true);
+    expect(m.addSource(noise, 'e2')).toBe(true);
+    expect(m.active).toHaveLength(1);
+    expect(m.update(99999)).toEqual([]);
+    expect(m.removeSource('e1')).toEqual([]);
+    expect(m.has('noise')).toBe(true);
+    expect(m.removeSource('e2').map((a) => a.type)).toEqual(['noise']);
+    expect(m.has('noise')).toBe(false);
+  });
+
+  it('카드 가림(a)은 1개: 우선순위 높은 노이즈가 포연을 밀어내고, 동시 최대 2개는 유지', () => {
+    const m = new Disruptions(2, 1);
+    m.add({ type: 'smoke', category: 'a', source: 'stage', priority: 1, durationSec: 10 }, 0);
+    expect(m.addSource(noise, 'e1')).toBe(true);
+    expect(m.has('smoke')).toBe(false);
+    expect(m.add({ type: 'jam', category: 'b', source: 'stage', priority: 1, durationSec: 10 }, 0)).toBe(true);
+    expect(m.add({ type: 'fog', category: 'b', source: 'stage', priority: 1, durationSec: 10 }, 0)).toBe(false);
+    expect(m.active).toHaveLength(2);
+    // 통신 복구로 하나 풀기
+    expect(m.clearOne()?.type).toBe('jam');
+  });
+});

@@ -87,6 +87,11 @@ export class HudScene extends Phaser.Scene {
 
   create(): void {
     this.battle = this.scene.get(SceneKey.Battle) as BattleScene;
+    // 씬 재시작 때 지난 그리기 객체를 버림
+    this.arrowGfx = null;
+    this.resultPanel = null;
+    this.levelUp = null;
+    this.guideQueue.length = 0;
     this.controls = new InputMap(this);
     ensurePixelFont(this);
 
@@ -114,6 +119,8 @@ export class HudScene extends Phaser.Scene {
       canOpenBoard: () => this.battle.canOpenBoard(),
       // 포연: 40~70% 사이로 일렁임
       smoke: () => (this.battle.disruptions.has('smoke') ? 0.55 + 0.15 * Math.sin(this.time.now / 300) : 0),
+      noise: () => this.battle.disruptions.has('noise'),
+      selectDelayMs: () => this.battle.selectDelayMs,
     });
     this.warnText = this.add.text(LOGICAL_WIDTH / 2, 66, '', { ...textStyle(16, '#ff8060'), stroke: '#1a1410', strokeThickness: 3 }).setOrigin(0.5).setVisible(false);
     this.bossGfx = this.add.graphics();
@@ -178,12 +185,44 @@ export class HudScene extends Phaser.Scene {
     this.drawGuide(time);
     this.drawWarn(time);
     this.drawBoss(time);
+    this.drawDisruptorArrows(time);
     if (this.resultPanel) {
       if (this.controls.justDown('redeploy')) b.redeploy();
       else if (this.controls.justDown('toMap')) b.toMap();
     } else if (this.levelUp) this.updateLevelUp(time);
     else this.cardHud.update(time);
     this.controls.endFrame();
+  }
+
+  private arrowGfx: Phaser.GameObjects.Graphics | null = null;
+
+  /** 화면 밖 방해원: 가장자리 화살표(G6). 정보 카드로 위치를 밝히면 노랗게 강조 */
+  private drawDisruptorArrows(time: number): void {
+    this.arrowGfx ??= this.add.graphics();
+    const g = this.arrowGfx.clear();
+    const list = this.battle.disruptorsOffscreen();
+    if (list.length === 0) return;
+    const cx = LOGICAL_WIDTH / 2;
+    const cy = LOGICAL_HEIGHT / 2;
+    const reveal = this.battle.clock.timeMs < this.battle.revealUntil;
+    const color = reveal ? 0xffe14d : 0xff6040;
+    const alpha = 0.6 + 0.4 * Math.abs(Math.sin(time / 200));
+    for (const p of list) {
+      const a = Math.atan2(p.y - cy, p.x - cx);
+      // 화면 가장자리(안쪽 18px)와 만나는 점
+      const k = Math.min((cx - 18) / Math.abs(Math.cos(a) || 1e-6), (cy - 18) / Math.abs(Math.sin(a) || 1e-6));
+      const x = cx + Math.cos(a) * k;
+      const y = cy + Math.sin(a) * k;
+      const s = 9;
+      g.fillStyle(color, alpha).fillTriangle(
+        x + Math.cos(a) * s,
+        y + Math.sin(a) * s,
+        x + Math.cos(a + 2.5) * s,
+        y + Math.sin(a + 2.5) * s,
+        x + Math.cos(a - 2.5) * s,
+        y + Math.sin(a - 2.5) * s,
+      );
+    }
   }
 
   /** 좌상단 체력(Lv·경험치 아래) */

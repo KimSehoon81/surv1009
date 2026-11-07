@@ -77,8 +77,13 @@ export class Enemy implements Agent {
     this.sprite.y = y;
   }
 
+  /** 개체 ID(풀에서 다시 나올 때마다 새 값: 방해 원인 추적 등) */
+  uid = '';
+  private static nextUid = 0;
+
   spawn(id: EnemyId, anims: UnitAnims, x: number, y: number, scale: EnemyScale, rng: Rng, nowMs: number): void {
     const def = enemyData.enemies[id];
+    this.uid = `e${++Enemy.nextUid}`;
     this.id = id;
     this.def = def;
     this.behaviors = def.behaviors as BehaviorSpec[];

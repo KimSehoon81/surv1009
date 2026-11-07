@@ -8,6 +8,7 @@ import upgradesData from '../data/upgrades.json';
 import cardsData from '../data/cards.json';
 import skillsData from '../data/skills.json';
 import stagesData from '../data/stages.json';
+import disruptionsData from '../data/disruptions.json';
 import metaData from '../data/meta.json';
 import { StageDirector, type StageDef, type StageEvent } from '../core/stage';
 import { Disruptions } from '../core/disruptions';
@@ -67,11 +68,17 @@ const DEBUFF_IDS = new Set(
 );
 const CARD_IDS = Object.keys(CARD_DATA.cards);
 const TIMELINE_IDS = Object.keys(TIMELINES);
+const DEBUG_SETS: [string, number][][] = [
+  [['E03', 3], ['E04', 1]],
+  [['E06', 4], ['E07', 2], ['E08', 2], ['E09', 1]],
+];
 const TP = skillsData.tp;
 const TP_BY_TIER: Record<string, number> = { normal: TP.perKill, elite: TP.perEliteKill, boss: TP.perBossKill };
 const SKILL_ACTIONS = skillsData.slots.map((s) => s.action as InputAction);
 const STAGES = stagesData.stages as unknown as Record<string, StageDef>;
-const DISRUPTION_NAMES: Record<string, string> = { smoke: '포연' };
+type DisruptionType = { name: string; category: string; priority: number; hint: string; selectDelayMs?: number; interactions?: { on: string; tag: string; do: string; ms: number }[] };
+const DTYPES = disruptionsData.types as Record<string, DisruptionType>;
+const DISRUPTION_NAMES: Record<string, string> = Object.fromEntries(Object.entries(DTYPES).map(([k, v]) => [k, v.name]));
 const CAST_REJECT: Record<CastReject, string> = { locked: '잠긴 슬롯', empty: '장착한 스킬 없음', cooldown: '재사용 대기 중', tp: 'TP 부족', unimplemented: '준비 중인 스킬' };
 const HIT = { blockK: combat.blockK, blockReduction: combat.blockReduction, maxBlockChance: combat.maxBlockChance };
 
@@ -139,6 +146,7 @@ export class BattleScene extends Phaser.Scene {
   /** 지뢰(조합 지뢰 살포, D23 적 지뢰) */
   mines!: MineSystem;
   private debugComboIndex = 0;
+  private debugSetIndex = 0;
   /** 콤보 보급: 다음 문턱 번호, 최근 보급 시각(전투 시계) */
   private comboDrawStep = 0;
   private comboDrawTimes: number[] = [];
@@ -479,7 +487,7 @@ export class BattleScene extends Phaser.Scene {
     this.enemyAttacks.update(now, this.enemies.pool.active);
     this.perf.lap('enemies');
     if (!this.run.defeated && !this.run.captured) {
-      this.weapons.update(dt, now, p, this.enemies.grid, this.projectiles, this.weaponHooks);
+      this.weapons.update(dt, now, p, this.enemies.grid, this.projectiles, this.weaponHooks, this.threatFirst ? (e) => (e.def as { targetPriority?: number }).targetPriority !== undefined : undefined);
       this.projectiles.update(dt, this.enemies.grid, this.hooks);
       this.contactDamage(now);
       // 경험치 배율(전공 훈장 등)은 주울 때 곱한다
@@ -574,11 +582,17 @@ export class BattleScene extends Phaser.Scene {
     this.fireTriggers('kill', e.x, e.y);
     if (e.def.tier === 'elite') this.run.eliteKills++;
     if (e === this.boss) this.capture(e.x, e.y);
+    // 방해원 처치: 그 적이 건 방해에서 빠지고, 원인이 모두 죽으면 해제
+    for (const d of this.disruptions.removeSource(e.uid)) this.toast(`${DISRUPTION_NAMES[d.type] ?? d.type} 해제 — 원인 처치`, '#7fd8ff');
     this.skills.addTp(TP_BY_TIER[e.def.tier] ?? TP.perKill);
   }
 
   /** 판정이 끝난 카드 결과를 효과로(PRD §5.1·§5.3.1). 조합 스킬 전용 연출(D10~D11) 전에는 쓰인 카드 효과를 배수로 대신 낸다 */
   private onCardEvent(ev: CardEvent): void {
+    if (ev.type === 'cardEffect' || ev.type === 'comboSkill') {
+      const cards = ev.type === 'cardEffect' ? [ev.card] : ev.cards;
+      this.disruptionInteractions(cards.map((c) => CARD_DATA.cards[c.id]?.tag ?? ''));
+    }
     if (ev.type === 'cardEffect') this.runCard(ev.card.id, 1);
     else if (ev.type === 'minusTriggered') this.runCard(ev.card.id, ev.mult);
     else if (ev.type === 'lost') {
@@ -726,7 +740,64 @@ export class BattleScene extends Phaser.Scene {
     for (const ev of this.director.update(t, this.progression.level, { enemiesOnScreen: onScreen })) this.onStageEvent(ev, now);
     const sp = this.director.spawnsAt(t);
     this.enemies.setSpawns(sp.spawns, sp.mult);
+    this.disruptorTick();
     for (const d of this.disruptions.update(t)) this.toast(`${DISRUPTION_NAMES[d.type] ?? d.type} 걷힘`, '#b0a890');
+  }
+
+  /** 자동 조준 위협 우선(설정, 기본 켬) */
+  private get threatFirst(): boolean {
+    return loadProfile().settings.threatFirst !== false;
+  }
+
+  /** 방해원(G6): 플레이어가 반경 안이면 그 방해를 건다(같은 방해는 원인만 더함) */
+  private disruptorTick(): void {
+    const p = this.player;
+    for (const e of this.enemies.pool.active) {
+      const d = (e.def as { disrupt?: { type: string; radius: number } }).disrupt;
+      if (!d || !e.alive || this.disruptions.sourcesOf(d.type).includes(e.uid)) continue;
+      if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 > d.radius * d.radius) continue;
+      const def = DTYPES[d.type];
+      if (!def) continue;
+      const had = this.disruptions.has(d.type);
+      if (this.disruptions.addSource({ type: d.type, category: def.category, priority: def.priority }, e.uid) && !had) {
+        this.toast(`${def.name}! ${def.hint}`, '#ff8060');
+        this.audio.play('debuff');
+      }
+    }
+  }
+
+  /** 지금 걸린 방해의 카드 선택 지연(ms, 통신 노이즈 0.5초) */
+  get selectDelayMs(): number {
+    return Math.max(0, ...this.disruptions.active.map((a) => DTYPES[a.type]?.selectDelayMs ?? 0));
+  }
+
+  /** 방해 × 카드 상호작용(G9): 걸린 방해마다 정의된 조건이 맞으면 실행 */
+  private disruptionInteractions(tags: readonly string[]): void {
+    for (const a of this.disruptions.active) {
+      for (const it of DTYPES[a.type]?.interactions ?? []) {
+        if (it.on !== 'cardSuccess' || !tags.includes(it.tag)) continue;
+        if (it.do === 'revealSources') {
+          const ids = new Set(a.sources ?? []);
+          for (const e of this.enemies.pool.active) if (ids.has(e.uid)) this.feel.flash(e.sprite, 0xff5040, it.ms);
+          this.revealUntil = this.clock.timeMs + it.ms;
+          this.toast(`${DISRUPTION_NAMES[a.type] ?? a.type}: 방해원 위치 확인`, '#7fd8ff');
+        }
+      }
+    }
+  }
+
+  /** 이 시각까지 방해원 화살표 강조(HUD) */
+  revealUntil = 0;
+
+  /** 화면 밖 방해원(HUD 가장자리 화살표) */
+  disruptorsOffscreen(): { x: number; y: number }[] {
+    const v = this.cameras.main.worldView;
+    const out: { x: number; y: number }[] = [];
+    for (const e of this.enemies.pool.active) {
+      if (!e.alive || !(e.def as { disrupt?: unknown }).disrupt || v.contains(e.x, e.y)) continue;
+      out.push({ x: e.x - v.x, y: e.y - v.y });
+    }
+    return out;
   }
 
   private onStageEvent(ev: StageEvent, now: number): void {
@@ -984,9 +1055,15 @@ export class BattleScene extends Phaser.Scene {
       this.onCardEvent(ev);
     }
     if (this.controls.justDown('debugElite')) {
-      // 원거리·엘리트 확인용: 박격포병 3 + T-34 1을 화면 가장자리 근처에
-      for (let i = 0; i < 3; i++) this.enemies.spawn('E03', p.x + Math.cos(i * 2.1) * 300, p.y + Math.sin(i * 2.1) * 220, now);
-      this.enemies.spawn('E04', p.x + 320, p.y - 40, now);
+      // 스테이지별 적 확인용 묶음을 차례로(S1: 박격포병 3 + T-34, S2: 포위 4·저격 2·기관총 2·SU-76)
+      const sets = DEBUG_SETS[this.debugSetIndex++ % DEBUG_SETS.length] ?? [];
+      sets.forEach(([id, n]) => {
+        for (let i = 0; i < n; i++) {
+          const a = this.combatRng.next() * Math.PI * 2;
+          this.enemies.spawn(id as EnemyId, p.x + Math.cos(a) * 320, p.y + Math.sin(a) * 220, now, true);
+        }
+      });
+      this.toast(`[디버그] ${sets.map(([id, n]) => `${id}×${n}`).join(' ')}`, '#b0a890');
     }
     if (this.controls.justDown('debugStress')) {
       this.enemies.setStress(!this.enemies.stress, { x: p.x, y: p.y, radius: combat.playerRadius }, now);

@@ -104,6 +104,8 @@ export const ATTACK_PARTS: Record<string, AttackPart> = {
     move: (ph) => (ph === 'active' ? 'hold' : 'free'),
     taken: (spec, ph) => (ph === 'active' ? 1 - (spec.reduce ?? 0) : ph === 'recover' ? (spec.weakMult ?? 1) : 1),
   },
+  /** 조준 사격: 예고선(고정 방향) 뒤 직선 한 발, 선 폭 안이면 명중(저격수 등) */
+  aimLine: { threat: true, ready: inRange, move: (ph) => (ph === 'idle' ? 'free' : 'hold') },
   /** 부채꼴 사격: 제자리에서 예고 부채꼴 안을 한꺼번에(기관총반·보스) */
   fanShot: { threat: true, ready: inRange, move: (ph) => (ph === 'idle' ? 'free' : 'hold') },
   /** 보스 작전 카드: 충전(windup) → 30% 판정 → 성공 시 예고 후 대형 착탄, 실패·취소 시 경직·약점 */

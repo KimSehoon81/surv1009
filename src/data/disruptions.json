@@ -1,0 +1,26 @@
+{
+  "$comment": "방해 종류(PRD §5.4). category a = 카드를 가림(동시 1개). priority = 자리가 없을 때 밀어낼 순서. selectDelayMs = 카드 선택이 늦게 들어가는 시간(HUD 입력 대기열). interactions(G9) = 방해 × 카드 상호작용: on cardSuccess + tag → do(revealSources: 원인 적 ms 동안 표시)",
+  "types": {
+    "smoke": {
+      "name": "포연",
+      "category": "a",
+      "priority": 1,
+      "hint": "10초 후 걷힘, 통신 복구 카드로 즉시 해제"
+    },
+    "noise": {
+      "name": "통신 노이즈",
+      "category": "a",
+      "priority": 2,
+      "selectDelayMs": 500,
+      "hint": "방해 중인 저격수를 처치하면 회복",
+      "interactions": [
+        {
+          "on": "cardSuccess",
+          "tag": "intel",
+          "do": "revealSources",
+          "ms": 4000
+        }
+      ]
+    }
+  }
+}
