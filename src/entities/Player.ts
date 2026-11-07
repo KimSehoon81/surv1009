@@ -19,6 +19,26 @@ export function isCharacterId(id: string): id is CharacterId {
   return id in characters.characters;
 }
 
+/** 패시브 항목(characters.json): 능력치 수정자·시작 무기 수정자·이벤트 트리거 */
+export interface PassiveDef {
+  mods?: StatMod[];
+  weaponMods?: StatMod[];
+  trigger?: 'hit' | 'crit' | 'kill';
+  chance?: number;
+  cooldownMs?: number;
+  effect?: string;
+  params?: Readonly<Record<string, number | string>>;
+}
+
+export function passiveOf(id: CharacterId): readonly PassiveDef[] {
+  return (characters.characters[id] as { passive?: PassiveDef[] }).passive ?? [];
+}
+
+/** 출정 가능한(구현된) 캐릭터 */
+export function isImplemented(id: string): id is CharacterId {
+  return isCharacterId(id) && (characters.characters[id] as { implemented?: boolean }).implemented === true;
+}
+
 /** 플레이어 캐릭터: 이동·좌우 반전·동작 상태 머신. 시간은 모두 전투 시계(clock) 기준 */
 export class Player {
   readonly sprite: Phaser.GameObjects.Sprite;
@@ -30,6 +50,8 @@ export class Player {
   /** 시간제 버프·디버프(카드 효과). 만료되면 update에서 다시 계산 */
   readonly buffs = new Buffs();
   private base!: Stats;
+  /** 캐릭터 패시브 능력치 수정자(캐릭터를 바꾸면 바뀜) */
+  private passiveMods: StatMod[] = [];
   /** 이동 속도 배율(슬로우 디버프·가속 버프가 바꾼다). 1 = 기본 */
   speedMul = 1;
   hp = 1;
@@ -68,6 +90,7 @@ export class Player {
   setCharacter(id: CharacterId, nowMs: number): void {
     this.id = id;
     this.base = { ...characters.characters[id].stats, ...levels.extraBaseStats };
+    this.passiveMods = passiveOf(id).flatMap((p) => p.mods ?? []);
     this.recalc();
     this.hp = this.maxHp;
     this.anims = registerUnitAnims(this.scene, id);
@@ -95,7 +118,7 @@ export class Player {
   /** 능력치 재계산. 최대 체력이 오르면 오른 만큼 현재 체력도 채운다 */
   private recalc(): void {
     const prevMax = this.maxHp;
-    this.stats = applyMods(this.base, [...this.mods, ...this.buffs.mods()], LIMITS);
+    this.stats = applyMods(this.base, [...this.passiveMods, ...this.mods, ...this.buffs.mods()], LIMITS);
     this.maxHp = Math.round(this.stats.hp);
     if (this.maxHp > prevMax) this.hp += this.maxHp - prevMax;
     this.hp = Math.min(this.hp, this.maxHp);

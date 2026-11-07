@@ -26,6 +26,8 @@ interface Projectile {
   pierceLeft: number;
   damageMult: number;
   hit: Set<Enemy>;
+  /** 맞힌 자리 범위 폭발(바주카 등) */
+  explode: ExplodeSpec | undefined;
   // 곡사: 발 기준 출발점·도착점
   sx: number;
   sy: number;
@@ -42,6 +44,14 @@ interface Projectile {
   tag: string | undefined;
 }
 
+export interface ExplodeSpec {
+  radius: number;
+  damageMult: number;
+  fx?: string;
+  fxScale?: number;
+  impact?: string;
+}
+
 export interface BulletSpec {
   sprite: string;
   scale: number;
@@ -51,6 +61,7 @@ export interface BulletSpec {
   damageMult: number;
   rangePx: number;
   tag?: string;
+  explode?: ExplodeSpec;
 }
 
 export interface LobSpec {
@@ -79,7 +90,7 @@ export class ProjectileSystem {
     this.pool = new Pool(
       () => ({
         sprite: scene.add.image(0, 0, '__DEFAULT').setActive(false).setVisible(false).setDepth(Depth.Projectile),
-        lob: false, x: 0, y: 0, vx: 0, vy: 0, lifeMs: 0, radius: 4, pierceLeft: 0, damageMult: 1, hit: new Set<Enemy>(),
+        lob: false, x: 0, y: 0, vx: 0, vy: 0, lifeMs: 0, radius: 4, pierceLeft: 0, damageMult: 1, hit: new Set<Enemy>(), explode: undefined,
         sx: 0, sy: 0, tx: 0, ty: 0, t: 0, flightMs: 1, arc: 0, aoe: 0, fx: undefined, fxScale: 1, impact: undefined, tag: undefined,
       }),
       96,
@@ -113,6 +124,7 @@ export class ProjectileSystem {
     p.pierceLeft = spec.pierce;
     p.damageMult = spec.damageMult;
     p.tag = spec.tag;
+    p.explode = spec.explode;
     p.sprite.setPosition(p.x, p.y).setRotation(Math.atan2(dy, dx));
   }
 
@@ -133,6 +145,7 @@ export class ProjectileSystem {
     p.fxScale = spec.fxScale;
     p.impact = spec.impact;
     p.tag = spec.tag;
+    p.explode = undefined;
     p.sprite.setPosition(fromX, fromY - this.bodyOffsetY);
   }
 
@@ -167,6 +180,8 @@ export class ProjectileSystem {
         if (d2 > r * r) return;
         p.hit.add(e);
         hooks.onHit(e, p.damageMult, p.vx, p.vy, p.tag);
+        const ex = p.explode;
+        if (ex) hooks.onLand(e.x, e.y, ex.radius, p.damageMult * ex.damageMult, ex.fx, ex.fxScale ?? 1, ex.impact, p.tag);
         if (p.pierceLeft-- <= 0) {
           done = true;
           return true;

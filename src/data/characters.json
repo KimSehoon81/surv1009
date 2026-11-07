@@ -1,9 +1,12 @@
 {
-  "$comment": "아군 캐릭터 기본 능력치(PRD §4.1). 수치는 초안이며 D16·D39 밸런스에서 조정. moveSpeed는 논리 해상도 기준 px/초, attackSpeed는 초당 공격 횟수, range·magnet은 px. weapons=시작 무기(data/weapons.json 키)",
+  "$comment": "아군 캐릭터 30명(PRD §9.1). 캐릭터 = stats(능력치) + weapons(시작 무기, weapons.json) + passive. passive 항목: mods=능력치 수정자(항상), weaponMods=시작 무기 수정자, trigger=hit·crit·kill 이벤트에서 chance 확률로 effect(효과 레지스트리)를 그 자리 중심으로 실행(cooldownMs 간격). implemented=false면 출정 준비에 안 나옴(데이터 골격만). faction=국군·미군·유엔군·연합, unlock=해금 시점(unlocks.json과 일치). moveSpeed는 px/초, attackSpeed는 초당 공격 횟수, range·magnet은 px. 수치는 초안(D39 밸런스)",
   "characters": {
     "A01": {
       "name": "국군 소총수",
       "role": "균형형, 연사",
+      "faction": "국군",
+      "unlock": "시작",
+      "implemented": true,
       "stats": {
         "hp": 100,
         "defense": 5,
@@ -18,11 +21,15 @@
       },
       "weapons": [
         "rifle"
-      ]
+      ],
+      "passive": []
     },
     "A02": {
       "name": "국군 방호병",
       "role": "방탄판 휴대, 방어형",
+      "faction": "국군",
+      "unlock": "시작",
+      "implemented": true,
       "stats": {
         "hp": 140,
         "defense": 14,
@@ -37,11 +44,25 @@
       },
       "weapons": [
         "rifle"
+      ],
+      "passive": [
+        {
+          "mods": [
+            {
+              "stat": "defense",
+              "op": "add",
+              "value": 4
+            }
+          ]
+        }
       ]
     },
     "A03": {
       "name": "국군 박격포병",
       "role": "범위 포격",
+      "faction": "국군",
+      "unlock": "시작",
+      "implemented": true,
       "stats": {
         "hp": 90,
         "defense": 4,
@@ -55,8 +76,667 @@
         "luck": 0
       },
       "weapons": [
-        "rifle"
+        "mortar",
+        "pistol"
+      ],
+      "passive": []
+    },
+    "A04": {
+      "name": "학도병",
+      "role": "빠른 이동, 낮은 체력, 치명타 높음",
+      "faction": "국군",
+      "unlock": "S1",
+      "implemented": true,
+      "stats": {
+        "hp": 75,
+        "defense": 2,
+        "moveSpeed": 145,
+        "attack": 9,
+        "attackSpeed": 1.8,
+        "range": 160,
+        "critChance": 0.2,
+        "critMult": 2.2,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "carbine"
+      ],
+      "passive": [
+        {
+          "trigger": "kill",
+          "chance": 1,
+          "cooldownMs": 2000,
+          "effect": "buff",
+          "params": {
+            "id": "student_dash",
+            "ms": 1500,
+            "stat": "moveSpeed",
+            "op": "mul",
+            "value": 0.25
+          }
+        }
       ]
+    },
+    "A05": {
+      "name": "국군 수류탄병",
+      "role": "투척 범위 폭발",
+      "faction": "국군",
+      "unlock": "S1",
+      "implemented": true,
+      "stats": {
+        "hp": 95,
+        "defense": 4,
+        "moveSpeed": 112,
+        "attack": 11,
+        "attackSpeed": 0.95,
+        "range": 210,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "grenadier"
+      ],
+      "passive": [
+        {
+          "weaponMods": [
+            {
+              "stat": "aoeRadius",
+              "op": "mul",
+              "value": 0.15
+            }
+          ]
+        }
+      ]
+    },
+    "A06": {
+      "name": "헌병",
+      "role": "기절·군중 제어",
+      "faction": "국군",
+      "unlock": "S1",
+      "implemented": true,
+      "stats": {
+        "hp": 125,
+        "defense": 7,
+        "moveSpeed": 112,
+        "attack": 10,
+        "attackSpeed": 1.3,
+        "range": 78,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "baton",
+        "pistol"
+      ],
+      "passive": [
+        {
+          "trigger": "hit",
+          "chance": 0.3,
+          "cooldownMs": 0,
+          "effect": "stunArea",
+          "params": {
+            "radius": 26,
+            "ms": 800
+          }
+        }
+      ]
+    },
+    "A07": {
+      "name": "미 해병 BAR 사수",
+      "role": "고속 연사",
+      "faction": "미군",
+      "unlock": "S2",
+      "implemented": true,
+      "stats": {
+        "hp": 105,
+        "defense": 5,
+        "moveSpeed": 110,
+        "attack": 8,
+        "attackSpeed": 3.2,
+        "range": 180,
+        "critChance": 0.04,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "bar"
+      ],
+      "passive": []
+    },
+    "A08": {
+      "name": "미 육군 바주카병",
+      "role": "관통 폭발",
+      "faction": "미군",
+      "unlock": "S2",
+      "implemented": true,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 108,
+        "attack": 14,
+        "attackSpeed": 0.7,
+        "range": 220,
+        "critChance": 0.06,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "bazooka"
+      ],
+      "passive": []
+    },
+    "A09": {
+      "name": "미 군의관",
+      "role": "회복 오라",
+      "faction": "미군",
+      "unlock": "S2",
+      "implemented": false,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 115,
+        "attack": 10,
+        "attackSpeed": 1.5,
+        "range": 170,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "rifle"
+      ],
+      "passive": []
+    },
+    "A10": {
+      "name": "국군 기관총 사수",
+      "role": "부채꼴 연사",
+      "faction": "국군",
+      "unlock": "S3",
+      "implemented": false,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 115,
+        "attack": 10,
+        "attackSpeed": 1.5,
+        "range": 170,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "rifle"
+      ],
+      "passive": []
+    },
+    "A11": {
+      "name": "국군 공병",
+      "role": "시한폭탄·지뢰",
+      "faction": "국군",
+      "unlock": "S3",
+      "implemented": false,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 115,
+        "attack": 10,
+        "attackSpeed": 1.5,
+        "range": 170,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "rifle"
+      ],
+      "passive": []
+    },
+    "A12": {
+      "name": "국군 저격수",
+      "role": "고배율 치명타",
+      "faction": "국군",
+      "unlock": "S3",
+      "implemented": false,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 115,
+        "attack": 10,
+        "attackSpeed": 1.5,
+        "range": 170,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "rifle"
+      ],
+      "passive": []
+    },
+    "A13": {
+      "name": "미 레인저",
+      "role": "돌격, 근접 가속",
+      "faction": "미군",
+      "unlock": "S4",
+      "implemented": false,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 115,
+        "attack": 10,
+        "attackSpeed": 1.5,
+        "range": 170,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "rifle"
+      ],
+      "passive": []
+    },
+    "A14": {
+      "name": "미 포병 관측병",
+      "role": "포격 호출 쿨다운 감소",
+      "faction": "미군",
+      "unlock": "S4",
+      "implemented": false,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 115,
+        "attack": 10,
+        "attackSpeed": 1.5,
+        "range": 170,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "rifle"
+      ],
+      "passive": []
+    },
+    "A15": {
+      "name": "미 전차병",
+      "role": "장갑, 고체력",
+      "faction": "미군",
+      "unlock": "S4",
+      "implemented": false,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 115,
+        "attack": 10,
+        "attackSpeed": 1.5,
+        "range": 170,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "rifle"
+      ],
+      "passive": []
+    },
+    "A16": {
+      "name": "영국군 보병",
+      "role": "방어 오라",
+      "faction": "유엔군",
+      "unlock": "S5",
+      "implemented": false,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 115,
+        "attack": 10,
+        "attackSpeed": 1.5,
+        "range": 170,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "rifle"
+      ],
+      "passive": []
+    },
+    "A17": {
+      "name": "터키 여단 돌격병",
+      "role": "근접 광폭",
+      "faction": "유엔군",
+      "unlock": "S5",
+      "implemented": false,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 115,
+        "attack": 10,
+        "attackSpeed": 1.5,
+        "range": 170,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "rifle"
+      ],
+      "passive": []
+    },
+    "A18": {
+      "name": "캐나다군 저격병",
+      "role": "원거리 관통",
+      "faction": "유엔군",
+      "unlock": "S5",
+      "implemented": false,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 115,
+        "attack": 10,
+        "attackSpeed": 1.5,
+        "range": 170,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "rifle"
+      ],
+      "passive": []
+    },
+    "A19": {
+      "name": "호주군 정찰병",
+      "role": "이동속도·시야 증가",
+      "faction": "유엔군",
+      "unlock": "S6",
+      "implemented": false,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 115,
+        "attack": 10,
+        "attackSpeed": 1.5,
+        "range": 170,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "rifle"
+      ],
+      "passive": []
+    },
+    "A20": {
+      "name": "에티오피아 칵뉴 대대 용사",
+      "role": "아군 공격 버프",
+      "faction": "유엔군",
+      "unlock": "S6",
+      "implemented": false,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 115,
+        "attack": 10,
+        "attackSpeed": 1.5,
+        "range": 170,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "rifle"
+      ],
+      "passive": []
+    },
+    "A21": {
+      "name": "그리스군 산악병",
+      "role": "지형 감속 무시",
+      "faction": "유엔군",
+      "unlock": "S6",
+      "implemented": false,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 115,
+        "attack": 10,
+        "attackSpeed": 1.5,
+        "range": 170,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "rifle"
+      ],
+      "passive": []
+    },
+    "A22": {
+      "name": "미 공군 지상통제관",
+      "role": "공군 카드 성공률 증가",
+      "faction": "미군",
+      "unlock": "S7",
+      "implemented": false,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 115,
+        "attack": 10,
+        "attackSpeed": 1.5,
+        "range": 170,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "rifle"
+      ],
+      "passive": []
+    },
+    "A23": {
+      "name": "미 해군 함포 관측병",
+      "role": "해군 카드 강화",
+      "faction": "미군",
+      "unlock": "S7",
+      "implemented": false,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 115,
+        "attack": 10,
+        "attackSpeed": 1.5,
+        "range": 170,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "rifle"
+      ],
+      "passive": []
+    },
+    "A24": {
+      "name": "필리핀군 전투원",
+      "role": "균형형, 회피",
+      "faction": "유엔군",
+      "unlock": "S7",
+      "implemented": false,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 115,
+        "attack": 10,
+        "attackSpeed": 1.5,
+        "range": 170,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "rifle"
+      ],
+      "passive": []
+    },
+    "A25": {
+      "name": "프랑스군 척탄병",
+      "role": "수류탄 연쇄 폭발",
+      "faction": "유엔군",
+      "unlock": "S8",
+      "implemented": false,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 115,
+        "attack": 10,
+        "attackSpeed": 1.5,
+        "range": 170,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "rifle"
+      ],
+      "passive": []
+    },
+    "A26": {
+      "name": "네덜란드군 보병",
+      "role": "연사·안정",
+      "faction": "유엔군",
+      "unlock": "S8",
+      "implemented": false,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 115,
+        "attack": 10,
+        "attackSpeed": 1.5,
+        "range": 170,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "rifle"
+      ],
+      "passive": []
+    },
+    "A27": {
+      "name": "태국군 보병",
+      "role": "이동 중 회피",
+      "faction": "유엔군",
+      "unlock": "S8",
+      "implemented": false,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 115,
+        "attack": 10,
+        "attackSpeed": 1.5,
+        "range": 170,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "rifle"
+      ],
+      "passive": []
+    },
+    "A28": {
+      "name": "국군 유격대원",
+      "role": "기습·치명타",
+      "faction": "국군",
+      "unlock": "S9",
+      "implemented": false,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 115,
+        "attack": 10,
+        "attackSpeed": 1.5,
+        "range": 170,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "rifle"
+      ],
+      "passive": []
+    },
+    "A29": {
+      "name": "미 헬기 조종사",
+      "role": "공중 지원 소환",
+      "faction": "미군",
+      "unlock": "S9",
+      "implemented": false,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 115,
+        "attack": 10,
+        "attackSpeed": 1.5,
+        "range": 170,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "rifle"
+      ],
+      "passive": []
+    },
+    "A30": {
+      "name": "연합군 참모장교",
+      "role": "카드 성공률·레벨업 보정",
+      "faction": "연합",
+      "unlock": "S9",
+      "implemented": false,
+      "stats": {
+        "hp": 100,
+        "defense": 5,
+        "moveSpeed": 115,
+        "attack": 10,
+        "attackSpeed": 1.5,
+        "range": 170,
+        "critChance": 0.05,
+        "critMult": 2.0,
+        "magnet": 90,
+        "luck": 0
+      },
+      "weapons": [
+        "rifle"
+      ],
+      "passive": []
     }
   }
 }

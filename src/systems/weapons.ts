@@ -4,13 +4,15 @@ import type { SpatialHash } from '../core/spatialHash';
 import { modValue, type StatMod } from '../core/stats';
 import type { Enemy } from '../entities/Enemy';
 import type { Player } from '../entities/Player';
-import type { ProjectileSystem } from './projectiles';
+import type { ExplodeSpec, ProjectileSystem } from './projectiles';
 
 const DEFAULTS = weaponData.defaults;
 
 export interface WeaponHooks {
   /** 총알 발사 순간. (x, y): 총구 끝 월드 좌표 */
   onFire?(x: number, y: number, facing: number): void;
+  /** 근접 휘두르기: (dirX, dirY) 방향 arcDeg 부채꼴 radius 안 모두 타격 */
+  onMelee?(x: number, y: number, dirX: number, dirY: number, radius: number, arcDeg: number, damageMult: number, knockback: number): void;
 }
 
 export type WeaponId = keyof typeof weaponData.weapons;
@@ -63,6 +65,11 @@ export class WeaponSystem {
     if (i >= 0) this.equipped.splice(i, 1);
   }
 
+  /** 모든 장착 무기에서 빼기(캐릭터 교체) */
+  clear(): void {
+    this.equipped.length = 0;
+  }
+
   update(dtMs: number, nowMs: number, player: Player, grid: SpatialHash<Enemy>, projectiles: ProjectileSystem, hooks: WeaponHooks = {}): void {
     if (dtMs <= 0) return;
     const stats = player.stats;
@@ -78,19 +85,27 @@ export class WeaponSystem {
       const cooldown = this.param(w, 'cooldownMs', 1000 / stats.attackSpeed);
       w.cooldownMs += cooldown;
       player.faceTowards(target.x);
-      if (w.def.type === 'projectile') {
+      const def = w.def as Record<string, unknown>;
+      if (w.def.type === 'melee') {
+        const dx = target.x - player.x;
+        const dy = target.y - player.y;
+        const len = Math.hypot(dx, dy) || 1;
+        hooks.onMelee?.(player.x, player.y, dx / len, dy / len, this.param(w, 'meleeRadius', range), this.param(w, 'arcDeg', 120), this.param(w, 'damageMult', 1), this.param(w, 'knockback', 0));
+        player.fireAnim(nowMs);
+      } else if (w.def.type === 'projectile') {
         // 총구 끝(발 기준 오프셋). 총알은 총구 높이에서 나가 목표 몸통으로 향한다(발 기준 좌표로 환산해 전달)
         const muzzleX = player.x + player.facing * combat.muzzleOffsetX;
         const muzzleY = player.y + combat.muzzleOffsetY;
         projectiles.fireBullet(
           {
-            sprite: w.def.sprite,
-            scale: w.def.scale,
+            sprite: typeof def.sprite === 'string' ? def.sprite : 'bullet',
+            scale: num(w.def, 'scale') ?? 0.4,
             speed: this.param(w, 'projectileSpeed', DEFAULTS.projectileSpeed),
             radius: this.param(w, 'radius', DEFAULTS.radius),
             pierce: Math.round(this.param(w, 'pierce', 0)),
             damageMult: this.param(w, 'damageMult', 1),
             rangePx: range,
+            ...(def.explode ? { explode: def.explode as ExplodeSpec } : {}),
           },
           muzzleX,
           muzzleY + combat.bodyOffsetY,
@@ -100,11 +115,10 @@ export class WeaponSystem {
         player.fireAnim(nowMs);
         hooks.onFire?.(muzzleX, muzzleY, player.facing);
       } else if (w.def.type === 'lob') {
-        const def = w.def as Record<string, unknown>;
         projectiles.lob(
           {
-            sprite: w.def.sprite,
-            scale: w.def.scale,
+            sprite: typeof def.sprite === 'string' ? def.sprite : 'bullet',
+            scale: num(w.def, 'scale') ?? 0.4,
             flightMs: this.param(w, 'flightMs', DEFAULTS.flightMs),
             arcHeight: this.param(w, 'arcHeight', DEFAULTS.arcHeight),
             aoeRadius: this.param(w, 'aoeRadius', DEFAULTS.aoeRadius),

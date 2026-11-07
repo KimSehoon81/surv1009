@@ -1,5 +1,5 @@
 {
-  "$comment": "무기 정의(D20에서 캐릭터별 무기로 확장). type: projectile=직선 투사체, lob=곡사(착지 시 범위 피해). damageMult=공격력 배율, cooldownMs가 없으면 캐릭터 attackSpeed(초당 횟수)로 계산, range가 없으면 캐릭터 range. 속도 px/초, 반지름 px. defaults=무기 정의에 없을 때 쓰는 기본값. impact=곡사 착지 지점 연출 프리셋(feel.json)",
+  "$comment": "무기 정의(D20에서 캐릭터별 무기로 확장). type: projectile=직선 투사체, lob=곡사(착지 시 범위 피해). damageMult=공격력 배율, cooldownMs가 없으면 캐릭터 attackSpeed(초당 횟수)로 계산, range가 없으면 캐릭터 range. 속도 px/초, 반지름 px. defaults=무기 정의에 없을 때 쓰는 기본값. impact=곡사 착지 지점 연출 프리셋(feel.json) type 목록(D20): projectile(직선, explode={radius,damageMult,fx,fxScale,impact}면 맞힌 자리에서 범위 폭발, pierce=관통 수), lob(곡사), melee(바라보는 쪽 arcDeg 부채꼴 meleeRadius 안 모두 타격 + knockback). 새 type은 캐릭터가 필요할 때만 추가(aura·placeable은 A09·A11). cooldownMs가 없으면 캐릭터 attackSpeed, range가 없으면 캐릭터 range",
   "defaults": {
     "projectileSpeed": 400,
     "radius": 4,
@@ -32,6 +32,92 @@
       "fx": "explosion_s",
       "fxScale": 0.9,
       "impact": "impact_s"
+    },
+    "carbine": {
+      "name": "카빈",
+      "type": "projectile",
+      "damageMult": 0.85,
+      "projectileSpeed": 540,
+      "radius": 4,
+      "pierce": 0,
+      "sprite": "bullet",
+      "scale": 0.35
+    },
+    "bar": {
+      "name": "BAR 자동소총",
+      "type": "projectile",
+      "damageMult": 0.75,
+      "projectileSpeed": 500,
+      "radius": 4,
+      "pierce": 0,
+      "sprite": "bullet",
+      "scale": 0.4
+    },
+    "pistol": {
+      "name": "권총",
+      "type": "projectile",
+      "damageMult": 0.8,
+      "cooldownMs": 1300,
+      "range": 150,
+      "projectileSpeed": 440,
+      "radius": 4,
+      "pierce": 0,
+      "sprite": "bullet",
+      "scale": 0.32
+    },
+    "bazooka": {
+      "name": "바주카",
+      "type": "projectile",
+      "damageMult": 1.6,
+      "projectileSpeed": 340,
+      "radius": 7,
+      "pierce": 1,
+      "sprite": "icon_upgrade_weapon_grenade",
+      "scale": 0.4,
+      "explode": {
+        "radius": 42,
+        "damageMult": 0.8,
+        "fx": "explosion_s",
+        "fxScale": 0.6,
+        "impact": "impact_s"
+      }
+    },
+    "mortar": {
+      "name": "박격포",
+      "type": "lob",
+      "damageMult": 1.3,
+      "range": 270,
+      "flightMs": 850,
+      "arcHeight": 80,
+      "aoeRadius": 56,
+      "sprite": "icon_upgrade_weapon_mortar",
+      "scale": 0.45,
+      "fx": "explosion_s",
+      "fxScale": 1.0,
+      "impact": "impact_s"
+    },
+    "grenadier": {
+      "name": "수류탄 투척",
+      "type": "lob",
+      "damageMult": 1.35,
+      "range": 210,
+      "flightMs": 600,
+      "arcHeight": 44,
+      "aoeRadius": 50,
+      "sprite": "icon_upgrade_weapon_grenade",
+      "scale": 0.45,
+      "fx": "explosion_s",
+      "fxScale": 0.85,
+      "impact": "impact_s"
+    },
+    "baton": {
+      "name": "진압봉",
+      "type": "melee",
+      "damageMult": 1.25,
+      "range": 78,
+      "meleeRadius": 64,
+      "arcDeg": 130,
+      "knockback": 16
     }
   }
 }

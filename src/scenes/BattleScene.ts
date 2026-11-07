@@ -14,7 +14,7 @@ import { Disruptions } from '../core/disruptions';
 import { actualRate, defeatTip, meritPoints, type RunRecord } from '../core/results';
 import { createRng, type Rng } from '../core/rng';
 import { computeHit } from '../core/combat';
-import { parseColor } from '../core/feel';
+import { parseColor, startKnockback } from '../core/feel';
 import { Progression, type UpgradeTarget } from '../core/progression';
 import type { RarityConfig, UpgradeDef } from '../core/upgrades';
 import { xpToNext } from '../core/xp';
@@ -49,13 +49,14 @@ import { InputMap, type InputAction } from '../systems/input';
 import { PickupSystem } from '../systems/pickups';
 import { ProjectileSystem, type ProjectileHooks } from '../systems/projectiles';
 import { WeaponSystem, isWeaponId, type WeaponHooks } from '../systems/weapons';
-import { Player, isCharacterId, type CharacterId } from '../entities/Player';
+import { Player, isCharacterId, isImplemented, passiveOf, type CharacterId, type PassiveDef } from '../entities/Player';
+import characterData from '../data/characters.json';
 import { MAX_ENEMY_RADIUS, type Enemy, type EnemyId } from '../entities/Enemy';
 import enemyData from '../data/enemies.json';
 import { manifest } from '../assets/manifest';
 import { SceneKey } from './keys';
 
-const CHARACTERS: CharacterId[] = ['A01', 'A02', 'A03'];
+const CHARACTERS = Object.keys(characterData.characters).filter(isImplemented);
 const DEBUG_SLOW = 0.4;
 const RESIDUE = cardsData.failResidue as Record<string, { effect: string; params: Params }>;
 /** 통신 복구가 풀 수 있는 디버프 = 마이너스 카드가 거는 버프 */
@@ -176,6 +177,9 @@ export class BattleScene extends Phaser.Scene {
       lastHitBy: 'contact',
     });
     this.stage = STAGES[this.payload.stage] ?? (STAGES.S1 as StageDef);
+    // 씬은 다시 시작해도 같은 객체: 지난 판의 그리기 객체·목록을 비운다
+    this.swingGfx = null;
+    this.swings = [];
     this.director = new StageDirector(this.stage);
     this.disruptions = new Disruptions(stagesData.rules.maxDisruptions, stagesData.rules.maxCardObscuring);
     this.boss = null;
@@ -247,7 +251,10 @@ export class BattleScene extends Phaser.Scene {
       onLand: (x, y, radius, mult, fxName, fxScale, impact, tag) => this.explode(x, y, radius, mult, fxName, fxScale, impact, tag),
     };
 
-    this.weaponHooks = { onFire: (x, y, facing) => this.feel.muzzle(x, y, facing, this.player.y) };
+    this.weaponHooks = {
+      onFire: (x, y, facing) => this.feel.muzzle(x, y, facing, this.player.y),
+      onMelee: (x, y, dx, dy, radius, arcDeg, mult, kb) => this.melee(x, y, dx, dy, radius, arcDeg, mult, kb),
+    };
 
     this.hpBar = this.add.graphics().setDepth(Depth.Ui - 1);
     this.cameras.main.startFollow(this.player.sprite, true);
@@ -392,9 +399,54 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
+  /** 캐릭터 시작 무기 + 패시브(무기 수정자·이벤트 트리거). 캐릭터를 바꾸면 다시 부른다 */
   private equipStartingWeapons(): void {
+    this.weapons.clear();
     for (const id of this.player.weapons) if (isWeaponId(id)) this.weapons.add(id);
+    const passive = passiveOf(this.player.id);
+    const wm = passive.flatMap((p) => p.weaponMods ?? []);
+    if (wm.length > 0) for (const id of this.player.weapons) this.weapons.addMods(id, wm);
+    this.triggers = passive.filter((p) => p.trigger && p.effect).map((def) => ({ def, readyAt: 0 }));
   }
+
+  /** 패시브 이벤트 트리거(hit·crit·kill): 확률·쿨다운 통과 시 효과를 그 자리 중심으로 실행(캐릭터별 분기 없음) */
+  private triggers: { def: PassiveDef; readyAt: number }[] = [];
+
+  private fireTriggers(on: 'hit' | 'crit' | 'kill', x: number, y: number): void {
+    if (this.triggers.length === 0) return;
+    const now = this.clock.timeMs;
+    for (const t of this.triggers) {
+      if (t.def.trigger !== on || now < t.readyAt || this.combatRng.next() >= (t.def.chance ?? 1)) continue;
+      t.readyAt = now + (t.def.cooldownMs ?? 0);
+      const at = Object.create(this.effects, { player: { value: { x, y, facing: this.player.facing } } }) as EffectRunner;
+      runEffect(t.def.effect as string, at, (t.def.params ?? {}) as Params, 1);
+    }
+  }
+
+  /** 근접 휘두르기: 부채꼴 안 적 전부 타격 + 밀어내기, 짧은 호 연출 */
+  private melee(x: number, y: number, dx: number, dy: number, radius: number, arcDeg: number, mult: number, knockback: number): void {
+    const half = ((arcDeg / 2) * Math.PI) / 180;
+    const hit: Enemy[] = [];
+    this.enemies.grid.forEachNear(x, y, radius + MAX_ENEMY_RADIUS, (e, d2) => {
+      const r = radius + e.radius;
+      if (!e.alive || d2 > r * r) return;
+      const ex = e.x - x;
+      const ey = e.y - y;
+      const off = Math.abs(Math.atan2(dx * ey - dy * ex, dx * ex + dy * ey));
+      if (off <= half || d2 < e.radius * e.radius) hit.push(e);
+    });
+    for (const e of hit) {
+      this.damageEnemy(e, mult, e.x - x, e.y - y);
+      if (e.alive && knockback > 0) {
+        const l = Math.hypot(e.x - x, e.y - y) || 1;
+        startKnockback(e.kb, (e.x - x) / l, (e.y - y) / l, knockback, 140);
+      }
+    }
+    this.swings.push({ x, y: y - combat.bodyOffsetY * 0.5, a: Math.atan2(dy, dx), half, r: radius, until: this.clock.timeMs + 110 });
+    this.audio.play('hit', x, y);
+  }
+
+  private swings: { x: number; y: number; a: number; half: number; r: number; until: number }[] = [];
 
   override update(time: number, delta: number): void {
     if (this.controls.justDown('pause') && !this.run.defeated && !this.result && !this.progression.isOpen && !this.opsOpen) this.togglePause();
@@ -461,6 +513,7 @@ export class BattleScene extends Phaser.Scene {
     // 피격 무적 중 깜빡임
     p.sprite.setAlpha(now < p.invulnUntilMs && Math.floor(now / combat.invulnBlinkMs) % 2 === 0 ? combat.invulnBlinkAlpha : 1);
     this.drawHpBar();
+    this.drawSwings(now);
     this.floor.update(cam);
     this.perf.lap('floor');
     this.debug.update(delta);
@@ -489,6 +542,8 @@ export class BattleScene extends Phaser.Scene {
     const preset = res.crit ? (aoe ? 'aoe_crit' : 'crit') : aoe ? 'aoe_hit' : 'normal';
     this.feel.hit(preset, e.x, e.y - combat.bodyOffsetY, { target: e, dirX, dirY, amount: res.damage, groundY: e.y });
     if (res.crit) this.player.trigger('crit', now);
+    this.fireTriggers(res.crit ? 'crit' : 'hit', e.x, e.y);
+    if (res.crit) this.fireTriggers('hit', e.x, e.y);
     if (e.hp <= 0) {
       this.finishEnemy(e);
       return;
@@ -506,6 +561,7 @@ export class BattleScene extends Phaser.Scene {
     this.feel.forget(e.sprite);
     this.enemies.kill(e);
     this.run.kills++;
+    this.fireTriggers('kill', e.x, e.y);
     if (e.def.tier === 'elite') this.run.eliteKills++;
     if (e === this.boss) this.capture(e.x, e.y);
     this.skills.addTp(TP_BY_TIER[e.def.tier] ?? TP.perKill);
@@ -815,6 +871,19 @@ export class BattleScene extends Phaser.Scene {
     this.scene.start(SceneKey.Map, payload);
   }
 
+  private swingGfx: Phaser.GameObjects.Graphics | null = null;
+
+  /** 근접 휘두르기 호(0.11초) */
+  private drawSwings(now: number): void {
+    if (this.swings.length === 0 && !this.swingGfx) return;
+    this.swingGfx ??= this.add.graphics().setDepth(Depth.Spark);
+    const g = this.swingGfx.clear();
+    this.swings = this.swings.filter((s) => s.until > now);
+    for (const s of this.swings) {
+      g.lineStyle(3, 0xfff0c0, 0.8).beginPath().arc(s.x, s.y, s.r * 0.8, s.a - s.half, s.a + s.half).strokePath();
+    }
+  }
+
   private drawHpBar(): void {
     const p = this.player;
     const g = this.hpBar.clear();
@@ -913,6 +982,8 @@ export class BattleScene extends Phaser.Scene {
     if (this.controls.justDown('debugCharacter')) {
       const next = CHARACTERS[(CHARACTERS.indexOf(p.id) + 1) % CHARACTERS.length] as CharacterId;
       p.setCharacter(next, now);
+      this.equipStartingWeapons();
+      this.toast(`[디버그] ${characterData.characters[next].name}`, '#b0a890');
     }
   }
 }

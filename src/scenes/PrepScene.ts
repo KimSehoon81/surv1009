@@ -11,7 +11,7 @@ import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { addCard, available, countBy, maxCopies, recommendedDeck, removeCard, validateDeck, type DeckCard, type DeckError, type DeckRules } from '../core/deckBuild';
 import type { Loadout } from '../core/save';
 import { manifest } from '../assets/manifest';
-import { isCharacterId, type CharacterId } from '../entities/Player';
+import { isCharacterId, isImplemented, type CharacterId } from '../entities/Player';
 import { InputMap } from '../systems/input';
 import { loadProfile, updateProfile } from '../systems/save';
 import { uiText } from '../ui/text';
@@ -137,7 +137,8 @@ export class PrepScene extends Phaser.Scene {
     const l = this.loadout;
     // 캐릭터
     this.charList.setItems(
-      prof.unlocks.chars.filter(isCharacterId).map((id) => {
+      // 해금됐고 구현된 캐릭터만(미구현 골격은 숨김)
+      prof.unlocks.chars.filter(isImplemented).map((id) => {
         const c = characters.characters[id];
         return {
           label: `${id === l.char ? '● ' : '  '}${c.name}`,

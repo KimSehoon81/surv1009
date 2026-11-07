@@ -16,6 +16,7 @@ import { galleryUnitIds } from './GalleryScene';
 import cardsData from '../data/cards.json';
 import { cardAssetSpecs } from '../ui/cardFace';
 import { CUES } from '../systems/timeline';
+import { isImplemented } from '../entities/Player';
 import skillsData from '../data/skills.json';
 
 /** 전투 시작에 필요한 에셋: 선택 가능한 캐릭터 전원 + 스테이지에 나오는 적 + 바닥 */
@@ -23,9 +24,10 @@ function battleAssets(): AssetSpec[] {
   // 스테이지의 모든 적(구간 스폰·엘리트·보스)
   const st = stagesData.stages.S1;
   const enemyIds = [...new Set([...st.phases.flatMap((p) => p.spawns.map((s) => s.enemy)), ...st.elites.map((e) => e.enemy), st.boss.enemy, ...st.npcs])];
-  const units = [...Object.keys(characters.characters), ...enemyIds].flatMap((id) => manifest.unitSheets(id));
+  // 구현된 캐릭터만(미구현 골격은 시트 없음)
+  const units = [...Object.keys(characters.characters).filter(isImplemented), ...enemyIds].flatMap((id) => manifest.unitSheets(id));
   // UI 그림: 무기 투사체, 경험치 별, 레벨업 업그레이드 아이콘(데이터가 참조하는 것 전부)
-  const weaponSprites = Object.values(weaponData.weapons).map((w) => w.sprite);
+  const weaponSprites = Object.values(weaponData.weapons).flatMap((w) => ('sprite' in w ? [w.sprite] : []));
   const upgradeIcons = [...upgradesData.upgrades, ...upgradesData.fallbacks].map((u) => u.icon);
   const ui = [...new Set(['star_xp', 'icon_upgrade_reroll', 'flag_ally', ...weaponSprites, ...upgradeIcons])].map((n) => manifest.image('ui', n, 32, 32));
   // 이펙트: 무기·타격감 프리셋·총구 섬광이 참조하는 시트 전부
