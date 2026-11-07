@@ -56,6 +56,12 @@ export class Player {
   speedMul = 1;
   hp = 1;
   maxHp = 1;
+  /** 장갑 종류(characters.json armorType, 없으면 none) */
+  get armorType(): string {
+    return (characters.characters[this.id] as { armorType?: string }).armorType ?? 'none';
+  }
+  /** 초당 회복(regen)의 소수 누적 */
+  private regenAcc = 0;
   /** 이 시각(전투 시계)까지 피격 무적 */
   invulnUntilMs = 0;
   /** 이 시각(전투 시계)까지 보호막: 접촉 피해 없음, 깜빡임 대신 오라(야전 치료) */
@@ -170,6 +176,15 @@ export class Player {
    */
   update(input: InputMap, dtMs: number, nowMs: number, timeScale: number): void {
     if (this.buffs.expire(nowMs)) this.recalc();
+    // 지속 회복(군의관 오라 등): 1 단위로 모아 체력에
+    if (this.stats.regen > 0 && dtMs > 0 && this.hp > 0 && this.hp < this.maxHp) {
+      this.regenAcc += (this.stats.regen * dtMs) / 1000;
+      const whole = Math.floor(this.regenAcc);
+      if (whole > 0) {
+        this.regenAcc -= whole;
+        this.hp = Math.min(this.maxHp, this.hp + whole);
+      }
+    }
     const dir = nowMs < this.stunUntilMs ? { x: 0, y: 0 } : input.moveVector();
     this.moving = dir.x !== 0 || dir.y !== 0;
     if (this.moving && dtMs > 0) {

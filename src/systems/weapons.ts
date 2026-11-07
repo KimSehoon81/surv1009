@@ -11,6 +11,10 @@ const DEFAULTS = weaponData.defaults;
 export interface WeaponHooks {
   /** 총알 발사 순간. (x, y): 총구 끝 월드 좌표 */
   onFire?(x: number, y: number, facing: number): void;
+  /** 오라: (x, y) 둘레 radius 안 적 전부 */
+  onAura?(x: number, y: number, radius: number, damageMult: number): void;
+  /** 설치형: (x, y)에 지뢰 */
+  onPlace?(x: number, y: number, damageMult: number, mine: { armMs: number; lifeMs: number; triggerRadius: number; radius: number; scale: number }): void;
   /** 근접 휘두르기: (dirX, dirY) 방향 arcDeg 부채꼴 radius 안 모두 타격 */
   onMelee?(x: number, y: number, dirX: number, dirY: number, radius: number, arcDeg: number, damageMult: number, knockback: number): void;
 }
@@ -86,7 +90,17 @@ export class WeaponSystem {
       w.cooldownMs += cooldown;
       player.faceTowards(target.x);
       const def = w.def as Record<string, unknown>;
-      if (w.def.type === 'melee') {
+      if (w.def.type === 'aura') {
+        hooks.onAura?.(player.x, player.y, this.param(w, 'auraRadius', 64), this.param(w, 'damageMult', 1));
+      } else if (w.def.type === 'placeable') {
+        // 목표 쪽으로 조금 앞에 설치(적이 지나갈 자리)
+        const dx = target.x - player.x;
+        const dy = target.y - player.y;
+        const len = Math.hypot(dx, dy) || 1;
+        const ahead = Math.min(48, len / 2);
+        hooks.onPlace?.(player.x + (dx / len) * ahead, player.y + (dy / len) * ahead, this.param(w, 'damageMult', 1), def.mine as { armMs: number; lifeMs: number; triggerRadius: number; radius: number; scale: number });
+        player.fireAnim(nowMs);
+      } else if (w.def.type === 'melee') {
         const dx = target.x - player.x;
         const dy = target.y - player.y;
         const len = Math.hypot(dx, dy) || 1;
@@ -96,22 +110,30 @@ export class WeaponSystem {
         // 총구 끝(발 기준 오프셋). 총알은 총구 높이에서 나가 목표 몸통으로 향한다(발 기준 좌표로 환산해 전달)
         const muzzleX = player.x + player.facing * combat.muzzleOffsetX;
         const muzzleY = player.y + combat.muzzleOffsetY;
-        projectiles.fireBullet(
-          {
-            sprite: typeof def.sprite === 'string' ? def.sprite : 'bullet',
-            scale: num(w.def, 'scale') ?? 0.4,
-            speed: this.param(w, 'projectileSpeed', DEFAULTS.projectileSpeed),
-            radius: this.param(w, 'radius', DEFAULTS.radius),
-            pierce: Math.round(this.param(w, 'pierce', 0)),
-            damageMult: this.param(w, 'damageMult', 1),
-            rangePx: range,
-            ...(def.explode ? { explode: def.explode as ExplodeSpec } : {}),
-          },
-          muzzleX,
-          muzzleY + combat.bodyOffsetY,
-          target.x,
-          target.y,
-        );
+        // shots발을 spreadDeg 부채꼴로(기관총), 기본 1발
+        const shots = Math.max(1, Math.round(this.param(w, 'shots', 1)));
+        const spread = (this.param(w, 'spreadDeg', 0) * Math.PI) / 180;
+        const base = Math.atan2(target.y - (muzzleY + combat.bodyOffsetY), target.x - muzzleX);
+        const dist = Math.hypot(target.x - muzzleX, target.y - (muzzleY + combat.bodyOffsetY));
+        for (let k = 0; k < shots; k++) {
+          const a = base + (shots > 1 ? spread * (k / (shots - 1) - 0.5) : 0);
+          projectiles.fireBullet(
+            {
+              sprite: typeof def.sprite === 'string' ? def.sprite : 'bullet',
+              scale: num(w.def, 'scale') ?? 0.4,
+              speed: this.param(w, 'projectileSpeed', DEFAULTS.projectileSpeed),
+              radius: this.param(w, 'radius', DEFAULTS.radius),
+              pierce: Math.round(this.param(w, 'pierce', 0)),
+              damageMult: this.param(w, 'damageMult', 1),
+              rangePx: range,
+              ...(def.explode ? { explode: def.explode as ExplodeSpec } : {}),
+            },
+            muzzleX,
+            muzzleY + combat.bodyOffsetY,
+            muzzleX + Math.cos(a) * dist,
+            muzzleY + combat.bodyOffsetY + Math.sin(a) * dist,
+          );
+        }
         player.fireAnim(nowMs);
         hooks.onFire?.(muzzleX, muzzleY, player.facing);
       } else if (w.def.type === 'lob') {

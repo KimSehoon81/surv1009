@@ -16,6 +16,8 @@ export interface SlotState {
   locked: boolean;
   /** 이 시각(전투 시계)에 쿨다운 끝 */
   readyAtMs: number;
+  /** 마지막 발동의 실제 쿨다운(배율 적용, 표시용) */
+  cooldownTotalMs?: number;
 }
 
 export type CastReject = 'locked' | 'empty' | 'cooldown' | 'tp' | 'unimplemented';
@@ -52,13 +54,15 @@ export class SkillSlots {
   }
 
   /** 발동: TP 소모·쿨다운 시작. 실패면 이유 */
-  cast(i: number, nowMs: number): { ok: true; def: SkillDef } | { ok: false; reason: CastReject } {
+  /** cooldownMul: 캐릭터 능력치 skillCooldown(포병 관측병 0.75 등) */
+  cast(i: number, nowMs: number, cooldownMul = 1): { ok: true; def: SkillDef } | { ok: false; reason: CastReject } {
     const reason = this.check(i, nowMs);
     if (reason) return { ok: false, reason };
     const d = this.def(i) as SkillDef;
     const s = this.slots[i] as SlotState;
     this.tp -= d.tpCost;
-    s.readyAtMs = nowMs + d.cooldownMs;
+    s.cooldownTotalMs = d.cooldownMs * cooldownMul;
+    s.readyAtMs = nowMs + s.cooldownTotalMs;
     return { ok: true, def: d };
   }
 
@@ -66,7 +70,8 @@ export class SkillSlots {
   cooldownLeft(i: number, nowMs: number): number {
     const s = this.slots[i];
     const d = this.def(i);
-    if (!s || !d || d.cooldownMs <= 0) return 0;
-    return Math.max(0, Math.min(1, (s.readyAtMs - nowMs) / d.cooldownMs));
+    const total = s?.cooldownTotalMs ?? d?.cooldownMs ?? 0;
+    if (!s || !d || total <= 0) return 0;
+    return Math.max(0, Math.min(1, (s.readyAtMs - nowMs) / total));
   }
 }

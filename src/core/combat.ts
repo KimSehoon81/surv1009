@@ -33,3 +33,8 @@ export function computeHit(h: HitInput, rng: ChanceSource): HitResult {
   const raw = h.attack * (crit ? h.critMult : 1) * (blocked ? 1 - h.blockReduction : 1);
   return { damage: Math.max(1, Math.round(raw)), crit, blocked };
 }
+
+/** 장갑 종류별 받는 피해 배율(combat.json armor). 표에 없으면 1 */
+export function armorMult(armorType: string | undefined, attackKind: string, table: Readonly<Record<string, Readonly<Record<string, number>>>>): number {
+  return table[armorType ?? 'none']?.[attackKind] ?? 1;
+}

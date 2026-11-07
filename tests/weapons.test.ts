@@ -4,7 +4,7 @@ import characters from '../src/data/characters.json';
 import unlocksData from '../src/data/unlocks.json';
 import { EFFECTS } from '../src/systems/effects';
 
-const TYPES = ['projectile', 'lob', 'melee'];
+const TYPES = ['projectile', 'lob', 'melee', 'aura', 'placeable'];
 
 describe('weapons data', () => {
   it('모든 무기에 필수 값, 타입별 필수 값', () => {
@@ -12,7 +12,9 @@ describe('weapons data', () => {
       expect(TYPES, id).toContain(w.type);
       expect(w.damageMult, id).toBeGreaterThan(0);
       const rec = w as Record<string, unknown>;
-      if (w.type !== 'melee') expect(typeof rec.sprite, id).toBe('string');
+      if (w.type === 'projectile' || w.type === 'lob') expect(typeof rec.sprite, id).toBe('string');
+      if (w.type === 'aura') expect(rec.auraRadius, id).toBeGreaterThan(0);
+      if (w.type === 'placeable') expect((rec.mine as { radius: number }).radius, id).toBeGreaterThan(0);
       if (w.type === 'projectile') expect(rec.projectileSpeed, id).toBeGreaterThan(0);
       if (w.type === 'lob') for (const k of ['flightMs', 'aoeRadius']) expect(rec[k], `${id}.${k}`).toBeGreaterThan(0);
       if (w.type === 'melee') for (const k of ['meleeRadius', 'arcDeg']) expect(rec[k], `${id}.${k}`).toBeGreaterThan(0);
@@ -49,8 +51,8 @@ describe('캐릭터 30명 스키마', () => {
     }
   });
 
-  it('구현 캐릭터 A01~A08, 패시브 트리거의 효과가 레지스트리에 있음', () => {
-    expect(Object.entries(C).filter(([, c]) => c.implemented).map(([id]) => id)).toEqual(['A01', 'A02', 'A03', 'A04', 'A05', 'A06', 'A07', 'A08']);
+  it('구현 캐릭터 A01~A15, 패시브 트리거의 효과가 레지스트리에 있음', () => {
+    expect(Object.entries(C).filter(([, c]) => c.implemented).map(([id]) => id)).toEqual(Array.from({ length: 15 }, (_, i) => `A${String(i + 1).padStart(2, '0')}`));
     for (const [id, c] of Object.entries(C)) {
       for (const p of c.passive) {
         if (p.trigger) {

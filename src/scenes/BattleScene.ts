@@ -13,7 +13,7 @@ import { StageDirector, type StageDef, type StageEvent } from '../core/stage';
 import { Disruptions } from '../core/disruptions';
 import { actualRate, defeatTip, meritPoints, type RunRecord } from '../core/results';
 import { createRng, type Rng } from '../core/rng';
-import { computeHit } from '../core/combat';
+import { armorMult, computeHit } from '../core/combat';
 import { parseColor, startKnockback } from '../core/feel';
 import { Progression, type UpgradeTarget } from '../core/progression';
 import type { RarityConfig, UpgradeDef } from '../core/upgrades';
@@ -254,6 +254,16 @@ export class BattleScene extends Phaser.Scene {
     this.weaponHooks = {
       onFire: (x, y, facing) => this.feel.muzzle(x, y, facing, this.player.y),
       onMelee: (x, y, dx, dy, radius, arcDeg, mult, kb) => this.melee(x, y, dx, dy, radius, arcDeg, mult, kb),
+      onAura: (x, y, radius, mult) => {
+        const hit: Enemy[] = [];
+        this.enemies.grid.forEachNear(x, y, radius + MAX_ENEMY_RADIUS, (e, d2) => {
+          const r = radius + e.radius;
+          if (e.alive && d2 <= r * r) hit.push(e);
+        });
+        for (const e of hit) this.damageEnemy(e, mult, e.x - x, e.y - y, true);
+        this.swings.push({ x, y: y - 4, a: 0, half: Math.PI, r: radius / 0.8, until: this.clock.timeMs + 160, color: 0x6fd06f });
+      },
+      onPlace: (x, y, mult, mine) => this.mines.place(x, y, { faction: 'ally', ...mine, damage: mult }, this.clock.timeMs),
     };
 
     this.hpBar = this.add.graphics().setDepth(Depth.Ui - 1);
@@ -442,11 +452,11 @@ export class BattleScene extends Phaser.Scene {
         startKnockback(e.kb, (e.x - x) / l, (e.y - y) / l, knockback, 140);
       }
     }
-    this.swings.push({ x, y: y - combat.bodyOffsetY * 0.5, a: Math.atan2(dy, dx), half, r: radius, until: this.clock.timeMs + 110 });
+    this.swings.push({ x, y: y - combat.bodyOffsetY * 0.5, a: Math.atan2(dy, dx), half, r: radius, until: this.clock.timeMs + 110, color: 0xfff0c0 });
     this.audio.play('hit', x, y);
   }
 
-  private swings: { x: number; y: number; a: number; half: number; r: number; until: number }[] = [];
+  private swings: { x: number; y: number; a: number; half: number; r: number; until: number; color: number }[] = [];
 
   override update(time: number, delta: number): void {
     if (this.controls.justDown('pause') && !this.run.defeated && !this.result && !this.progression.isOpen && !this.opsOpen) this.togglePause();
@@ -657,7 +667,9 @@ export class BattleScene extends Phaser.Scene {
     const now = this.clock.timeMs;
     if (this.run.defeated || this.run.captured || now < p.invulnUntilMs || now < p.shieldUntilMs || this.invincible) return;
     this.run.lastHitBy = cause;
-    const res = computeHit({ attack, critChance: 0, critMult: 1, defense: p.stats.defense, ...HIT }, this.combatRng);
+    // 장갑(전차병 등): 공격 종류별 피해 배율(대전차포는 antiTank, D23)
+    const kind = cause.endsWith('antiTank') ? 'antiTank' : 'normal';
+    const res = computeHit({ attack: attack * armorMult(p.armorType, kind, combat.armor), critChance: 0, critMult: 1, defense: p.stats.defense, ...HIT }, this.combatRng);
     p.hp = Math.max(0, p.hp - res.damage);
     p.invulnUntilMs = now + combat.playerInvulnMs;
     this.run.damageTaken += res.damage;
@@ -684,7 +696,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   castSkill(i: number, now = this.clock.timeMs): boolean {
-    const r = this.skills.cast(i, now);
+    const r = this.skills.cast(i, now, this.player.stats.skillCooldown);
     if (!r.ok) {
       this.audio.play('skill_denied');
       this.toast(`${this.skills.slots[i]?.key ?? ''}: ${CAST_REJECT[r.reason]}`, '#b0a890');
@@ -880,7 +892,7 @@ export class BattleScene extends Phaser.Scene {
     const g = this.swingGfx.clear();
     this.swings = this.swings.filter((s) => s.until > now);
     for (const s of this.swings) {
-      g.lineStyle(3, 0xfff0c0, 0.8).beginPath().arc(s.x, s.y, s.r * 0.8, s.a - s.half, s.a + s.half).strokePath();
+      g.lineStyle(3, s.color, 0.8).beginPath().arc(s.x, s.y, s.r * 0.8, s.a - s.half, s.a + s.half).strokePath();
     }
   }
 
