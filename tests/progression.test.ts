@@ -15,7 +15,8 @@ const ctx = (over: Partial<RollContext> = {}): RollContext => ({ count: 3, luck:
 
 describe('경험치(PRD §4.2)', () => {
   it('Lv1→2 = 20, 단계마다 ×1.35, Lv9→10 ≈ 220, 최대 레벨 이후 없음', () => {
-    expect(xpToNext(1, XP)).toBe(20);
+    expect(xpToNext(1, XP)).toBe(12); // first 덮어쓰기
+    expect(xpToNext(1, { ...XP, first: undefined })).toBe(20);
     expect(xpToNext(2, XP)).toBe(27);
     expect(xpToNext(9, XP)).toBeGreaterThanOrEqual(218);
     expect(xpToNext(9, XP)).toBeLessThanOrEqual(222);
@@ -23,7 +24,7 @@ describe('경험치(PRD §4.2)', () => {
   });
 
   it('한 번에 여러 레벨, 남은 경험치 이월, 최대 레벨에서 멈춤', () => {
-    const r = gainXp({ level: 1, xp: 0 }, 20 + 27 + 5, XP);
+    const r = gainXp({ level: 1, xp: 0 }, xpToNext(1, XP) + xpToNext(2, XP) + 5, XP);
     expect(r).toEqual({ state: { level: 3, xp: 5 }, levelsGained: 2 });
     const max = gainXp({ level: 9, xp: 0 }, 99999, XP);
     expect(max.state).toEqual({ level: 10, xp: 0 });

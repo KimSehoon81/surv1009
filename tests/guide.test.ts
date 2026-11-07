@@ -33,6 +33,15 @@ describe('첫 플레이 가이드', () => {
     expect(again.progress).toEqual({ seen: 1, total: 8 });
   });
 
+  it('이미 스스로 한 행동은 팁 없이 본 것으로(뒤늦은 안내 없음)', () => {
+    let saved: unknown = null;
+    const g = new Guide(guideData.tips, { enabled: true, seen: [] }, (s) => (saved = s));
+    g.skip('skillReady');
+    expect(g.has('skillReady')).toBe(true);
+    expect(g.trigger('skillReady')).toBeNull();
+    expect(saved).toEqual({ enabled: true, seen: ['skillReady'] });
+  });
+
   it('설정에서 끄면 아무 팁도 안 나온다', () => {
     const g = new Guide(guideData.tips, { enabled: false, seen: [] }, () => undefined);
     expect(g.trigger('firstCard')).toBeNull();

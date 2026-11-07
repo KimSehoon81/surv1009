@@ -4,6 +4,8 @@ export interface XpConfig {
   base: number;
   growth: number;
   maxLevel: number;
+  /** 앞 레벨 필요 경험치 덮어쓰기(Lv1→2부터). 첫 레벨업을 빨리 맛보게 */
+  first?: number[];
 }
 
 export interface XpState {
@@ -14,6 +16,8 @@ export interface XpState {
 
 export function xpToNext(level: number, cfg: XpConfig): number {
   if (level >= cfg.maxLevel) return Infinity;
+  const early = cfg.first?.[level - 1];
+  if (early !== undefined) return early;
   return Math.round(cfg.base * cfg.growth ** (level - 1));
 }
 

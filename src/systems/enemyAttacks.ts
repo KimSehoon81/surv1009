@@ -219,7 +219,8 @@ export class EnemyAttackSystem {
     const bright = left <= shrinkMs;
     const pulse = bright ? 1 : 0.6 + 0.4 * Math.abs(Math.sin((now / TM.pulseMs) * Math.PI));
     const fillA = TM.fillAlpha * (bright ? 2.5 : 1);
-    g.fillStyle(RED, fillA).lineStyle(bright ? 2 : 1, RED, TM.lineAlpha * pulse);
+    const lw = TM.lineWidth ?? 1;
+    g.fillStyle(RED, fillA).lineStyle(bright ? lw + 1 : lw, RED, TM.lineAlpha * pulse);
     const s = t.shape;
     if (s.kind === 'circle') {
       g.fillCircle(s.x, s.y, s.r * scale).strokeCircle(s.x, s.y, s.r * scale);

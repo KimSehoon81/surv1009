@@ -897,9 +897,13 @@ export class BattleScene extends Phaser.Scene {
     const t = now / 1000;
     const hand = this.cards.state.hand;
     if (t >= guideData.moveAtSec) this.tip('move');
-    if (t >= guideData.firstCardAtSec && hand.length > 0) this.tip('firstCard');
+    if (t >= guideData.firstCardAtSec && hand.length > 0) {
+      if (this.cards.state.stats.submits > 0) this.guide.skip('firstCard');
+      else this.tip('firstCard');
+    }
     if (this.guide.has('firstCard') && t >= guideData.firstCardAtSec + 15 && this.cards.advice()?.combo) this.tip('firstPair');
-    if (this.progression.level >= 3) this.tip('lv3');
+    if (this.run.skillsUsed > 0) this.guide.skip('skillReady');
+    else if (this.skills.check(0, now) === null) this.tip('skillReady');
     if (this.cards.state.seals > 0) this.tip('firstSeal');
     if (hand.some((c) => CARD_DATA.cards[c.id]?.tag === 'minus')) this.tip('firstMinus');
     if (this.disruptions.active.length > 0) this.tip('firstDisruption');

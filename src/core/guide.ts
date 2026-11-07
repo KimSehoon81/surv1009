@@ -35,6 +35,13 @@ export class Guide {
     return text;
   }
 
+  /** 이미 스스로 해낸 상황: 팁 없이 본 것으로(뒤늦은 안내가 뜨지 않게) */
+  skip(id: string): void {
+    if (this.seen.has(id)) return;
+    this.seen.add(id);
+    this.persist({ enabled: this.state.enabled, seen: [...this.seen] });
+  }
+
   has(id: string): boolean {
     return this.seen.has(id);
   }

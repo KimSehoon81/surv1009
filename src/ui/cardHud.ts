@@ -92,7 +92,10 @@ export class CardHud {
     let msg = '';
     if (ev.type === 'comboSkill') msg = `${comboName(ev.combo)}!`;
     else if (ev.type === 'cardEffect') msg = cardName(ev.card.id);
-    else if (ev.type === 'minusTriggered') msg = `${cardName(ev.card.id)} 발동${ev.mult > 1 ? ' ×2' : ''}`;
+    else if (ev.type === 'minusTriggered') {
+      const desc = (CARD_DATA.cards[ev.card.id] as { desc?: string } | undefined)?.desc;
+      msg = `${cardName(ev.card.id)} 발동${ev.mult > 1 ? ' ×2' : ''}${desc ? ` — ${desc}` : ''}`;
+    }
     else if (ev.type === 'purified') msg = `${cardName(ev.card.id)} 정화`;
     if (!msg) return;
     this.showText(msg, ev.type === 'minusTriggered' ? cardUi.colors.minus : cardUi.colors.success);
@@ -104,7 +107,8 @@ export class CardHud {
     const joined = this.toast.visible && this.toastSetAt === now ? `${this.toast.text} · ${msg}` : msg;
     this.toast.setText(joined).setColor(color).setVisible(true);
     this.toastSetAt = now;
-    this.toastUntil = now + 1400;
+    // 긴 알림(마이너스 효과 설명 등)은 읽을 시간만큼 더 길게
+    this.toastUntil = now + Math.min(3200, 1400 + Math.max(0, joined.length - 12) * 60);
   }
 
   update(time: number): void {

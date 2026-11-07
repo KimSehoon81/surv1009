@@ -240,6 +240,12 @@ export class HudScene extends Phaser.Scene {
 
   /** 가이드 팁 한 줄씩(대기열) */
   private drawGuide(time: number): void {
+    if (this.battle.progression.isOpen) {
+      if (this.guideText.visible && time < this.guideUntil) this.guideQueue.unshift(this.guideText.text.replace(/^▶ /, ''));
+      this.guideText.setVisible(false);
+      this.guideUntil = 0;
+      return;
+    }
     if (time < this.guideUntil) return;
     const next = this.guideQueue.shift();
     if (!next) {
