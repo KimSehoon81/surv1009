@@ -50,6 +50,8 @@ export interface EnemyAttackHost {
   audio: AudioSink;
   /** 적 공격이 플레이어에게(공격력, 출처 위치). 무적·보호막·방어 판정은 호출부가 */
   hitPlayer(attack: number, fromX: number, fromY: number, cause: string): void;
+  /** 적 지뢰 설치(공병, systems/mines faction enemy) */
+  placeMine?(x: number, y: number, mine: NonNullable<AttackSpec['mine']>, attack: number): void;
   /** 단계 이벤트 알림(보스 작전 카드 HUD 등) */
   onEvent?(e: Enemy, ev: AttackEvent, spec: AttackSpec): void;
   player(): { x: number; y: number };
@@ -117,6 +119,11 @@ export class EnemyAttackSystem {
         this.telegraph({ kind: 'line', x: e.x, y: e.y, dirX: st.dirX, dirY: st.dirY, length, width: spec.width ?? 40 }, nowMs, tele);
         e.trigger('attack', nowMs);
       }
+    } else if (spec.type === 'layMine') {
+      if (ev.type === 'active' && spec.mine) {
+        this.host.placeMine?.(e.x, e.y + 4, spec.mine, e.attack * (spec.damage ?? 1));
+        e.trigger('attack', nowMs);
+      }
     } else if (spec.type === 'aimLine') {
       const length = spec.range?.[1] ?? 400;
       const width = spec.width ?? 10;
@@ -132,7 +139,7 @@ export class EnemyAttackSystem {
         const p = this.host.player();
         const t = Math.max(0, Math.min(length, (p.x - sx) * st.dirX + (p.y - sy) * st.dirY));
         const r = width / 2 + combat.playerRadius;
-        if ((p.x - (sx + st.dirX * t)) ** 2 + (p.y - (sy + st.dirY * t)) ** 2 <= r * r) this.host.hitPlayer(e.attack * (spec.damage ?? 1), sx, sy, cause('aim'));
+        if ((p.x - (sx + st.dirX * t)) ** 2 + (p.y - (sy + st.dirY * t)) ** 2 <= r * r) this.host.hitPlayer(e.attack * (spec.damage ?? 1), sx, sy, cause(spec.damageKind ?? 'aim'));
       }
     } else if (spec.type === 'fanShot') {
       const range = spec.range?.[1] ?? 260;

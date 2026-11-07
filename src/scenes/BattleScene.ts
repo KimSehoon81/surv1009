@@ -71,6 +71,7 @@ const TIMELINE_IDS = Object.keys(TIMELINES);
 const DEBUG_SETS: [string, number][][] = [
   [['E03', 3], ['E04', 1]],
   [['E06', 4], ['E07', 2], ['E08', 2], ['E09', 1]],
+  [['E11', 2], ['E12', 2], ['E13', 3], ['E14', 1]],
 ];
 const TP = skillsData.tp;
 const TP_BY_TIER: Record<string, number> = { normal: TP.perKill, elite: TP.perEliteKill, boss: TP.perBossKill };
@@ -322,6 +323,7 @@ export class BattleScene extends Phaser.Scene {
       audio: this.audio,
       hitPlayer: (attack, x, y, cause) => this.hitPlayer(attack, x, y, cause),
       player: () => this.player,
+      placeMine: (x, y, mine, attack) => this.mines.place(x, y, { faction: 'enemy', ...mine, damage: attack }, this.clock.timeMs),
       onEvent: (e, ev) => {
         if (ev.type === 'judged' && e === this.boss) this.events.emit('boss:judged', ev.result);
       },
@@ -379,7 +381,7 @@ export class BattleScene extends Phaser.Scene {
         `xp ${this.run.xp} kills ${this.run.kills} gems ${this.pickups.active} taken ${this.run.damageTaken} blocks ${this.run.blocks}`,
         `feel particles ${this.feel.particles.active}/${this.feel.particles.cap} numbers ${this.feel.numbers.active} combo ${this.feel.combo.count}`,
         `audio ${this.audio.enabled ? `voices ${this.audio.activeVoices} played ${this.audio.played} dropped ${this.audio.dropped}` : 'off'}`,
-        params.debug ? 'J공격 K방어 L스킬 U치명 O느림 C캐릭터 V수류탄 I무적 B대형처치 N레벨업 F2적300 F3카드 F4조합 F5엘리트 F6가속 Esc정지' : '',
+        params.debug ? 'J공격 K방어 L스킬 U치명 O느림 C캐릭터 V수류탄 I무적 B대형처치 N레벨업 F2적300 F3카드 F4조합 F5엘리트 F6가속 F7슬롯E Esc정지' : '',
       ].filter(Boolean);
     });
 
@@ -517,7 +519,7 @@ export class BattleScene extends Phaser.Scene {
         onExplode: (x, y, spec) => {
           this.timelines.cue('mine_blast', x, y);
           if (spec.faction === 'ally') this.explode(x, y, spec.radius, spec.damage, undefined, 1, undefined);
-          else this.effects.hurtPlayer(spec.damage, 0);
+          else this.hitPlayer(spec.damage, x, y, 'mine');
         },
       });
       this.comboSupply(now);
@@ -648,6 +650,8 @@ export class BattleScene extends Phaser.Scene {
     if (fxName) this.fx.play(fxName, x, cy, fxScale);
     if (impact) this.feel.hit(impact, x, cy, { groundY: y });
     if (mult <= 0 || radius <= 0) return;
+    // 아군 폭발은 범위 안 적 지뢰를 걷어낸다(지뢰 지대 제거)
+    for (const m of this.mines.clearInRadius(x, y, radius, 'enemy')) this.fx.play('explosion_s', m.x, m.y - 6, 0.4);
     const hit: Enemy[] = [];
     this.enemies.grid.forEachNear(x, y, radius + MAX_ENEMY_RADIUS, (e, d2) => {
       const r = radius + e.radius;
@@ -1028,6 +1032,17 @@ export class BattleScene extends Phaser.Scene {
     if (this.controls.justDown('debugWeapon')) {
       if (this.weapons.has('grenade')) this.weapons.remove('grenade');
       else this.weapons.add('grenade');
+    }
+    if (this.controls.justDown('debugSlotE')) {
+      // 슬롯2(E) 강제 개방: AS05 ↔ AS06 번갈아 장착, TP 가득
+      const slot = this.skills.slots[1];
+      if (slot) {
+        slot.locked = false;
+        slot.skillId = slot.skillId === 'AS05' ? 'AS06' : 'AS05';
+        slot.readyAtMs = 0;
+        this.skills.addTp(100);
+        this.toast(`[디버그] E = ${slot.skillId}`, '#b0a890');
+      }
     }
     if (this.controls.justDown('debugSpeed')) {
       this.clock.debugSpeed = this.clock.debugSpeed > 1 ? 1 : 8;

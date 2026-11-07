@@ -338,6 +338,120 @@
       "fxLayer": "explosion",
       "fxAlpha": 0.85,
       "fxDy": 4
+    },
+    "battalion_left_a": {
+      "gunner": {
+        "screen": [
+          56,
+          170
+        ],
+        "slide": [
+          -90,
+          0
+        ],
+        "face": 1,
+        "inMs": 350,
+        "fireMs": 10000,
+        "outMs": 350,
+        "intervalMs": 220,
+        "rangePx": 480,
+        "scale": 0.5
+      }
+    },
+    "battalion_left_b": {
+      "gunner": {
+        "screen": [
+          56,
+          320
+        ],
+        "slide": [
+          -90,
+          0
+        ],
+        "face": 1,
+        "inMs": 350,
+        "fireMs": 10000,
+        "outMs": 350,
+        "intervalMs": 220,
+        "rangePx": 480,
+        "scale": 0.5
+      }
+    },
+    "battalion_right_a": {
+      "gunner": {
+        "screen": [
+          904,
+          170
+        ],
+        "slide": [
+          90,
+          0
+        ],
+        "face": -1,
+        "inMs": 350,
+        "fireMs": 10000,
+        "outMs": 350,
+        "intervalMs": 220,
+        "rangePx": 480,
+        "scale": 0.5
+      }
+    },
+    "battalion_right_b": {
+      "gunner": {
+        "screen": [
+          904,
+          320
+        ],
+        "slide": [
+          90,
+          0
+        ],
+        "face": -1,
+        "inMs": 350,
+        "fireMs": 10000,
+        "outMs": 350,
+        "intervalMs": 220,
+        "rangePx": 480,
+        "scale": 0.5
+      }
+    },
+    "battalion_bottom_a": {
+      "gunner": {
+        "screen": [
+          300,
+          470
+        ],
+        "slide": [
+          0,
+          90
+        ],
+        "face": 1,
+        "inMs": 350,
+        "fireMs": 10000,
+        "outMs": 350,
+        "intervalMs": 220,
+        "rangePx": 480,
+        "scale": 0.5
+      }
+    },
+    "battalion_bottom_b": {
+      "gunner": {
+        "screen": [
+          690,
+          470
+        ],
+        "slide": [
+          0,
+          90
+        ],
+        "face": -1,
+        "inMs": 350,
+        "fireMs": 10000,
+        "outMs": 350,
+        "intervalMs": 220,
+        "rangePx": 480,
+        "scale": 0.5
+      }
     }
   },
   "countries": [

@@ -16,9 +16,11 @@ export interface MineSpec {
   /** 밟힘 판정 반경 / 폭발 피해 반경 px */
   triggerRadius: number;
   radius: number;
-  /** 공격력 배수(ally) 또는 최대 체력 비율(enemy) */
+  /** 피해: ally는 공격력 배수, enemy는 적 공격력 × 배수(설치한 적 기준) */
   damage: number;
   scale: number;
+  /** 지뢰 그림 알파(적 지뢰는 희미하게, 지뢰 지대) */
+  alpha?: number;
 }
 
 interface Mine {
@@ -79,7 +81,7 @@ export class MineSystem {
       .setOrigin(0.5, 0.75)
       .setScale(spec.scale)
       .setDepth(Depth.Decal + 2)
-      .setAlpha(1)
+      .setAlpha(spec.alpha ?? 1)
       .setTint(spec.faction === 'enemy' ? 0xffb0a0 : 0xffffff)
       .setActive(true)
       .setVisible(true);
@@ -117,6 +119,19 @@ export class MineSystem {
       }
     });
     return hit;
+  }
+
+  /** 범위 안 해당 진영 지뢰 제거(아군 폭발이 적 지뢰를 걷어냄). 제거한 자리 */
+  clearInRadius(x: number, y: number, r: number, faction: Faction): { x: number; y: number }[] {
+    const out: { x: number; y: number }[] = [];
+    const list = this.pool.active;
+    for (let i = list.length - 1; i >= 0; i--) {
+      const m = list[i] as Mine;
+      if (m.spec.faction !== faction || (m.x - x) ** 2 + (m.y - y) ** 2 > r * r) continue;
+      out.push({ x: m.x, y: m.y });
+      this.release(m);
+    }
+    return out;
   }
 
   private release(m: Mine): void {

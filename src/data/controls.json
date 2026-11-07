@@ -62,6 +62,9 @@
     "debugSpeed": [
       "F6"
     ],
+    "debugSlotE": [
+      "F7"
+    ],
     "redeploy": [
       "ENTER"
     ],

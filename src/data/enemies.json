@@ -1,5 +1,5 @@
 {
-  "$comment": "적 정의(PRD §9.2). hp·attack은 스테이지 1 레벨 1 기준이며 core/scaling 배율이 곱해진다. speed=px/초, radius=충돌 반지름(px), xp=처치 시 경험치, speedJitter=개체별 속도 흔들림(±비율). behaviors는 core/behaviors의 부품 조합 attacks=공격 부품(core/enemyAttack: lob·guard·chargeDash) 단계 windup→telegraph(붉은 예고, 최소 combat.minTelegraphMs)→active→recover, cooldownMs, range=[최소,최대] 시작 거리, damage=공격력 배수. lob은 예고 시간 = 포탄 비행 시간(착탄 = active). guard: 최근 whenHurtMs 안에 맞으면 activeMs 동안 피해 −reduce, 이어서 recoverMs 동안 약점(받는 피해 ×weakMult). chargeDash: 예고선 뒤 speed px/초로 activeMs 돌진(부딪히면 접촉 피해 ×damage). staggerImmune=피격 경직 없음(전차·보스). E03·E04 수치는 PRD 밖 값 weight=보스·엘리트 패턴 시퀀서 가중치(준비된 것 중 가중치로 선택). lob count·spread=목표 + 둘레 고리 포탄 수·반지름. fanShot=제자리 부채꼴 사격(range=사거리, angleDeg). opCard=보스 작전 카드: windup 3초 충전(보스 HP바 위 카드) → chance 판정(카드와 같은 연속 실패 완충) → 성공 시 radius 대형 착탄 예고·실행, 실패 또는 충전 중 최대 체력의 cancelFrac 이상 피해로 취소되면 failRecoverMs 경직 + 약점(×weakMult). E05 수치는 PRD 밖 값 (D22) flank=반원 포위(목표 둘레 radius를 옆으로 돌아 들어감), aimLine=조준 예고선 뒤 직선 사격(width 안이면 명중). targetPriority=자동 조준 '위협 우선' 대상(G6), disrupt={type, radius}=방해원: 플레이어가 radius 안이면 그 방해(disruptions.json)를 걸고 살아 있는 동안 유지, 원인 적이 모두 죽으면 해제",
+  "$comment": "적 정의(PRD §9.2). hp·attack은 스테이지 1 레벨 1 기준이며 core/scaling 배율이 곱해진다. speed=px/초, radius=충돌 반지름(px), xp=처치 시 경험치, speedJitter=개체별 속도 흔들림(±비율). behaviors는 core/behaviors의 부품 조합 attacks=공격 부품(core/enemyAttack: lob·guard·chargeDash) 단계 windup→telegraph(붉은 예고, 최소 combat.minTelegraphMs)→active→recover, cooldownMs, range=[최소,최대] 시작 거리, damage=공격력 배수. lob은 예고 시간 = 포탄 비행 시간(착탄 = active). guard: 최근 whenHurtMs 안에 맞으면 activeMs 동안 피해 −reduce, 이어서 recoverMs 동안 약점(받는 피해 ×weakMult). chargeDash: 예고선 뒤 speed px/초로 activeMs 돌진(부딪히면 접촉 피해 ×damage). staggerImmune=피격 경직 없음(전차·보스). E03·E04 수치는 PRD 밖 값 weight=보스·엘리트 패턴 시퀀서 가중치(준비된 것 중 가중치로 선택). lob count·spread=목표 + 둘레 고리 포탄 수·반지름. fanShot=제자리 부채꼴 사격(range=사거리, angleDeg). opCard=보스 작전 카드: windup 3초 충전(보스 HP바 위 카드) → chance 판정(카드와 같은 연속 실패 완충) → 성공 시 radius 대형 착탄 예고·실행, 실패 또는 충전 중 최대 체력의 cancelFrac 이상 피해로 취소되면 failRecoverMs 경직 + 약점(×weakMult). E05 수치는 PRD 밖 값 (D22) flank=반원 포위(목표 둘레 radius를 옆으로 돌아 들어감), aimLine=조준 예고선 뒤 직선 사격(width 안이면 명중). targetPriority=자동 조준 '위협 우선' 대상(G6), disrupt={type, radius}=방해원: 플레이어가 radius 안이면 그 방해(disruptions.json)를 걸고 살아 있는 동안 유지, 원인 적이 모두 죽으면 해제 (D23) layMine=제자리에서 적 지뢰 설치(mine: systems/mines 규격 + alpha 희미한 마커), damageKind=피해 종류(antiTank는 장갑 캐릭터에 +50%, combat.json armor)",
   "enemies": {
     "E01": {
       "name": "인민군 보병",
@@ -330,6 +330,182 @@
           "radius": 40,
           "count": 3,
           "spread": 55
+        }
+      ]
+    },
+    "E11": {
+      "name": "공병",
+      "tier": "normal",
+      "hp": 26,
+      "attack": 4,
+      "defense": 1,
+      "speed": 55,
+      "speedJitter": 0.1,
+      "radius": 14,
+      "xp": 2,
+      "behaviors": [
+        {
+          "type": "keepDistance",
+          "min": 180,
+          "max": 260,
+          "side": 0.5
+        }
+      ],
+      "attacks": [
+        {
+          "type": "layMine",
+          "range": [
+            0,
+            600
+          ],
+          "cooldownMs": 4500,
+          "windupMs": 500,
+          "telegraphMs": 0,
+          "activeMs": 50,
+          "recoverMs": 400,
+          "damage": 2.2,
+          "mine": {
+            "armMs": 700,
+            "lifeMs": 25000,
+            "triggerRadius": 14,
+            "radius": 46,
+            "scale": 0.4,
+            "alpha": 0.35
+          }
+        }
+      ]
+    },
+    "E12": {
+      "name": "대전차포병",
+      "tier": "normal",
+      "hp": 30,
+      "attack": 10,
+      "defense": 2,
+      "speed": 38,
+      "speedJitter": 0.08,
+      "radius": 15,
+      "xp": 2,
+      "behaviors": [
+        {
+          "type": "keepDistance",
+          "min": 240,
+          "max": 320,
+          "side": 0.15
+        }
+      ],
+      "attacks": [
+        {
+          "type": "aimLine",
+          "range": [
+            150,
+            420
+          ],
+          "cooldownMs": 5600,
+          "windupMs": 400,
+          "telegraphMs": 1300,
+          "activeMs": 60,
+          "recoverMs": 800,
+          "damage": 1.6,
+          "width": 14,
+          "damageKind": "antiTank"
+        }
+      ]
+    },
+    "E13": {
+      "name": "전령 오토바이",
+      "tier": "normal",
+      "hp": 20,
+      "attack": 7,
+      "defense": 1,
+      "speed": 110,
+      "speedJitter": 0.12,
+      "radius": 15,
+      "xp": 2,
+      "behaviors": [
+        {
+          "type": "chase"
+        },
+        {
+          "type": "zigzag",
+          "amplitude": 0.5,
+          "freq": 0.8
+        }
+      ],
+      "attacks": [
+        {
+          "type": "chargeDash",
+          "range": [
+            90,
+            320
+          ],
+          "cooldownMs": 4200,
+          "windupMs": 200,
+          "telegraphMs": 800,
+          "activeMs": 600,
+          "recoverMs": 700,
+          "speed": 420,
+          "width": 34,
+          "damage": 1.4
+        }
+      ]
+    },
+    "E14": {
+      "name": "T-34/85 중대",
+      "tier": "elite",
+      "hp": 420,
+      "attack": 12,
+      "defense": 6,
+      "speed": 32,
+      "speedJitter": 0.05,
+      "radius": 26,
+      "xp": 30,
+      "staggerImmune": true,
+      "behaviors": [
+        {
+          "type": "chase"
+        }
+      ],
+      "attacks": [
+        {
+          "type": "guard",
+          "cooldownMs": 8000,
+          "activeMs": 3000,
+          "recoverMs": 1500,
+          "reduce": 0.6,
+          "weakMult": 1.5,
+          "whenHurtMs": 600
+        },
+        {
+          "type": "aimLine",
+          "weight": 1,
+          "range": [
+            120,
+            400
+          ],
+          "cooldownMs": 5000,
+          "windupMs": 300,
+          "telegraphMs": 1100,
+          "activeMs": 60,
+          "recoverMs": 700,
+          "damage": 1.5,
+          "width": 16,
+          "damageKind": "antiTank"
+        },
+        {
+          "type": "chargeDash",
+          "weight": 1,
+          "range": [
+            90,
+            360
+          ],
+          "cooldownMs": 6500,
+          "windupMs": 250,
+          "telegraphMs": 900,
+          "activeMs": 800,
+          "recoverMs": 900,
+          "speed": 380,
+          "width": 44,
+          "damage": 1.6
         }
       ]
     }

@@ -88,3 +88,18 @@ describe('거리 유지 이동 부품', () => {
     expect(Math.abs(mid.y)).toBeCloseTo(1);
   });
 });
+
+describe('스테이지 3 적 부품(D23)', () => {
+  it('공병 지뢰 설치: 예고 없이 준비 → 설치(active) → 회복, 희미한 마커 알파', () => {
+    const lay = E.E11?.attacks?.[0] as AttackSpec;
+    expect(lay.type).toBe('layMine');
+    expect(lay.mine?.alpha ?? 1).toBeLessThan(0.5);
+    const { log } = run([lay], 1500);
+    expect(log.map((l) => l[1])).toEqual(['windup', 'telegraph', 'active', 'recover', 'end']);
+  });
+
+  it('대전차포병·T-34/85 조준 사격은 대전차 피해(장갑 캐릭터 +50%)', () => {
+    expect(E.E12?.attacks?.[0]?.damageKind).toBe('antiTank');
+    expect(E.E14?.attacks?.some((a) => a.damageKind === 'antiTank')).toBe(true);
+  });
+});

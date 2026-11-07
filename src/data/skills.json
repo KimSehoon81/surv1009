@@ -70,7 +70,8 @@
       "tpCost": 40,
       "cooldownMs": 22000,
       "icon": "AS05",
-      "desc": "커서 지점에 5초간 연속 포격"
+      "desc": "커서 지점에 5초간 연속 포격",
+      "timeline": "AS05"
     },
     "AS06": {
       "name": "연합군 지원대대",
@@ -79,7 +80,8 @@
       "tpCost": 45,
       "cooldownMs": 25000,
       "icon": "AS06",
-      "desc": "좌우에서 대대가 진입해 10초간 사격"
+      "desc": "좌우에서 대대가 진입해 10초간 사격",
+      "timeline": "AS06"
     },
     "AS04": {
       "name": "함포 일제사격",
