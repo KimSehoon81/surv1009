@@ -21,7 +21,8 @@ function value(combo: string | null, data: CardData, realCount: number): number 
 }
 
 export function recommend(state: CardState, env: CardEnv, data: CardData): Advice | null {
-  const hand = state.hand.filter((c) => !isMinus(c.id, data));
+  // 마이너스·뒷면 카드는 추천하지 않음(뒷면은 정체를 모르는 카드)
+  const hand = state.hand.filter((c) => !isMinus(c.id, data) && !c.faceDown);
   let best: Advice | null = null;
   const n = hand.length;
   const consider = (idx: number[]) => {

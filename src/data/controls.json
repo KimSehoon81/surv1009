@@ -65,6 +65,9 @@
     "debugSlotE": [
       "F7"
     ],
+    "debugFlip": [
+      "F8"
+    ],
     "redeploy": [
       "ENTER"
     ],

@@ -147,6 +147,15 @@ export class EnemySystem {
         }
       }
       e.updateAnim(true, nowMs, frozen ? 0 : timeScale);
+      // 은신(산악 침투병 등): 플레이어와 멀면 거의 투명·자동 조준 제외
+      const stealth = (e.def as { stealth?: { distance: number; alpha: number } }).stealth;
+      if (stealth) {
+        const far = (e.x - target.x) ** 2 + (e.y - target.y) ** 2 > stealth.distance * stealth.distance;
+        if (far !== e.hidden) {
+          e.hidden = far;
+          e.sprite.setAlpha(far ? stealth.alpha : 1);
+        }
+      }
     }
 
     // 2) 공간 해시 다시 채우기

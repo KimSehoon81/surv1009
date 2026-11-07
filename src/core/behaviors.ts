@@ -54,6 +54,8 @@ export const BEHAVIORS: Record<string, BehaviorFn> = {
     out.x += (-dy / len) * s;
     out.y += (dx / len) * s;
   },
+  /** 고정 포대: 움직이지 않음(방향 기여 없음) */
+  stationary() {},
   /** 반원 포위: 목표 둘레(radius)를 옆으로 돌아 들어간다(개체 위상으로 시계·반시계를 나눔). chase와 섞어 쓴다 */
   flank(a, spec, ctx, out) {
     const dx = a.x - ctx.targetX;

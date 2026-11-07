@@ -30,7 +30,10 @@ describe('behaviors', () => {
   it('데이터 검증: 모든 적의 행동 부품이 존재하고 필수 수치가 양수, 스폰 표의 적이 정의되어 있음', () => {
     for (const [id, e] of Object.entries(enemies.enemies)) {
       for (const b of e.behaviors) expect(BEHAVIORS[b.type], `${id}:${b.type}`).toBeTypeOf('function');
-      for (const k of ['hp', 'speed', 'radius'] as const) expect(e[k], `${id}.${k}`).toBeGreaterThan(0);
+      for (const k of ['hp', 'radius'] as const) expect(e[k], `${id}.${k}`).toBeGreaterThan(0);
+      // 고정 포대(stationary)만 속도 0 허용
+      if (e.behaviors.some((b) => b.type === 'stationary')) expect(e.speed, `${id}.speed`).toBeGreaterThanOrEqual(0);
+      else expect(e.speed, `${id}.speed`).toBeGreaterThan(0);
     }
     for (const ph of stagesData.stages.S1.phases) for (const s of ph.spawns) expect(enemies.enemies).toHaveProperty(s.enemy);
   });

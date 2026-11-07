@@ -50,6 +50,8 @@ export interface EnemyAttackHost {
   audio: AudioSink;
   /** 적 공격이 플레이어에게(공격력, 출처 위치). 무적·보호막·방어 판정은 호출부가 */
   hitPlayer(attack: number, fromX: number, fromY: number, cause: string): void;
+  /** 피해 장판(화염방사병, systems/hazards) */
+  placeHazard?(x: number, y: number, spec: AttackSpec, attack: number): void;
   /** 적 지뢰 설치(공병, systems/mines faction enemy) */
   placeMine?(x: number, y: number, mine: NonNullable<AttackSpec['mine']>, attack: number): void;
   /** 단계 이벤트 알림(보스 작전 카드 HUD 등) */
@@ -119,6 +121,11 @@ export class EnemyAttackSystem {
         this.telegraph({ kind: 'line', x: e.x, y: e.y, dirX: st.dirX, dirY: st.dirY, length, width: spec.width ?? 40 }, nowMs, tele);
         e.trigger('attack', nowMs);
       }
+    } else if (spec.type === 'hazardZone') {
+      if (ev.type === 'telegraph') {
+        this.telegraph({ kind: 'circle', x: st.tx, y: st.ty, r: spec.radius ?? 40 }, nowMs, tele);
+        e.trigger('attack', nowMs);
+      } else if (ev.type === 'active') this.host.placeHazard?.(st.tx, st.ty, spec, e.attack * (spec.damage ?? 1));
     } else if (spec.type === 'layMine') {
       if (ev.type === 'active' && spec.mine) {
         this.host.placeMine?.(e.x, e.y + 4, spec.mine, e.attack * (spec.damage ?? 1));

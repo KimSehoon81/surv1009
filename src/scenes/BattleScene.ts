@@ -30,6 +30,7 @@ import { EffectRunner } from '../systems/effectRunner';
 import { TIMELINES, TimelineSystem } from '../systems/timeline';
 import { MineSystem } from '../systems/mines';
 import { NpcSystem, type NpcId } from '../systems/npcs';
+import { HazardSystem } from '../systems/hazards';
 import { loadProfile, updateProfile } from '../systems/save';
 import { applyCapture, openSlots, runInit, type StartUpgradeDef, type Unlock, type UnlockEntry } from '../core/meta';
 import unlocksData from '../data/unlocks.json';
@@ -72,6 +73,7 @@ const DEBUG_SETS: [string, number][][] = [
   [['E03', 3], ['E04', 1]],
   [['E06', 4], ['E07', 2], ['E08', 2], ['E09', 1]],
   [['E11', 2], ['E12', 2], ['E13', 3], ['E14', 1]],
+  [['E16', 4], ['E17', 2], ['E18', 2], ['E19', 1]],
 ];
 const TP = skillsData.tp;
 const TP_BY_TIER: Record<string, number> = { normal: TP.perKill, elite: TP.perEliteKill, boss: TP.perBossKill };
@@ -146,6 +148,10 @@ export class BattleScene extends Phaser.Scene {
   timelines!: TimelineSystem;
   /** 지뢰(조합 지뢰 살포, D23 적 지뢰) */
   mines!: MineSystem;
+  /** 피해 장판(화염 등) */
+  private hazards!: HazardSystem;
+  /** 뒤집힌 카드 방해가 걸려 있는지(바뀌는 순간 손패를 뒤집거나 되돌림) */
+  private flipOn = false;
   private debugComboIndex = 0;
   private debugSetIndex = 0;
   /** 콤보 보급: 다음 문턱 번호, 최근 보급 시각(전투 시계) */
@@ -318,12 +324,18 @@ export class BattleScene extends Phaser.Scene {
       debuffIds: DEBUFF_IDS,
     });
     this.mines = new MineSystem(this, combat.mineCap);
+    this.hazards = new HazardSystem(this);
+    this.flipOn = false;
     this.enemyAttacks = new EnemyAttackSystem(this, {
       feel: this.feel,
       audio: this.audio,
       hitPlayer: (attack, x, y, cause) => this.hitPlayer(attack, x, y, cause),
       player: () => this.player,
       placeMine: (x, y, mine, attack) => this.mines.place(x, y, { faction: 'enemy', ...mine, damage: attack }, this.clock.timeMs),
+      placeHazard: (x, y, spec, attack) => {
+        const h = spec.hazard;
+        if (h) this.hazards.place(x, y, { kind: h.kind, faction: 'enemy', radius: spec.radius ?? 40, lifeMs: h.lifeMs, tickMs: h.tickMs, damage: attack }, this.clock.timeMs);
+      },
       onEvent: (e, ev) => {
         if (ev.type === 'judged' && e === this.boss) this.events.emit('boss:judged', ev.result);
       },
@@ -343,6 +355,7 @@ export class BattleScene extends Phaser.Scene {
       rng: rng.fork('timelines'),
       damage: (x, y, r, m) => this.explode(x, y, r, m, undefined, 1, undefined),
       damageEnemy: (e, m, dx, dy) => this.damageEnemy(e, m, dx, dy, true),
+      cutCooldowns: (frac, from) => this.skills.cutCooldowns(frac, this.clock.timeMs, from),
       enemiesOnScreen: () => {
         const v = this.cameras.main.worldView;
         return this.enemies.pool.active.filter((e) => e.alive && v.contains(e.x, e.y));
@@ -381,7 +394,7 @@ export class BattleScene extends Phaser.Scene {
         `xp ${this.run.xp} kills ${this.run.kills} gems ${this.pickups.active} taken ${this.run.damageTaken} blocks ${this.run.blocks}`,
         `feel particles ${this.feel.particles.active}/${this.feel.particles.cap} numbers ${this.feel.numbers.active} combo ${this.feel.combo.count}`,
         `audio ${this.audio.enabled ? `voices ${this.audio.activeVoices} played ${this.audio.played} dropped ${this.audio.dropped}` : 'off'}`,
-        params.debug ? 'J공격 K방어 L스킬 U치명 O느림 C캐릭터 V수류탄 I무적 B대형처치 N레벨업 F2적300 F3카드 F4조합 F5엘리트 F6가속 F7슬롯E Esc정지' : '',
+        params.debug ? 'J공격 K방어 L스킬 U치명 O느림 C캐릭터 V수류탄 I무적 B대형처치 N레벨업 F2적300 F3카드 F4조합 F5엘리트 F6가속 F7슬롯E·R F8뒤집기 Esc정지' : '',
       ].filter(Boolean);
     });
 
@@ -515,6 +528,8 @@ export class BattleScene extends Phaser.Scene {
         },
       });
       this.guideTick(now);
+      this.hazards.update(now, target, { hitPlayer: (x, y, spec) => this.hitPlayer(spec.damage, x, y, spec.kind) });
+      this.syncFlip();
       this.mines.update(now, this.enemies.grid, target, {
         onExplode: (x, y, spec) => {
           this.timelines.cue('mine_blast', x, y);
@@ -746,6 +761,16 @@ export class BattleScene extends Phaser.Scene {
     this.enemies.setSpawns(sp.spawns, sp.mult);
     this.disruptorTick();
     for (const d of this.disruptions.update(t)) this.toast(`${DISRUPTION_NAMES[d.type] ?? d.type} 걷힘`, '#b0a890');
+  }
+
+  /** 뒤집힌 카드 방해가 걸리면 손패 2~3장을 뒷면으로, 풀리면 모두 앞면으로 */
+  private syncFlip(): void {
+    const on = this.disruptions.has('flip');
+    if (on === this.flipOn) return;
+    this.flipOn = on;
+    const [lo = 2, hi = lo] = (DTYPES.flip as { flipCount?: number[] } | undefined)?.flipCount ?? [];
+    if (on) this.cards.act({ type: 'flipHand', count: lo + Math.floor(this.combatRng.next() * (hi - lo + 1)) });
+    else this.cards.act({ type: 'unflip' });
   }
 
   /** 자동 조준 위협 우선(설정, 기본 켬) */
@@ -1034,15 +1059,23 @@ export class BattleScene extends Phaser.Scene {
       else this.weapons.add('grenade');
     }
     if (this.controls.justDown('debugSlotE')) {
-      // 슬롯2(E) 강제 개방: AS05 ↔ AS06 번갈아 장착, TP 가득
-      const slot = this.skills.slots[1];
-      if (slot) {
-        slot.locked = false;
-        slot.skillId = slot.skillId === 'AS05' ? 'AS06' : 'AS05';
-        slot.readyAtMs = 0;
+      // 슬롯 E·R 강제 개방: E는 AS05 ↔ AS06 번갈아, R은 AS08, TP 가득
+      const e = this.skills.slots[1];
+      const r = this.skills.slots[2];
+      if (e && r) {
+        e.locked = false;
+        e.skillId = e.skillId === 'AS05' ? 'AS06' : 'AS05';
+        e.readyAtMs = 0;
+        r.locked = false;
+        r.skillId = 'AS08';
         this.skills.addTp(100);
-        this.toast(`[디버그] E = ${slot.skillId}`, '#b0a890');
+        this.toast(`[디버그] E = ${e.skillId}, R = AS08`, '#b0a890');
       }
+    }
+    if (this.controls.justDown('debugFlip')) {
+      // 뒤집힌 카드 방해 15초
+      const d = DTYPES.flip;
+      if (d && this.disruptions.add({ type: 'flip', category: d.category, source: 'debug', priority: d.priority, durationSec: 15 }, now / 1000)) this.toast(`${d.name}! ${d.hint}`, '#ff8060');
     }
     if (this.controls.justDown('debugSpeed')) {
       this.clock.debugSpeed = this.clock.debugSpeed > 1 ? 1 : 8;

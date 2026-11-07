@@ -232,7 +232,7 @@ export class CardSystem {
   }
 
   /** 카드 효과가 카드 상태를 바꿀 때(척후 보고·오보·잔효 OP·지휘 혼선·콤보 보급·통신 복구) */
-  act(action: Extract<CardAction, { type: 'primeIntel' | 'penalty' | 'grantOp' | 'shuffleHand' | 'drawNow' | 'clearPenalty' | 'purgeMinus' }>): CardEvent[] {
+  act(action: Extract<CardAction, { type: 'primeIntel' | 'penalty' | 'grantOp' | 'shuffleHand' | 'drawNow' | 'clearPenalty' | 'purgeMinus' | 'flipHand' | 'unflip' }>): CardEvent[] {
     const r = cardStep(this.state, action, this.env(), this.rng, CARD_DATA);
     this.apply(r);
     if (action.type === 'shuffleHand') this.selected = [];

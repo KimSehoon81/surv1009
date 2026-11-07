@@ -66,6 +66,15 @@ export class SkillSlots {
     return { ok: true, def: d };
   }
 
+  /** 모든 슬롯의 남은 쿨다운을 frac만큼 줄임(공수 보급 AS08) */
+  /** 남은 쿨다운을 frac만큼 줄임. exceptTimeline: 그 연출을 낸 스킬 자신은 빼고(공수 보급이 제 쿨다운을 줄이지 않게) */
+  cutCooldowns(frac: number, nowMs: number, exceptTimeline?: string): void {
+    this.slots.forEach((s, i) => {
+      if (s.readyAtMs <= nowMs || (exceptTimeline && this.def(i)?.timeline === exceptTimeline)) return;
+      s.readyAtMs = nowMs + (s.readyAtMs - nowMs) * (1 - frac);
+    });
+  }
+
   /** 쿨다운 남은 비율 0~1(0이면 준비) */
   cooldownLeft(i: number, nowMs: number): number {
     const s = this.slots[i];

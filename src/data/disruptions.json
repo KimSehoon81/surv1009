@@ -1,5 +1,5 @@
 {
-  "$comment": "방해 종류(PRD §5.4). category a = 카드를 가림(동시 1개). priority = 자리가 없을 때 밀어낼 순서. selectDelayMs = 카드 선택이 늦게 들어가는 시간(HUD 입력 대기열). interactions(G9) = 방해 × 카드 상호작용: on cardSuccess + tag → do(revealSources: 원인 적 ms 동안 표시)",
+  "$comment": "방해 종류(PRD §5.4). category a = 카드를 가림(동시 1개). priority = 자리가 없을 때 밀어낼 순서. selectDelayMs = 카드 선택이 늦게 들어가는 시간(HUD 입력 대기열). interactions(G9) = 방해 × 카드 상호작용: on cardSuccess + tag → do(revealSources: 원인 적 ms 동안 표시) flipCount=[최소,최대] 뒷면으로 바뀌는 손패 수(방해가 끝나면 모두 앞면)",
   "types": {
     "smoke": {
       "name": "포연",
@@ -21,6 +21,16 @@
           "ms": 4000
         }
       ]
+    },
+    "flip": {
+      "name": "뒤집힌 카드",
+      "category": "a",
+      "priority": 1,
+      "flipCount": [
+        2,
+        3
+      ],
+      "hint": "뒷면 카드는 제출하면 공개, 걸고 내면 +5%p"
     }
   }
 }

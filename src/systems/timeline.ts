@@ -70,6 +70,8 @@ export interface CueDef {
   heal?: number;
   shield?: { ms: number; color: string };
   screenStrike?: boolean;
+  /** 고급 스킬 남은 쿨다운을 이 비율만큼 줄임(공수 보급) */
+  cooldownCut?: number;
 }
 
 const CARRIERS = ['bullets', 'gunner', 'dash', 'mine', 'screenStrike'] as const;
@@ -111,9 +113,13 @@ export interface TimelineDeps {
   damageEnemy(e: Enemy, mult: number, dirX: number, dirY: number): void;
   /** 화면 안 살아 있는 적 */
   enemiesOnScreen(): Enemy[];
+  /** 고급 스킬 쿨다운 단축 */
+  cutCooldowns?(frac: number, from?: string): void;
 }
 
 interface Run {
+  /** timelines.json 이름 */
+  id: string;
   player: TimelinePlayer;
   power: number;
 }
@@ -182,17 +188,17 @@ export class TimelineSystem {
     if (!def) return false;
     const p = this.d.player;
     const events = expandTimeline(def, { aim, player: { x: p.x, y: p.y }, minFanDist: AIM.minFanDist }, () => this.d.rng.next());
-    const run = { player: new TimelinePlayer(events, this.d.clock.timeMs), power };
+    const run = { id, player: new TimelinePlayer(events, this.d.clock.timeMs), power };
     this.runs.push(run);
     this.fireDue(run, this.d.clock.timeMs);
     return true;
   }
 
   private fireDue(run: Run, now: number): void {
-    for (const ev of run.player.due(now)) this.fire(ev, run.power);
+    for (const ev of run.player.due(now)) this.fire(ev, run.power, run.id);
   }
 
-  private fire(ev: FiredEvent, power: number): void {
+  private fire(ev: FiredEvent, power: number, from?: string): void {
     const d = this.d;
     if (ev.cue === MARKER_CUE) {
       d.effects.marker(ev, ev.radius || 40, ev.durationMs, CUES[ev.for ?? '']?.whistle === true);
@@ -211,6 +217,7 @@ export class TimelineSystem {
     }
     if (c.sfx) d.audio.play(c.sfx, ev.x, ev.y);
     if (c.heal) d.effects.heal(c.heal * power);
+    if (c.cooldownCut) d.cutCooldowns?.(c.cooldownCut, from);
     if (c.shield) this.shield(c.shield, now);
     if (c.bullets) this.bullets(ev, c.bullets, dmg);
     if (c.screenStrike) for (const e of d.enemiesOnScreen()) d.damageEnemy(e, dmg, e.x - d.player.x, e.y - d.player.y);

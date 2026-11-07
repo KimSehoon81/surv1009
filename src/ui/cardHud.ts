@@ -184,6 +184,9 @@ export class CardHud {
       const sel = this.cards.selected.includes(card.uid);
       const x = x0 + i * (FACE_W + H.gap);
       const y = baseY - (sel ? H.lift : 0);
+      // 뒤집힌 카드(방해): 뒷면 그림, 제출하면 공개
+      const key = card.faceDown ? cardBackKey(this.scene) : cardFaceKey(this.scene, card.id, CARD_DATA.cards[card.id] as never);
+      if (img.texture.key !== key) img.setTexture(key);
       img.setPosition(Math.round(x), Math.round(y)).setVisible(true).setAlpha(coolLeft > 0 && !sel ? 0.6 : 1);
       label.setText(String(i + 1)).setPosition(Math.round(x - FACE_W / 2), Math.round(y - FACE_H / 2 - 1)).setTint(sel ? COL.select : 0xffffff);
       if (sel) g.lineStyle(2, COL.select, 1).strokeRect(Math.round(x - FACE_W / 2) - 1, Math.round(y - FACE_H / 2) - 1, FACE_W + 2, FACE_H + 2);
@@ -219,7 +222,9 @@ export class CardHud {
     // 툴팁: 마우스를 올린 카드의 이름·병과·효과(PRD §5.3.1)
     const hover = this.hoverUid !== null ? hand.find((c) => c.uid === this.hoverUid) : undefined;
     const hoverImg = hover ? this.images.get(hover.uid) : undefined;
-    if (hover && hoverImg && smoke > 0) {
+    if (hover && hoverImg && hover.faceDown) {
+      this.tip.setText('뒷면 카드 — 제출하면 공개 (+5%p)').setPosition(hoverImg.x, hoverImg.y - FACE_H / 2 - 20).setVisible(true);
+    } else if (hover && hoverImg && smoke > 0) {
       this.tip.setText('포연으로 잘 보이지 않음').setPosition(hoverImg.x, hoverImg.y - FACE_H / 2 - 20).setVisible(true);
     } else if (hover && hoverImg) {
       const d = CARD_DATA.cards[hover.id] as { name: string; tag: string; desc?: string } | undefined;
@@ -243,8 +248,13 @@ export class CardHud {
     } else if (pv) {
       if (pv.discardOnly) this.info.setText(`마이너스 폐기 (OP ${CARD_DATA.rules.minusDiscardOp})  Space`);
       else if (pv.chance) {
-        const names = this.cards.selected.map((uid) => cardName(hand.find((c) => c.uid === uid)?.id ?? ''));
-        const what = pv.combo ? comboName(pv.combo) : names.length > 1 ? '단일 효과' : (names[0] ?? '');
+        const names = this.cards.selected.map((uid) => {
+          const c = hand.find((h) => h.uid === uid);
+          return c?.faceDown ? '뒷면 카드' : cardName(c?.id ?? '');
+        });
+        // 뒷면 카드가 섞이면 조합 이름도 숨김(제출하면 공개)
+        const hiddenSel = this.cards.selected.some((uid) => hand.find((h) => h.uid === uid)?.faceDown);
+        const what = hiddenSel ? '뒷면 포함 작전' : pv.combo ? comboName(pv.combo) : names.length > 1 ? '단일 효과' : (names[0] ?? '');
         const seal = this.shiftDown() ? ' [인장]' : '';
         this.info.setText(`${what} ${Math.round(pv.chance.final * 100)}%${seal}   Space 제출 · X 해제`);
       } else this.info.setText(REJECT_TEXT[pv.reason ?? ''] ?? '');
@@ -362,7 +372,7 @@ export class CardHud {
     const recipes = CARD_DATA.combos.map((c) => `${c.name.padEnd(8, ' ')} ${c.tags.map((t) => TAG_NAMES[t] ?? t).join(' + ')}`).join('\n');
     root.add(text(this.scene, 12, '#e8dcc0').setText(`조합표\n${recipes}`).setPosition(80, 76).setLineSpacing(4));
     const pv = this.cards.preview(false);
-    const labels: Record<string, string> = { base: '기본', count: '장수', intel: '정보', luck: '행운', extra: '숙련·업그레이드', gamble: '무리수', penalty: '오보', env: '방해' };
+    const labels: Record<string, string> = { base: '기본', count: '장수', intel: '정보', luck: '행운', extra: '숙련·업그레이드', gamble: '무리수', faceDown: '뒷면 카드', penalty: '오보', env: '방해' };
     const lines = pv?.chance
       ? [...pv.chance.terms.map((t) => `${labels[t.key] ?? t.key}  ${t.value >= 0 ? '+' : ''}${Math.round(t.value * 100)}%p`), `최종  ${Math.round(pv.chance.final * 100)}% (상한 ${Math.round(CARD_DATA.rules.cap * 100)}%)`]
       : ['카드를 고르면 성공률 내역이 보입니다'];

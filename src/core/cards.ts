@@ -26,6 +26,8 @@ export interface CardRules extends ChanceRules {
   minusLifeMs: number;
   minusDiscardOp: number;
   minusChance: { stage1: number; stage10: number };
+  /** 뒷면 카드를 걸고 내면 +%p(뒤집힌 카드 방해 × 카드 상호작용, G9) */
+  faceDownBonus?: number;
   gradeOrder: readonly string[];
   pity: boolean;
 }
@@ -43,6 +45,8 @@ export interface CardInstance {
   drawnAtMs: number;
   /** 혼탁 카드: 제출 전까지 정체를 숨김(UI만 다르게 그림) */
   disguised: boolean;
+  /** 뒤집힌 카드(방해 a, PRD §5.4): 뒷면이라 정체를 모름. 제출하면 공개 */
+  faceDown?: boolean;
 }
 
 export interface CardStats {
@@ -95,6 +99,9 @@ export type CardAction =
   | { type: 'submit'; uids: readonly number[]; useSeal?: boolean; forceSuccess?: boolean }
   /** 손패의 마이너스 카드 전부 정화(군의관 NPC) */
   | { type: 'purgeMinus' }
+  /** 뒤집힌 카드 방해: 앞면인 손패 중 count장을 뒷면으로 / 방해가 끝나면 모두 앞면으로 */
+  | { type: 'flipHand'; count: number }
+  | { type: 'unflip' }
   | { type: 'add'; id: string; disguised?: boolean }
   | { type: 'shuffleHand' }
   | { type: 'primeIntel' }
@@ -255,6 +262,18 @@ export function cardStep(state: CardState, action: CardAction, env: CardEnv, rng
     case 'penalty':
       s.penalties.push({ value: action.value, submits: action.submits });
       break;
+    case 'flipHand': {
+      const up = s.hand.filter((c) => !c.faceDown);
+      for (let k = 0; k < action.count && up.length > 0; k++) {
+        const i = Math.floor(rng.next() * up.length);
+        const c = up.splice(i, 1)[0] as CardInstance;
+        s.hand = s.hand.map((h) => (h.uid === c.uid ? { ...h, faceDown: true } : h));
+      }
+      break;
+    }
+    case 'unflip':
+      s.hand = s.hand.map((h) => (h.faceDown ? { ...h, faceDown: false } : h));
+      break;
     case 'purgeMinus': {
       const minus = s.hand.filter((c) => data.cards[c.id]?.tag === 'minus');
       removeFromHand(s, minus);
@@ -338,6 +357,8 @@ function chanceFor(s: CardState, v: Validated, useSeal: boolean, env: CardEnv, d
       penalty: s.penalties.reduce((sum, p) => sum + p.value, 0),
       envPenalty,
       seal: useSeal,
+      // 뒷면 카드를 걸고 내면 +%p(G9 S4 상호작용, 실제 카드 기준)
+      extraFaceDown: v.real.some((c) => c.faceDown) ? (data.rules.faceDownBonus ?? 0) : 0,
     },
     data.rules,
   );
@@ -404,8 +425,8 @@ function submit(s: CardState, uids: readonly number[], useSeal: boolean, env: Ca
   s.intelPrimed = false;
   s.penalties = s.penalties.map((p) => ({ ...p, submits: p.submits - 1 })).filter((p) => p.submits > 0);
   s.cooldownUntilMs = env.nowMs + r.submitCooldownMs;
-  const disguised = v.cards.filter((c) => c.disguised);
-  if (disguised.length > 0) events.push({ type: 'revealed', cards: disguised.map((c) => ({ ...c, disguised: false })) });
+  const hidden = v.cards.filter((c) => c.disguised || c.faceDown);
+  if (hidden.length > 0) events.push({ type: 'revealed', cards: hidden.map((c) => ({ ...c, disguised: false, faceDown: false })) });
   events.push({ type: 'judged', success, chance, actual, seal: useSeal, combo: success && match ? match.combo.id : null, cards: v.cards });
 
   if (success) {

@@ -49,3 +49,21 @@ describe('스킬 슬롯과 TP', () => {
     expect(s.cast(1, 0)).toEqual({ ok: false, reason: 'unimplemented' });
   });
 });
+
+describe('쿨다운 단축(AS08)', () => {
+  it('남은 쿨다운만 비율로 줄이고, 연출을 낸 스킬 자신은 빼고, 준비된 슬롯은 그대로', () => {
+    const k = make();
+    const [q, e, r] = k.slots;
+    if (!q || !e || !r) throw new Error('slots');
+    q.skillId = 'AS03';
+    q.readyAtMs = 10_000;
+    e.skillId = 'AS05';
+    e.readyAtMs = 500;
+    r.skillId = 'AS08';
+    r.readyAtMs = 31_000;
+    k.cutCooldowns(0.3, 1000, DEFS.AS08?.timeline);
+    expect(q.readyAtMs).toBeCloseTo(1000 + 9000 * 0.7);
+    expect(e.readyAtMs).toBe(500);
+    expect(r.readyAtMs).toBe(31_000);
+  });
+});

@@ -82,7 +82,8 @@ export class WeaponSystem {
       w.cooldownMs -= dtMs;
       if (w.cooldownMs > 0) continue;
       const range = this.param(w, 'range', stats.range);
-      const target = (prefer && grid.nearest(player.x, player.y, range, (e) => e.alive && prefer(e))) || grid.nearest(player.x, player.y, range, (e) => e.alive);
+      // 은신 중인 적은 자동 조준 대상이 아님
+      const target = (prefer && grid.nearest(player.x, player.y, range, (e) => e.alive && !e.hidden && prefer(e))) || grid.nearest(player.x, player.y, range, (e) => e.alive && !e.hidden);
       if (!target) {
         w.cooldownMs = 0; // 적이 없으면 장전 상태로 대기(여러 발이 쌓이지 않게)
         continue;

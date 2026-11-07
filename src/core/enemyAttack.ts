@@ -33,6 +33,8 @@ export interface AttackSpec {
   weight?: number;
   /** 피해 종류(antiTank: 장갑 캐릭터 추가 피해) */
   damageKind?: string;
+  /** hazardZone: 장판 종류·수명·피해 간격 */
+  hazard?: { kind: string; lifeMs: number; tickMs: number };
   /** layMine: 지뢰 규격(systems/mines) */
   mine?: { armMs: number; lifeMs: number; triggerRadius: number; radius: number; scale: number; alpha?: number };
   /** lob: 포탄 수(목표 + 둘레 고리), 고리 반지름 px */
@@ -108,6 +110,8 @@ export const ATTACK_PARTS: Record<string, AttackPart> = {
     move: (ph) => (ph === 'active' ? 'hold' : 'free'),
     taken: (spec, ph) => (ph === 'active' ? 1 - (spec.reduce ?? 0) : ph === 'recover' ? (spec.weakMult ?? 1) : 1),
   },
+  /** 피해 장판: 예고 원 뒤 그 자리에 수명 있는 피해 영역(화염방사병, 이후 연기·독가스) */
+  hazardZone: { threat: true, ready: inRange, move: (ph) => (ph === 'idle' ? 'free' : 'hold') },
   /** 지뢰 설치: 제자리에서 적 지뢰(공병 등). 예고 없음(설치물 자체가 희미한 마커) */
   layMine: { threat: false, ready: inRange, move: (ph) => (ph === 'idle' ? 'free' : 'hold') },
   /** 조준 사격: 예고선(고정 방향) 뒤 직선 한 발, 선 폭 안이면 명중(저격수 등) */

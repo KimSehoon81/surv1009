@@ -49,6 +49,8 @@ export class Enemy implements Agent {
   contactMult = 1;
   /** 피격 경직 없음(전차·보스) */
   staggerImmune = false;
+  /** 은신 중(멀리서 거의 투명, 자동 조준 제외) */
+  hidden = false;
   private anims!: UnitAnims;
   private anim!: AnimState;
   private lastKey = '';
@@ -93,6 +95,8 @@ export class Enemy implements Agent {
     this.lastHurtMs = -Infinity;
     this.contactMult = 1;
     this.staggerImmune = extra.staggerImmune === true;
+    this.hidden = false;
+    this.sprite.setAlpha(1);
     this.maxHp = Math.max(1, Math.round(def.hp * scale.hp));
     this.hp = this.maxHp;
     this.attack = def.attack * scale.attack;
