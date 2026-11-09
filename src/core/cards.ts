@@ -15,6 +15,8 @@ export interface CardDef {
 }
 
 export interface CardRules extends ChanceRules {
+  /** 후반(fromLevel 이상) 혼입 확률 배율 + 혼탁 카드 */
+  minusLate?: { fromLevel: number; mult: number };
   initialHand: number;
   maxSelect: number;
   drawIntervalMs: number;
@@ -43,8 +45,10 @@ export interface CardInstance {
   id: string;
   /** 손패에 들어온 시각(전투 시계): 소멸 동률 처리·마이너스 자동 발동 */
   drawnAtMs: number;
-  /** 혼탁 카드: 제출 전까지 정체를 숨김(UI만 다르게 그림) */
+  /** 혼탁 카드: 정체를 숨김(Lv7 이후 섞여 든 마이너스, PRD §5.4 a). 고르려 하거나 척후 보고·제출로 공개 */
   disguised: boolean;
+  /** 혼탁 카드가 흐린 모습으로 흉내 내는 일반 카드 ID(표시용) */
+  disguiseAs?: string;
   /** 뒤집힌 카드(방해 a, PRD §5.4): 뒷면이라 정체를 모름. 제출하면 공개 */
   faceDown?: boolean;
 }
@@ -91,6 +95,8 @@ export interface CardEnv {
   blockedTags?: readonly string[];
   /** 태그별 판정 감점(방공망 → air 0.15) */
   tagPenalty?: Readonly<Record<string, number>>;
+  /** 섞여 드는 마이너스를 혼탁 카드로(Lv7 이후) */
+  disguiseMinus?: boolean;
 }
 
 export type CardAction =
@@ -99,6 +105,10 @@ export type CardAction =
   | { type: 'submit'; uids: readonly number[]; useSeal?: boolean; forceSuccess?: boolean }
   /** 손패의 마이너스 카드 전부 정화(군의관 NPC) */
   | { type: 'purgeMinus' }
+  /** 혼탁 카드 공개(uids 없으면 손패 전부): 고르려 할 때·척후 보고 */
+  | { type: 'reveal'; uids?: readonly number[] }
+  /** 손패 리롤(소년 통신병): 마이너스가 아닌 카드를 버리고 같은 수만큼 새로(마이너스 혼입 없음) */
+  | { type: 'rerollHand' }
   /** 뒤집힌 카드 방해: 앞면인 손패 중 count장을 뒷면으로 / 방해가 끝나면 모두 앞면으로 */
   | { type: 'flipHand'; count: number }
   | { type: 'unflip' }
@@ -145,6 +155,18 @@ export function isMinus(id: string, data: CardData): boolean {
   return data.cards[id]?.tag === MINUS;
 }
 
+/** 스테이지 ID(S1~S10) → 번호(혼입 곡선용, 모르면 1) */
+export function stageNumber(id: string): number {
+  const n = Number.parseInt(id.replace(/^S/, ''), 10);
+  return Number.isFinite(n) && n > 0 ? n : 1;
+}
+
+/** 지금 혼입 확률과 혼탁 여부: 스테이지 곡선 × 후반(Lv7~) 배율(PRD §3 Lv7~9 혼입 증가, §5.4 a 혼탁 카드) */
+export function minusMixAt(stage: number, level: number, rules: CardRules): { chance: number; disguise: boolean } {
+  const late = rules.minusLate && level >= rules.minusLate.fromLevel;
+  return { chance: Math.min(1, minusChanceFor(stage, rules) * (late ? rules.minusLate?.mult ?? 1 : 1)), disguise: Boolean(late) };
+}
+
 /** 스테이지별 마이너스 혼입 확률(스테이지 1 → 10 선형, PRD §5.4(c)) */
 export function minusChanceFor(stage: number, rules: CardRules): number {
   const t = Math.min(1, Math.max(0, (stage - 1) / 9));
@@ -171,12 +193,15 @@ function shuffle<T>(arr: T[], rng: Rng): void {
 }
 
 /** 손패에 넣기: 마이너스 카드는 늘 맨 오른쪽 칸(PRD §5.4(c) v0.2) */
+/** 겉으로 마이너스로 보이는 카드(혼탁 카드는 일반 카드처럼 취급해 자리로 정체가 드러나지 않게) */
+const shownMinus = (c: CardInstance, data: CardData) => isMinus(c.id, data) && !c.disguised;
+
 function insertHand(s: CardState, card: CardInstance, data: CardData): void {
-  if (isMinus(card.id, data)) {
+  if (shownMinus(card, data)) {
     s.hand.push(card);
     return;
   }
-  const firstMinus = s.hand.findIndex((c) => isMinus(c.id, data));
+  const firstMinus = s.hand.findIndex((c) => shownMinus(c, data));
   if (firstMinus < 0) s.hand.push(card);
   else s.hand.splice(firstMinus, 0, card);
 }
@@ -221,6 +246,12 @@ function drawOne(s: CardState, data: CardData, env: CardEnv, rng: Rng, events: C
   }
   if (!id) return false;
   const card: CardInstance = { uid: s.nextUid++, id, drawnAtMs: env.nowMs, disguised: false };
+  if (env.disguiseMinus && isMinus(id, data)) {
+    // 혼탁 카드: 일반 카드 하나를 흐리게 흉내 냄
+    const normal = Object.keys(data.cards).filter((k) => !isMinus(k, data));
+    card.disguised = true;
+    card.disguiseAs = normal[Math.floor(rng.next() * normal.length)];
+  }
   insertHand(s, card, data);
   events.push({ type: 'drawn', card });
   return true;
@@ -248,9 +279,28 @@ export function cardStep(state: CardState, action: CardAction, env: CardEnv, rng
       }
       break;
     }
+    case 'reveal': {
+      const want = action.uids ? new Set(action.uids) : null;
+      const hit = s.hand.filter((c) => c.disguised && (!want || want.has(c.uid)));
+      if (hit.length === 0) break;
+      const shown = hit.map((c) => ({ ...c, disguised: false, disguiseAs: undefined }));
+      // 정체가 드러난 마이너스는 규칙대로 맨 오른쪽 칸으로
+      s.hand = [...s.hand.filter((c) => !hit.includes(c)), ...shown];
+      events.push({ type: 'revealed', cards: shown });
+      break;
+    }
+    case 'rerollHand': {
+      const keep = s.hand.filter((c) => isMinus(c.id, data));
+      const out = s.hand.filter((c) => !isMinus(c.id, data));
+      s.discard.push(...out.map((c) => c.id));
+      s.hand = keep;
+      for (let i = 0; i < out.length; i++) drawOne(s, data, env, rng, events, false);
+      events.push({ type: 'handShuffled' });
+      break;
+    }
     case 'shuffleHand': {
-      const real = s.hand.filter((c) => !isMinus(c.id, data));
-      const minus = s.hand.filter((c) => isMinus(c.id, data));
+      const real = s.hand.filter((c) => !shownMinus(c, data));
+      const minus = s.hand.filter((c) => shownMinus(c, data));
       shuffle(real, rng);
       s.hand = [...real, ...minus];
       events.push({ type: 'handShuffled' });

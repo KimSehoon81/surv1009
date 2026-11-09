@@ -38,7 +38,7 @@ export interface EffectContext {
   schedule(delayMs: number, fn: () => void): void;
   flashEnemiesOnScreen(ms: number): void;
   toast(msg: string, color?: string): void;
-  cards: { primeIntel(): void; penalty(value: number, submits: number): void; grantOp(n: number): void; shuffleHand(): void; give(id: string): void; purgeMinus(): void };
+  cards: { primeIntel(): void; penalty(value: number, submits: number): void; grantOp(n: number): void; shuffleHand(): void; give(id: string): void; purgeMinus(): void; reveal(): void; rerollHand(): void };
   progression: { bonus(b: { count?: number; rarePlusBonus?: number; valueMultiplier?: number }): void; addRerolls(n: number): void };
   addTp(n: number): void;
   /** 방해 하나 해제(없으면 false) */
@@ -135,6 +135,7 @@ export const EFFECTS: Record<string, EffectHandler> = {
   scout(ctx, p) {
     ctx.flashEnemiesOnScreen(num(p, 'flashMs', 400));
     ctx.cards.primeIntel();
+    ctx.cards.reveal(); // 혼탁 카드 식별(PRD §5.4 a)
     ctx.toast('척후 보고: 다음 작전 +10%p');
   },
 
@@ -184,6 +185,12 @@ export const EFFECTS: Record<string, EffectHandler> = {
 
   shuffleHand(ctx) {
     ctx.cards.shuffleHand();
+  },
+
+  /** 손패 리롤(소년 통신병): 마이너스가 아닌 카드를 새로 */
+  rerollHand(ctx) {
+    ctx.cards.rerollHand();
+    ctx.toast('손패 리롤');
   },
 
   opGain(ctx, p, power) {

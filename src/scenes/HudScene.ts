@@ -19,6 +19,10 @@ import { SkillHud } from '../ui/skillHud';
 import type { CardEvent } from '../core/cards';
 import type { BattleScene } from './BattleScene';
 import { SceneKey } from './keys';
+import shopData from '../data/shop.json';
+import { canBuy, remaining, type ShopItem } from '../core/shop';
+import { panel, UI } from '../ui/widgets';
+import { uiText } from '../ui/text';
 
 const RARITY = upgradesData.rarity;
 const PICK_KEYS: InputAction[] = ['levelPick1', 'levelPick2', 'levelPick3', 'levelPick4'];
@@ -26,6 +30,8 @@ const CARD_W = 200;
 const CARD_H = 150;
 const CARD_GAP = 16;
 const BOSS_INTRO = feelData.bossIntro;
+const SHOP_ITEMS = shopData.items as ShopItem[];
+const SHOP_REJECT: Record<string, string> = { soldOut: '이번 방문 재고 소진', merit: '전공 포인트 부족', unknown: '없는 품목' };
 
 const textStyle = (size: number, color = '#ffffff'): Phaser.Types.GameObjects.Text.TextStyle => ({
   fontFamily: 'monospace',
@@ -103,6 +109,7 @@ export class HudScene extends Phaser.Scene {
     this.resultPanel = null;
     this.levelUp = null;
     this.warn = null;
+    this.shop = null;
     this.guideQueue.length = 0;
     this.controls = new InputMap(this);
     ensurePixelFont(this);
@@ -153,6 +160,7 @@ export class HudScene extends Phaser.Scene {
     this.battle.events.on('guide', this.onGuide);
     this.battle.events.on('warn', this.onWarn);
     this.battle.events.on('boss:spawn', this.onBossSpawn);
+    this.battle.events.on('shop:open', this.onShopOpen);
     this.battle.events.on('boss:judged', this.onBossJudged);
     this.battle.events.on('result', this.onResult);
     this.skillHud = new SkillHud(this, this.battle.skills, () => this.battle.clock.timeMs);
@@ -167,6 +175,7 @@ export class HudScene extends Phaser.Scene {
       this.battle.events.off('toast', this.onToast);
       this.battle.events.off('warn', this.onWarn);
       this.battle.events.off('boss:spawn', this.onBossSpawn);
+      this.battle.events.off('shop:open', this.onShopOpen);
       this.battle.events.off('guide', this.onGuide);
       this.battle.events.off('boss:judged', this.onBossJudged);
       this.battle.events.off('result', this.onResult);
@@ -208,31 +217,112 @@ export class HudScene extends Phaser.Scene {
     if (this.resultPanel) {
       if (this.controls.justDown('redeploy')) b.redeploy();
       else if (this.controls.justDown('toMap')) b.toMap();
-    } else if (this.levelUp) this.updateLevelUp(time);
+    } else if (this.shop) this.updateShop();
+    else if (this.levelUp) this.updateLevelUp(time);
     else this.cardHud.update(time);
     this.controls.endFrame();
   }
 
   private arrowGfx: Phaser.GameObjects.Graphics | null = null;
 
+  /** 전공 상점 창(N03): 전투가 멈춘 동안 ↑↓·Enter·Esc, 클릭으로도 구매 */
+  private shop: { root: Phaser.GameObjects.Container; rows: Phaser.GameObjects.Text[]; info: Phaser.GameObjects.Text; merit: Phaser.GameObjects.Text; index: number; note: string } | null = null;
+  private readonly onShopOpen = () => this.openShop();
+
+  private openShop(): void {
+    this.shop?.root.destroy();
+    const w = 440;
+    const h = 22 * SHOP_ITEMS.length + 96;
+    const x = Math.round((LOGICAL_WIDTH - w) / 2);
+    const y = Math.round((LOGICAL_HEIGHT - h) / 2) - 20;
+    const root = this.add.container(0, 0).setDepth(1000);
+    root.add(this.add.rectangle(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT, 0x000000, 0.55).setOrigin(0));
+    root.add(panel(this, x, y, w, h, '보급 트럭 — 전공 상점'));
+    const merit = this.add.text(x + w - 10, y + 6, '', uiText(13, UI.hi)).setOrigin(1, 0);
+    const rows = SHOP_ITEMS.map((_, i) => {
+      const t = this.add.text(x + 14, y + 32 + i * 22, '', uiText(13)).setInteractive({ useHandCursor: true });
+      t.on('pointerdown', () => {
+        if (!this.shop) return;
+        this.shop.index = i;
+        this.buyFromShop();
+      });
+      return t;
+    });
+    const info = this.add.text(x + 14, y + h - 54, '', uiText(12, UI.text)).setWordWrapWidth(w - 28);
+    const help = this.add.text(x + w / 2, y + h - 16, '↑↓ 고르기 · Enter 구매 · Esc 닫기 (전투 정지 중)', uiText(11, UI.dim)).setOrigin(0.5);
+    root.add([merit, ...rows, info, help]);
+    this.shop = { root, rows, info, merit, index: 0, note: '' };
+    this.renderShop();
+  }
+
+  private renderShop(): void {
+    const sh = this.shop;
+    const st = this.battle.shopState;
+    if (!sh || !st) return;
+    sh.merit.setText(`전공 ${st.merit}`);
+    SHOP_ITEMS.forEach((it, i) => {
+      const left = remaining(st, it);
+      const why = canBuy(st, it);
+      const row = sh.rows[i];
+      if (!row) return;
+      row.setText(`${i === sh.index ? '▶' : '　'} ${it.name.padEnd(8, '　')}  ${String(it.cost).padStart(3, ' ')} 전공  ${left > 0 ? `남은 ${left}` : '품절'}`);
+      row.setColor(i === sh.index ? UI.hi : why ? UI.dim : UI.text);
+    });
+    const cur = SHOP_ITEMS[sh.index];
+    const why = cur ? canBuy(st, cur) : null;
+    sh.info.setText(`${cur?.desc ?? ''}${why ? `  (${SHOP_REJECT[why]})` : ''}${sh.note ? `\n${sh.note}` : ''}`);
+  }
+
+  private buyFromShop(): void {
+    const sh = this.shop;
+    const it = sh ? SHOP_ITEMS[sh.index] : undefined;
+    if (!sh || !it) return;
+    const r = this.battle.buyShop(it.id);
+    sh.note = r.ok ? `${it.name} 구매 — 전공 −${it.cost}` : SHOP_REJECT[r.reason] ?? '';
+    this.renderShop();
+  }
+
+  private updateShop(): void {
+    const sh = this.shop;
+    if (!sh) return;
+    const c = this.controls;
+    const n = SHOP_ITEMS.length;
+    if (c.justDown('uiBack')) {
+      sh.root.destroy();
+      this.shop = null;
+      this.battle.closeShop();
+      return;
+    }
+    if (c.justDown('uiUp')) sh.index = (sh.index + n - 1) % n;
+    else if (c.justDown('uiDown')) sh.index = (sh.index + 1) % n;
+    else if (c.justDown('uiConfirm')) {
+      this.buyFromShop();
+      return;
+    } else return;
+    sh.note = '';
+    this.renderShop();
+  }
+
   /** 화면 밖 방해원: 가장자리 화살표(G6). 정보 카드로 위치를 밝히면 노랗게 강조 */
   private drawDisruptorArrows(time: number): void {
     this.arrowGfx ??= this.add.graphics();
     const g = this.arrowGfx.clear();
-    const list = this.battle.disruptorsOffscreen();
+    const reveal = this.battle.clock.timeMs < this.battle.revealUntil;
+    const alpha = 0.6 + 0.4 * Math.abs(Math.sin(time / 200));
+    const list: { x: number; y: number; color: number; s: number }[] = this.battle.disruptorsOffscreen().map((p) => ({ ...p, color: reveal ? 0xffe14d : 0xff6040, s: 9 }));
+    // 숨은 보급품(N04): 초록, 조금 크게
+    const sup = this.battle.supplyOffscreen();
+    if (sup) list.push({ ...sup, color: 0x6fd06f, s: 12 });
     if (list.length === 0) return;
     const cx = LOGICAL_WIDTH / 2;
     const cy = LOGICAL_HEIGHT / 2;
-    const reveal = this.battle.clock.timeMs < this.battle.revealUntil;
-    const color = reveal ? 0xffe14d : 0xff6040;
-    const alpha = 0.6 + 0.4 * Math.abs(Math.sin(time / 200));
     for (const p of list) {
+      const { color, s } = p;
       const a = Math.atan2(p.y - cy, p.x - cx);
       // 화면 가장자리(안쪽 18px)와 만나는 점
       const k = Math.min((cx - 18) / Math.abs(Math.cos(a) || 1e-6), (cy - 18) / Math.abs(Math.sin(a) || 1e-6));
       const x = cx + Math.cos(a) * k;
       const y = cy + Math.sin(a) * k;
-      const s = 9;
       g.fillStyle(color, alpha).fillTriangle(
         x + Math.cos(a) * s,
         y + Math.sin(a) * s,

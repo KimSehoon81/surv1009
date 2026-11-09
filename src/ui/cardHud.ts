@@ -97,8 +97,10 @@ export class CardHud {
       msg = `${cardName(ev.card.id)} 발동${ev.mult > 1 ? ' ×2' : ''}${desc ? ` — ${desc}` : ''}`;
     }
     else if (ev.type === 'purified') msg = `${cardName(ev.card.id)} 정화`;
+    else if (ev.type === 'revealed') msg = `정체 공개: ${ev.cards.map((c) => cardName(c.id)).join(', ')}`;
     if (!msg) return;
-    this.showText(msg, ev.type === 'minusTriggered' ? cardUi.colors.minus : cardUi.colors.success);
+    const bad = ev.type === 'minusTriggered' || (ev.type === 'revealed' && ev.cards.some((c) => CARD_DATA.cards[c.id]?.tag === 'minus'));
+    this.showText(msg, bad ? cardUi.colors.minus : cardUi.colors.success);
   }
 
   /** 알림 한 줄. 같은 프레임에 이어 오면(카드 이름 → 효과 결과) 한 줄로 잇는다 */
@@ -189,9 +191,16 @@ export class CardHud {
       const x = x0 + i * (FACE_W + H.gap);
       const y = baseY - (sel ? H.lift : 0);
       // 뒤집힌 카드(방해): 뒷면 그림, 제출하면 공개
-      const key = card.faceDown ? cardBackKey(this.scene) : cardFaceKey(this.scene, card.id, CARD_DATA.cards[card.id] as never);
+      // 혼탁 카드: 흉내 내는 일반 카드를 흐리게(고르려 하거나 척후 보고로 공개)
+      const shownId = card.disguised && card.disguiseAs ? card.disguiseAs : card.id;
+      const key = card.faceDown ? cardBackKey(this.scene) : cardFaceKey(this.scene, shownId, CARD_DATA.cards[shownId] as never);
       if (img.texture.key !== key) img.setTexture(key);
-      img.setPosition(Math.round(x), Math.round(y)).setVisible(true).setAlpha(coolLeft > 0 && !sel ? 0.6 : 1);
+      img.setPosition(Math.round(x), Math.round(y)).setVisible(true).setAlpha(coolLeft > 0 && !sel ? 0.6 : card.disguised ? 0.8 : 1);
+      if (card.disguised && !card.faceDown) {
+        const l = Math.round(x - FACE_W / 2) + 3;
+        const t = Math.round(y - FACE_H / 2) + 15;
+        sg.fillStyle(0x6a6458, 0.28).fillRect(l, t, FACE_W - 6, FACE_H - 18);
+      }
       label.setText(String(i + 1)).setPosition(Math.round(x - FACE_W / 2), Math.round(y - FACE_H / 2 - 1)).setTint(sel ? COL.select : 0xffffff);
       if (sel) g.lineStyle(2, COL.select, 1).strokeRect(Math.round(x - FACE_W / 2) - 1, Math.round(y - FACE_H / 2) - 1, FACE_W + 2, FACE_H + 2);
       if (noise) {
@@ -216,7 +225,7 @@ export class CardHud {
         }
       }
       // 마이너스 카드: 12초 원형 타이머
-      if (CARD_DATA.cards[card.id]?.tag === 'minus') {
+      if (CARD_DATA.cards[card.id]?.tag === 'minus' && !card.disguised) {
         const k = Math.min(1, (now - card.drawnAtMs) / CARD_DATA.rules.minusLifeMs);
         g.lineStyle(3, COL.minus, 0.9).beginPath();
         g.arc(Math.round(x), Math.round(y), 14, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - k), false).strokePath();
@@ -226,7 +235,9 @@ export class CardHud {
     // 툴팁: 마우스를 올린 카드의 이름·병과·효과(PRD §5.3.1)
     const hover = this.hoverUid !== null ? hand.find((c) => c.uid === this.hoverUid) : undefined;
     const hoverImg = hover ? this.images.get(hover.uid) : undefined;
-    if (hover && hoverImg && hover.faceDown) {
+    if (hover && hoverImg && hover.disguised && !hover.faceDown) {
+      this.tip.setText(`${cardName(hover.disguiseAs ?? hover.id)}?\n흐릿한 카드 — 고르면 정체가 드러남 (척후 보고로 식별)`).setPosition(hoverImg.x, hoverImg.y - FACE_H / 2 - 20).setVisible(true);
+    } else if (hover && hoverImg && hover.faceDown) {
       this.tip.setText('뒷면 카드 — 제출하면 공개 (+5%p)').setPosition(hoverImg.x, hoverImg.y - FACE_H / 2 - 20).setVisible(true);
     } else if (hover && hoverImg && smoke > 0) {
       this.tip.setText('포연으로 잘 보이지 않음').setPosition(hoverImg.x, hoverImg.y - FACE_H / 2 - 20).setVisible(true);

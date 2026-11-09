@@ -1,5 +1,5 @@
 {
-  "$comment": "NPC(PRD §9.3). 진영 neutral: 적의 공격 대상이 아니고 피격 판정 없음. 접촉하면 대화(talkMs) → 지급 동작 + effects(systems/effects 레지스트리 재사용: giveCard ids 중 하나 지급, heal, purgeMinus 손패 마이너스 정화). lifeMs 안에 만나지 못하면 떠남. 등장 시각은 stages.json npcAt, 종류는 stages.json npcs에서 차례로. distance=플레이어에게서 등장 거리 px",
+  "$comment": "NPC(PRD §9.3). 진영 neutral: 적의 공격 대상이 아니고 피격 판정 없음. 접촉하면 대화(talkMs) → 지급 동작 + effects(systems/effects 레지스트리 재사용: giveCard ids 중 하나 지급, heal, purgeMinus 손패 마이너스 정화). lifeMs 안에 만나지 못하면 떠남. 등장 시각은 stages.json npcAt, 종류는 stages.json npcs에서 차례로. distance=플레이어에게서 등장 거리 px action: shop=전공 상점 창(shop.json, 전투 정지), hiddenSupply=숨은 보급품을 화면 밖 distance px에 두고 가장자리 초록 화살표로 안내(닿으면 hiddenSupply.effects). N05 소년 통신병 = 방해 하나 해제 + 손패 리롤.",
   "distance": 200,
   "contactRadius": 28,
   "talkMs": 900,
@@ -33,6 +33,59 @@
           "params": {}
         }
       ]
+    },
+    "N03": {
+      "name": "보급 트럭 병사",
+      "talk": "전공만 있으면 뭐든 내드립니다!",
+      "action": "shop",
+      "effects": []
+    },
+    "N04": {
+      "name": "피난민 어르신",
+      "talk": "저 너머에 군 보급품이 숨겨져 있소…",
+      "action": "hiddenSupply",
+      "effects": []
+    },
+    "N05": {
+      "name": "소년 통신병",
+      "talk": "통신선 다시 이었어요! 새 명령도 받아 왔고요!",
+      "effects": [
+        {
+          "effect": "clearDisruption",
+          "params": {}
+        },
+        {
+          "effect": "rerollHand",
+          "params": {}
+        }
+      ]
     }
+  },
+  "hiddenSupply": {
+    "distance": [
+      520,
+      760
+    ],
+    "radius": 22,
+    "effects": [
+      {
+        "effect": "heal",
+        "params": {
+          "pct": 0.2
+        }
+      },
+      {
+        "effect": "tp",
+        "params": {
+          "amount": 20
+        }
+      },
+      {
+        "effect": "giveCard",
+        "params": {
+          "ids": "P04,P10,P13"
+        }
+      }
+    ]
   }
 }

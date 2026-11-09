@@ -7,7 +7,7 @@ import {
   type CardAction,
   cardStep,
   createCardState,
-  minusChanceFor,
+  minusMixAt,
   previewSubmit,
   type CardData,
   type CardEnv,
@@ -46,6 +46,8 @@ export interface CardHost {
   readonly audio: AudioSink;
   stats(): { handSize: number; drawSpeed: number; luck: number; blockIntel: number };
   stage(): number;
+  /** 지금 레벨(후반 혼입 증가·혼탁 카드) */
+  level?(): number;
   /** 인장 필요 OP 감소(인게임 작전 숙련, D09) */
   sealOpReduction(): number;
   /** 카드 입력을 받을 수 있는지(레벨업·일시정지·전사 중이 아님) */
@@ -88,6 +90,7 @@ export class CardSystem {
 
   env(): CardEnv {
     const s = this.host.stats();
+    const mix = minusMixAt(this.host.stage(), this.host.level?.() ?? 1, CARD_DATA.rules);
     return {
       nowMs: this.host.clock.timeMs,
       handSize: Math.round(s.handSize),
@@ -95,7 +98,8 @@ export class CardSystem {
       luck: s.luck,
       extraChance: 0,
       opForSeal: CARD_DATA.rules.opForSeal - this.host.sealOpReduction(),
-      minusChance: minusChanceFor(this.host.stage(), CARD_DATA.rules),
+      minusChance: mix.chance,
+      disguiseMinus: mix.disguise,
       blockedTags: s.blockIntel > 0 ? ['intel'] : [],
       tagPenalty: this.host.tagPenalty?.(),
     };
@@ -151,6 +155,11 @@ export class CardSystem {
     if (!this.host.canAct() || this.judging) return;
     const card = this.state.hand[index];
     if (!card) return;
+    if (card.disguised) {
+      // 혼탁 카드: 고르려는 순간 정체가 드러남(고르지는 않음 — 마이너스임을 보고 다시 판단)
+      this.act({ type: 'reveal', uids: [card.uid] });
+      return;
+    }
     const at = this.selected.indexOf(card.uid);
     if (at >= 0) {
       this.selected.splice(at, 1);
@@ -235,10 +244,10 @@ export class CardSystem {
   }
 
   /** 카드 효과가 카드 상태를 바꿀 때(척후 보고·오보·잔효 OP·지휘 혼선·콤보 보급·통신 복구) */
-  act(action: Extract<CardAction, { type: 'primeIntel' | 'penalty' | 'grantOp' | 'shuffleHand' | 'drawNow' | 'clearPenalty' | 'purgeMinus' | 'flipHand' | 'unflip' }>): CardEvent[] {
+  act(action: Extract<CardAction, { type: 'primeIntel' | 'penalty' | 'grantOp' | 'shuffleHand' | 'drawNow' | 'clearPenalty' | 'purgeMinus' | 'flipHand' | 'unflip' | 'reveal' | 'rerollHand' }>): CardEvent[] {
     const r = cardStep(this.state, action, this.env(), this.rng, CARD_DATA);
     this.apply(r);
-    if (action.type === 'shuffleHand') this.selected = [];
+    if (action.type === 'shuffleHand' || action.type === 'rerollHand') this.selected = [];
     this.opSounds(r.events);
     return r.events;
   }
@@ -254,6 +263,7 @@ export class CardSystem {
     // 판정과 무관하게 바로 일어나는 일(마이너스 자동 발동·단독 폐기)
     for (const ev of r.events) {
       if (ev.type === 'minusTriggered' && !r.events.some((e) => e.type === 'judged')) this.host.onEffect(ev);
+      if (ev.type === 'revealed') this.host.onEffect(ev);
     }
   }
 

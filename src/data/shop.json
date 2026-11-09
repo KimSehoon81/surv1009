@@ -1,0 +1,121 @@
+{
+  "$comment": "전공 상점(N03 보급 트럭, PRD §9.3·D26). 전공 포인트(프로필)로 산다. stock=한 번 방문에 살 수 있는 수, effect·params=효과 레지스트리(systems/effects) 그대로. 가격은 PRD 밖 값: S1 한 판 전공 300 안팎(D13·D16 측정) 기준 2~4개를 살 수 있게.",
+  "items": [
+    {
+      "id": "heal",
+      "name": "야전 붕대",
+      "cost": 40,
+      "stock": 1,
+      "effect": "heal",
+      "params": {
+        "pct": 0.3
+      },
+      "desc": "체력 30% 회복"
+    },
+    {
+      "id": "bomber",
+      "name": "폭격 요청서",
+      "cost": 50,
+      "stock": 1,
+      "effect": "giveCard",
+      "params": {
+        "ids": "P04"
+      },
+      "desc": "폭격기 요청 카드 1장"
+    },
+    {
+      "id": "scout",
+      "name": "척후 보고서",
+      "cost": 40,
+      "stock": 1,
+      "effect": "giveCard",
+      "params": {
+        "ids": "P10"
+      },
+      "desc": "척후 보고 카드 1장(혼탁 카드 식별)"
+    },
+    {
+      "id": "crate",
+      "name": "보급 상자",
+      "cost": 30,
+      "stock": 2,
+      "effect": "giveCard",
+      "params": {
+        "ids": "P01,P02,P03,P05,P06,P07,P08,P09"
+      },
+      "desc": "일반 카드 무작위 1장"
+    },
+    {
+      "id": "morale",
+      "name": "사기 진작",
+      "cost": 70,
+      "stock": 1,
+      "effect": "buff",
+      "params": {
+        "id": "shop_morale",
+        "ms": 60000,
+        "stat": "attack",
+        "op": "mul",
+        "value": 0.2
+      },
+      "desc": "공격력 +20%, 60초"
+    },
+    {
+      "id": "boots",
+      "name": "새 군화",
+      "cost": 50,
+      "stock": 1,
+      "effect": "buff",
+      "params": {
+        "id": "shop_boots",
+        "ms": 60000,
+        "stat": "moveSpeed",
+        "op": "mul",
+        "value": 0.15
+      },
+      "desc": "이동속도 +15%, 60초"
+    },
+    {
+      "id": "radio",
+      "name": "무전기 배터리",
+      "cost": 60,
+      "stock": 1,
+      "effect": "tp",
+      "params": {
+        "amount": 30
+      },
+      "desc": "TP +30"
+    },
+    {
+      "id": "map",
+      "name": "작전 지도",
+      "cost": 40,
+      "stock": 1,
+      "effect": "rerolls",
+      "params": {
+        "amount": 2
+      },
+      "desc": "레벨업 리롤 +2"
+    },
+    {
+      "id": "memo",
+      "name": "작전 메모",
+      "cost": 40,
+      "stock": 1,
+      "effect": "opGain",
+      "params": {
+        "amount": 3
+      },
+      "desc": "OP +3"
+    },
+    {
+      "id": "chaplain",
+      "name": "군종 기도문",
+      "cost": 50,
+      "stock": 1,
+      "effect": "purgeMinus",
+      "params": {},
+      "desc": "손패 마이너스 카드 정화"
+    }
+  ]
+}

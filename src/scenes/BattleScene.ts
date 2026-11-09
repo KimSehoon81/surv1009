@@ -43,7 +43,9 @@ import { EnemyAttackSystem } from '../systems/enemyAttacks';
 import { SkillSlots, type CastReject, type SkillDef } from '../core/skills';
 import { damageTakenMult } from '../core/enemyAttack';
 import { runEffect, type Params } from '../systems/effects';
-import type { CardEvent } from '../core/cards';
+import shopData from '../data/shop.json';
+import { buy, type BuyResult, type ShopItem, type ShopState } from '../core/shop';
+import { stageNumber, type CardEvent } from '../core/cards';
 import { Feel } from '../systems/feel';
 import { Floor, type FloorConfig } from '../systems/floor';
 import { FxSystem } from '../systems/fx';
@@ -77,6 +79,7 @@ const DEBUG_SETS: [string, number][][] = [
   [['E21', 5], ['E22', 2], ['E23', 1], ['E24', 1]],
 ];
 const TP = skillsData.tp;
+const SHOP_ITEMS = shopData.items as ShopItem[];
 const TP_BY_TIER: Record<string, number> = { normal: TP.perKill, elite: TP.perEliteKill, boss: TP.perBossKill };
 const SKILL_ACTIONS = skillsData.slots.map((s) => s.action as InputAction);
 const STAGES = stagesData.stages as unknown as Record<string, StageDef>;
@@ -108,6 +111,11 @@ export class BattleScene extends Phaser.Scene {
   cards!: CardSystem;
   /** 작전판(Tab) 열림: 전투 완전 정지 */
   opsOpen = false;
+  /** 전공 상점 창(N03) */
+  shopOpen = false;
+  shopState: ShopState | null = null;
+  /** 숨은 보급품(N04): 닿으면 효과 */
+  private supply: { x: number; y: number; sprite: Phaser.GameObjects.Image } | null = null;
   private combatRng!: Rng;
   private hpBar!: Phaser.GameObjects.Graphics;
   private debug!: DebugOverlay;
@@ -153,6 +161,8 @@ export class BattleScene extends Phaser.Scene {
   private hazards!: HazardSystem;
   /** 뒤집힌 카드 방해가 걸려 있는지(바뀌는 순간 손패를 뒤집거나 되돌림) */
   private flipOn = false;
+  private debugNpcIndex = 0;
+  private modalClosedFrame = -1;
   private lastInterceptToastMs = -Infinity;
   private debugComboIndex = 0;
   private debugSetIndex = 0;
@@ -246,9 +256,10 @@ export class BattleScene extends Phaser.Scene {
         clock: this.clock,
         audio: this.audio,
         stats: () => battle.player.stats,
-        stage: () => 1,
+        stage: () => stageNumber(battle.payload.stage),
+        level: () => (battle.progression ? battle.progression.level : 1), // 카드가 진행도보다 먼저 만들어짐
         sealOpReduction: () => Math.round(battle.player.stats.sealOpReduction),
-        canAct: () => !battle.run.defeated && !battle.run.captured && !battle.progression.isOpen && !battle.clock.hasScale('pause') && !battle.opsOpen,
+        canAct: () => !battle.run.defeated && !battle.run.captured && !battle.progression.isOpen && !battle.clock.hasScale('pause') && !battle.modalOpen,
         tagPenalty: () => battle.tagPenalty(),
         onResult: (success) => {
           battle.feel.hit(success ? 'card_success' : 'card_fail', battle.player.x, battle.player.y - combat.bodyOffsetY);
@@ -329,6 +340,9 @@ export class BattleScene extends Phaser.Scene {
     this.mines = new MineSystem(this, combat.mineCap);
     this.hazards = new HazardSystem(this);
     this.flipOn = false;
+    this.shopOpen = false;
+    this.shopState = null;
+    this.supply = null;
     this.lastInterceptToastMs = -Infinity;
     this.enemyAttacks = new EnemyAttackSystem(this, {
       feel: this.feel,
@@ -405,7 +419,7 @@ export class BattleScene extends Phaser.Scene {
         `xp ${this.run.xp} kills ${this.run.kills} gems ${this.pickups.active} taken ${this.run.damageTaken} blocks ${this.run.blocks}`,
         `feel particles ${this.feel.particles.active}/${this.feel.particles.cap} numbers ${this.feel.numbers.active} combo ${this.feel.combo.count}`,
         `audio ${this.audio.enabled ? `voices ${this.audio.activeVoices} played ${this.audio.played} dropped ${this.audio.dropped}` : 'off'}`,
-        params.debug ? 'J공격 K방어 L스킬 U치명 O느림 C캐릭터 V수류탄 I무적 B대형처치 N레벨업 F2적300 F3카드 F4조합 F5엘리트 F6가속 F7슬롯E·R F8뒤집기 Esc정지' : '',
+        params.debug ? 'J공격 K방어 L스킬 U치명 O느림 C캐릭터 V수류탄 I무적 B대형처치 N레벨업 F2적300 F3카드 F4조합 F5엘리트 F6가속 F7슬롯 F8뒤집기 F9NPC Esc정지' : '',
       ].filter(Boolean);
     });
 
@@ -493,7 +507,8 @@ export class BattleScene extends Phaser.Scene {
   private swings: { x: number; y: number; a: number; half: number; r: number; until: number; color: number }[] = [];
 
   override update(time: number, delta: number): void {
-    if (this.controls.justDown('pause') && !this.run.defeated && !this.result && !this.progression.isOpen && !this.opsOpen) this.togglePause();
+    // 같은 프레임에 Esc로 작전판·상점을 닫았으면 일시정지까지 가지 않게
+    if (this.controls.justDown('pause') && !this.run.defeated && !this.result && !this.progression.isOpen && !this.modalOpen && this.game.loop.frame !== this.modalClosedFrame) this.togglePause();
     const dt = this.clock.tick(delta);
     this.feel.beginFrame(delta, this.clock.hardPaused);
     const now = this.clock.timeMs;
@@ -534,13 +549,20 @@ export class BattleScene extends Phaser.Scene {
       this.npcs.update(now, target, {
         onTalk: (id, text) => this.toast(`${npcData.npcs[id].name}: "${text}"`, '#e8dcc0'),
         onGive: (id) => {
-          for (const fx of npcData.npcs[id].effects) runEffect(fx.effect, this.effects, fx.params as Params, 1);
+          const def = npcData.npcs[id] as { effects: { effect: string; params: unknown }[]; action?: string };
+          for (const fx of def.effects) runEffect(fx.effect, this.effects, fx.params as Params, 1);
+          if (def.action === 'shop') this.openShop();
+          else if (def.action === 'hiddenSupply') {
+            this.placeSupply();
+            this.toast('숨은 보급품 위치 표시 — 초록 화살표를 따라가세요', '#6fd06f');
+          }
           this.audio.play('heal');
         },
       });
       this.guideTick(now);
       this.hazards.update(now, target, { hitPlayer: (x, y, spec) => this.hitPlayer(spec.damage, x, y, spec.kind) });
       this.syncFlip();
+      this.updateSupply();
       this.mines.update(now, this.enemies.grid, target, {
         onExplode: (x, y, spec) => {
           this.timelines.cue('mine_blast', x, y);
@@ -733,7 +755,7 @@ export class BattleScene extends Phaser.Scene {
 
   /** 고급 스킬 키(Q·E·R·F). 카드 입력과 같은 조건(레벨업·일시정지·작전판 중에는 막힘) */
   private skillInput(now: number): void {
-    if (this.progression.isOpen || this.opsOpen || this.run.captured || this.clock.hasScale('pause')) return;
+    if (this.progression.isOpen || this.modalOpen || this.run.captured || this.clock.hasScale('pause')) return;
     SKILL_ACTIONS.forEach((a, i) => {
       if (this.controls.justDown(a)) this.castSkill(i, now);
     });
@@ -1043,15 +1065,89 @@ export class BattleScene extends Phaser.Scene {
     else this.clock.pause('pause');
   }
 
+  /** 작전판·상점 창이 열려 있음(전투 정지, 카드·스킬 입력 막음) */
+  get modalOpen(): boolean {
+    return this.opsOpen || this.shopOpen;
+  }
+
+  /** 전공 상점(N03): 전투를 멈추고 HUD가 창을 그린다 */
+  openShop(): void {
+    if (this.shopOpen || this.run.defeated) return;
+    this.shopState = { merit: loadProfile().merit, bought: {} };
+    this.shopOpen = true;
+    this.clock.pause('shop');
+    this.events.emit('shop:open');
+  }
+
+  buyShop(id: string): BuyResult {
+    const r = buy(this.shopState ?? { merit: 0, bought: {} }, SHOP_ITEMS, id);
+    if (!r.ok) {
+      this.audio.play('card_reject');
+      return r;
+    }
+    this.shopState = r.state;
+    updateProfile((d) => {
+      d.merit = r.state.merit;
+    });
+    runEffect(r.item.effect, this.effects, r.item.params as Params, 1);
+    this.audio.play('pickup');
+    return r;
+  }
+
+  closeShop(): void {
+    if (!this.shopOpen) return;
+    this.shopOpen = false;
+    this.modalClosedFrame = this.game.loop.frame;
+    this.clock.resume('shop');
+  }
+
+  /** 숨은 보급품(N04): 화면 밖에 두고 HUD가 초록 화살표로 안내 */
+  private placeSupply(): void {
+    const cfg = npcData.hiddenSupply;
+    const [lo = 500, hi = lo] = cfg.distance;
+    const a = this.combatRng.next() * Math.PI * 2;
+    const r = lo + this.combatRng.next() * (hi - lo);
+    const x = this.player.x + Math.cos(a) * r;
+    const y = this.player.y + Math.sin(a) * r;
+    this.supply?.sprite.destroy();
+    const sprite = this.add.image(x, y, manifest.image('ui', 'supply_crate', 32, 32).key).setOrigin(0.5, 0.8).setDepth(Depth.Decal + 3);
+    this.supply = { x, y, sprite };
+  }
+
+  private updateSupply(): void {
+    const s = this.supply;
+    if (!s) return;
+    const r = npcData.hiddenSupply.radius + combat.playerRadius;
+    if ((this.player.x - s.x) ** 2 + (this.player.y - s.y) ** 2 > r * r) return;
+    for (const fx of npcData.hiddenSupply.effects) runEffect(fx.effect, this.effects, fx.params as unknown as Params, 1);
+    this.feel.hit('card_success', s.x, s.y);
+    this.audio.play('heal');
+    this.toast('숨은 보급품 확보!', '#6fd06f');
+    s.sprite.destroy();
+    this.supply = null;
+  }
+
+  /** 화면 밖 숨은 보급품 위치(화면 좌표, HUD 화살표). 화면 안이면 null */
+  supplyOffscreen(): { x: number; y: number } | null {
+    const s = this.supply;
+    if (!s) return null;
+    const v = this.cameras.main.worldView;
+    if (v.contains(s.x, s.y)) return null;
+    return { x: s.x - v.x, y: s.y - v.y };
+  }
+
   /** 작전판(Tab): 전투를 완전히 멈추고 조합표·확률 내역을 본다 */
   setOpsBoard(on: boolean): void {
     this.opsOpen = on;
     if (on) this.clock.pause('ops');
-    else this.clock.resume('ops');
+    else {
+      this.clock.resume('ops');
+      this.modalClosedFrame = this.game.loop.frame;
+    }
   }
 
   canOpenBoard(): boolean {
-    return !this.run.defeated && !this.progression.isOpen && !this.clock.hasScale('pause');
+    return !this.run.defeated && !this.progression.isOpen && !this.clock.hasScale('pause') && !this.shopOpen;
   }
 
   /** 레벨업 창 열기: 전투 시계만 멈추고(HUD는 계속) 선택지를 HUD로 보낸다 */
@@ -1105,6 +1201,13 @@ export class BattleScene extends Phaser.Scene {
         this.skills.addTp(100);
         this.toast(`[디버그] Q = ${q.skillId}, E = ${e.skillId}, R = AS08`, '#b0a890');
       }
+    }
+    if (this.controls.justDown('debugNpc')) {
+      // NPC 차례로(N01 → … → N05) 플레이어 곁에
+      const ids = Object.keys(npcData.npcs) as NpcId[];
+      const id = ids[this.debugNpcIndex++ % ids.length] as NpcId;
+      this.npcs.spawn(id, p, now);
+      this.toast(`[디버그] ${id} ${npcData.npcs[id].name}`, '#b0a890');
     }
     if (this.controls.justDown('debugFlip')) {
       // 뒤집힌 카드 방해 15초
