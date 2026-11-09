@@ -24,6 +24,14 @@ export function summonPoints(tx: number, ty: number, s: { count: number; ring: n
 /** 곡사 탄착점: 목표 하나 + count−1개를 spread 반지름 고리에 고르게 */
 export function lobPoints(tx: number, ty: number, spec: AttackSpec, fromX = tx, fromY = ty): { x: number; y: number }[] {
   const n = Math.max(1, spec.count ?? 1);
+  if (spec.pattern === 'ring') {
+    // 포위 포격: 목표 둘레 고리만(가운데는 비움 — 가운데에 서거나 고리 밖으로 빠져야 함)
+    const r = spec.spread ?? 90;
+    return Array.from({ length: n }, (_, i) => {
+      const a = (i / n) * Math.PI * 2;
+      return { x: tx + Math.cos(a) * r, y: ty + Math.sin(a) * r * 0.7 };
+    });
+  }
   if (spec.pattern === 'line') {
     // 탄막선: 쏜 쪽 → 목표 축을 따라 목표를 가운데로(옆으로 비켜야 피함)
     const d = Math.hypot(tx - fromX, ty - fromY) || 1;
@@ -72,6 +80,8 @@ export interface EnemyAttackHost {
   placeMine?(x: number, y: number, mine: NonNullable<AttackSpec['mine']>, attack: number): void;
   /** 보스 포위 명령: 그 자리에 적 소환 */
   summon?(id: string, x: number, y: number): void;
+  /** 살아 있는 그 적 수(소환 상한) */
+  aliveCount?(id: string): number;
   /** 단계 이벤트 알림(보스 작전 카드 HUD 등) */
   onEvent?(e: Enemy, ev: AttackEvent, spec: AttackSpec): void;
   player(): { x: number; y: number };
@@ -149,7 +159,10 @@ export class EnemyAttackSystem {
       if (ev.type === 'telegraph') {
         for (const q of pts) this.telegraph({ kind: 'circle', x: q.x, y: q.y, r: 18 }, nowMs, tele);
         e.trigger('skill', nowMs);
-      } else if (ev.type === 'active') for (const q of pts) this.host.summon?.(spec.summon.enemy, q.x, q.y);
+      } else if (ev.type === 'active') {
+        const room = Math.max(0, (spec.summon.max ?? Infinity) - (this.host.aliveCount?.(spec.summon.enemy) ?? 0));
+        for (const q of pts.slice(0, room)) this.host.summon?.(spec.summon.enemy, q.x, q.y);
+      }
     } else if (spec.type === 'layMine') {
       if (ev.type === 'active' && spec.mine) {
         this.host.placeMine?.(e.x, e.y + 4, spec.mine, e.attack * (spec.damage ?? 1));

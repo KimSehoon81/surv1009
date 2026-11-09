@@ -1,0 +1,128 @@
+{
+  "$comment": "배경 소품 배치 규칙 초안(D28 여유 → D37에서 사용). 스테이지별 소품 종류(그림 이름)와 밀도(바닥 청크 16×16칸당 개수 [최소,최대]), blocking=이동을 막는지(지금은 모두 장식), anim=흔들림 등 D37 소품 애니메이션 이름. 역사 소재 원칙(PRD §1): 파괴된 장비·잔해까지만, 시신·혈흔 없음.",
+  "stages": {
+    "S1": {
+      "density": [
+        1,
+        3
+      ],
+      "kinds": [
+        {
+          "sprite": "prop_sandbag",
+          "weight": 3
+        },
+        {
+          "sprite": "prop_reed",
+          "weight": 4,
+          "anim": "sway"
+        },
+        {
+          "sprite": "prop_crate",
+          "weight": 2
+        },
+        {
+          "sprite": "prop_wrecked_jeep",
+          "weight": 1
+        }
+      ]
+    },
+    "S2": {
+      "density": [
+        1,
+        3
+      ],
+      "kinds": [
+        {
+          "sprite": "prop_rice_straw",
+          "weight": 4
+        },
+        {
+          "sprite": "prop_scarecrow",
+          "weight": 1,
+          "anim": "sway"
+        },
+        {
+          "sprite": "prop_cart",
+          "weight": 2
+        },
+        {
+          "sprite": "prop_sandbag",
+          "weight": 2
+        }
+      ]
+    },
+    "S3": {
+      "density": [
+        1,
+        3
+      ],
+      "kinds": [
+        {
+          "sprite": "prop_tank_trap",
+          "weight": 3
+        },
+        {
+          "sprite": "prop_crater",
+          "weight": 3
+        },
+        {
+          "sprite": "prop_telegraph_pole",
+          "weight": 2
+        },
+        {
+          "sprite": "prop_wrecked_truck",
+          "weight": 1
+        }
+      ]
+    },
+    "S4": {
+      "density": [
+        2,
+        4
+      ],
+      "kinds": [
+        {
+          "sprite": "prop_pine",
+          "weight": 4,
+          "anim": "sway"
+        },
+        {
+          "sprite": "prop_rock",
+          "weight": 3
+        },
+        {
+          "sprite": "prop_fallen_log",
+          "weight": 2
+        },
+        {
+          "sprite": "prop_ammo_box",
+          "weight": 1
+        }
+      ]
+    },
+    "S5": {
+      "density": [
+        1,
+        3
+      ],
+      "kinds": [
+        {
+          "sprite": "prop_ruined_wall",
+          "weight": 3
+        },
+        {
+          "sprite": "prop_roof_tiles",
+          "weight": 3
+        },
+        {
+          "sprite": "prop_barbed_wire",
+          "weight": 2
+        },
+        {
+          "sprite": "prop_aa_gun_wreck",
+          "weight": 1
+        }
+      ]
+    }
+  }
+}

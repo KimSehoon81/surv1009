@@ -352,6 +352,7 @@ export class BattleScene extends Phaser.Scene {
       hitPlayer: (attack, x, y, cause) => this.hitPlayer(attack, x, y, cause),
       player: () => this.player,
       placeMine: (x, y, mine, attack) => this.mines.place(x, y, { faction: 'enemy', ...mine, damage: attack }, this.clock.timeMs),
+      aliveCount: (id) => this.enemies.pool.active.reduce((n, e) => n + (e.alive && e.id === id ? 1 : 0), 0),
       summon: (id, x, y) => {
         if (!isEnemyId(id)) return;
         this.enemies.spawn(id, x, y, this.clock.timeMs, true);
@@ -899,7 +900,7 @@ export class BattleScene extends Phaser.Scene {
         this.events.emit('warn', `${DISRUPTION_NAMES[ev.def.type] ?? ev.def.type} 예보`, ev.inSec);
         break;
       case 'disruption':
-        if (this.disruptions.add(ev.def, now / 1000)) this.toast(`${DISRUPTION_NAMES[ev.def.type] ?? ev.def.type}! 손패가 흐려짐 (통신 복구로 해제)`, '#b0a890');
+        if (this.disruptions.add(ev.def, now / 1000)) this.toast(`${DISRUPTION_NAMES[ev.def.type] ?? ev.def.type}! ${DTYPES[ev.def.type]?.hint ?? ''}`, '#ff8060');
         break;
       case 'bossWarn':
         this.events.emit('warn', `보스 ${name(ev.enemy)} 출현`, ev.inSec, 'boss');

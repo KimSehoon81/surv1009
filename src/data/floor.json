@@ -56,5 +56,43 @@
       0.42,
       0.88
     ]
+  },
+  "S4": {
+    "base": "T07",
+    "patch": "T08",
+    "cell": 32,
+    "chunkCells": 16,
+    "patchesPerChunk": [
+      0,
+      2
+    ],
+    "cellsPerPatch": [
+      10,
+      36
+    ],
+    "sub": 4,
+    "alpha": [
+      0.42,
+      0.88
+    ]
+  },
+  "S5": {
+    "base": "T09",
+    "patch": "T10",
+    "cell": 32,
+    "chunkCells": 16,
+    "patchesPerChunk": [
+      0,
+      2
+    ],
+    "cellsPerPatch": [
+      10,
+      36
+    ],
+    "sub": 4,
+    "alpha": [
+      0.42,
+      0.88
+    ]
   }
 }
