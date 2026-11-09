@@ -97,6 +97,8 @@ export interface CardEnv {
   tagPenalty?: Readonly<Record<string, number>>;
   /** 섞여 드는 마이너스를 혼탁 카드로(Lv7 이후) */
   disguiseMinus?: boolean;
+  /** 캐릭터 보정: 태그별 성공률 +%p(A22 공군 지상통제관 → air) */
+  tagBonus?: Readonly<Record<string, number>>;
 }
 
 export type CardAction =
@@ -409,6 +411,8 @@ function chanceFor(s: CardState, v: Validated, useSeal: boolean, env: CardEnv, d
       seal: useSeal,
       // 뒷면 카드를 걸고 내면 +%p(G9 S4 상호작용, 실제 카드 기준)
       extraFaceDown: v.real.some((c) => c.faceDown) ? (data.rules.faceDownBonus ?? 0) : 0,
+      // 캐릭터 보정: 제출에 든 태그마다 한 번(같은 태그 여러 장이어도 한 번)
+      charBonus: [...tags].reduce((sum, t) => sum + (env.tagBonus?.[t] ?? 0), 0),
     },
     data.rules,
   );

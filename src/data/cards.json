@@ -283,7 +283,8 @@
         "ms": 30000,
         "stat": "moveSpeed",
         "op": "mul",
-        "value": -0.2
+        "value": -0.2,
+        "tag": "terrain"
       },
       "desc": "이동속도 −20%, 30초"
     },

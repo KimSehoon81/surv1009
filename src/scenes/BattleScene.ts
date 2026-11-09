@@ -272,6 +272,7 @@ export class BattleScene extends Phaser.Scene {
         sealOpReduction: () => Math.round(battle.player.stats.sealOpReduction),
         canAct: () => !battle.run.defeated && !battle.run.captured && !battle.progression.isOpen && !battle.clock.hasScale('pause') && !battle.modalOpen,
         tagPenalty: () => battle.tagPenalty(),
+        tagBonus: () => battle.charDef.cardBonus ?? {},
         onResult: (success) => {
           battle.feel.hit(success ? 'card_success' : 'card_fail', battle.player.x, battle.player.y - combat.bodyOffsetY);
           if (!success) battle.tip('firstFail');
@@ -297,14 +298,22 @@ export class BattleScene extends Phaser.Scene {
     this.weaponHooks = {
       onFire: (x, y, facing) => this.feel.muzzle(x, y, facing, this.player.y),
       onMelee: (x, y, dx, dy, radius, arcDeg, mult, kb) => this.melee(x, y, dx, dy, radius, arcDeg, mult, kb),
-      onAura: (x, y, radius, mult) => {
+      onAura: (x, y, radius, mult, kb = 0) => {
         const hit: Enemy[] = [];
         this.enemies.grid.forEachNear(x, y, radius + MAX_ENEMY_RADIUS, (e, d2) => {
           const r = radius + e.radius;
           if (e.alive && d2 <= r * r) hit.push(e);
         });
-        for (const e of hit) this.damageEnemy(e, mult, e.x - x, e.y - y, true);
-        this.swings.push({ x, y: y - 4, a: 0, half: Math.PI, r: radius / 0.8, until: this.clock.timeMs + 160, color: 0x6fd06f });
+        for (const e of hit) {
+          this.damageEnemy(e, mult, e.x - x, e.y - y, true);
+          // 방어 오라(A16): 밀쳐내기
+          if (kb > 0 && e.alive) {
+            const l = Math.hypot(e.x - x, e.y - y) || 1;
+            startKnockback(e.kb, (e.x - x) / l, (e.y - y) / l, kb, 140);
+          }
+        }
+        // 오라 고리 색: 밀쳐내는 방어 오라는 강철색, 의무 오라는 초록
+        this.swings.push({ x, y: y - 4, a: 0, half: Math.PI, r: radius / 0.8, until: this.clock.timeMs + 160, color: kb > 0 ? 0x9ab0c8 : 0x6fd06f });
       },
       onPlace: (x, y, mult, mine) => this.mines.place(x, y, { faction: 'ally', ...mine, damage: mult }, this.clock.timeMs),
     };
@@ -663,7 +672,7 @@ export class BattleScene extends Phaser.Scene {
       const cards = ev.type === 'cardEffect' ? [ev.card] : ev.cards;
       this.disruptionInteractions(cards.map((c) => CARD_DATA.cards[c.id]?.tag ?? ''));
     }
-    if (ev.type === 'cardEffect') this.runCard(ev.card.id, 1);
+    if (ev.type === 'cardEffect') this.runCard(ev.card.id, this.cardPower([ev.card]));
     else if (ev.type === 'minusTriggered') this.runCard(ev.card.id, ev.mult);
     else if (ev.type === 'lost') {
       const tag = CARD_DATA.cards[ev.card.id]?.tag ?? '';
@@ -674,8 +683,10 @@ export class BattleScene extends Phaser.Scene {
       const s = this.player.stats;
       // 연출 타임라인이 있는 조합은 그것으로, 아직 없는 조합(D11)은 쓰인 카드 효과를 배수로 대신
       this.effects.schedule(s.comboDelayMs, () => {
-        if (this.timelines.play(ev.combo, s.comboPower)) return;
-        const power = cardsData.comboFallbackPower * s.comboPower;
+        // 위력: 조합 배율 × 아군 공격(A20) × 태그 강화(A23 해군)
+        const pow = s.comboPower * s.allyPower * this.cardPower(ev.cards);
+        if (this.timelines.play(ev.combo, pow)) return;
+        const power = cardsData.comboFallbackPower * pow;
         for (const c of ev.cards) if (CARD_DATA.cards[c.id]?.tag !== 'minus') this.runCard(c.id, power);
       });
       this.run.comboSuccesses++;
@@ -685,6 +696,17 @@ export class BattleScene extends Phaser.Scene {
         this.toast('전술 선택지 확보 (다음 레벨업)', '#7fd8ff');
       }
     }
+  }
+
+  /** 캐릭터 정의(카드 보정·강화 등 능력치 밖 성질) */
+  get charDef(): { cardBonus?: Record<string, number>; cardPower?: Record<string, number> } {
+    return (characterData.characters as Record<string, { cardBonus?: Record<string, number>; cardPower?: Record<string, number> }>)[this.player.id] ?? {};
+  }
+
+  /** 태그 강화(A23 해군 카드 +50%): 쓰인 카드 태그 중 가장 큰 강화 */
+  private cardPower(cards: readonly { id: string }[]): number {
+    const cp = this.charDef.cardPower ?? {};
+    return 1 + Math.max(0, ...cards.map((c) => cp[CARD_DATA.cards[c.id]?.tag ?? ''] ?? 0));
   }
 
   private runCard(id: string, power: number): void {
@@ -790,7 +812,7 @@ export class BattleScene extends Phaser.Scene {
       this.toast(`${this.skills.slots[i]?.key ?? ''}: ${CAST_REJECT[r.reason]}`, '#b0a890');
       return false;
     }
-    this.timelines.play(r.def.timeline as string);
+    this.timelines.play(r.def.timeline as string, this.player.stats.allyPower);
     this.player.trigger('skill', now);
     this.run.skillsUsed++;
     this.toast(`${r.def.name}!`, '#7fd8ff');

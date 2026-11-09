@@ -12,7 +12,7 @@ export interface WeaponHooks {
   /** 총알 발사 순간. (x, y): 총구 끝 월드 좌표 */
   onFire?(x: number, y: number, facing: number): void;
   /** 오라: (x, y) 둘레 radius 안 적 전부 */
-  onAura?(x: number, y: number, radius: number, damageMult: number): void;
+  onAura?(x: number, y: number, radius: number, damageMult: number, knockback?: number): void;
   /** 설치형: (x, y)에 지뢰 */
   onPlace?(x: number, y: number, damageMult: number, mine: { armMs: number; lifeMs: number; triggerRadius: number; radius: number; scale: number }): void;
   /** 근접 휘두르기: (dirX, dirY) 방향 arcDeg 부채꼴 radius 안 모두 타격 */
@@ -93,7 +93,7 @@ export class WeaponSystem {
       player.faceTowards(target.x);
       const def = w.def as Record<string, unknown>;
       if (w.def.type === 'aura') {
-        hooks.onAura?.(player.x, player.y, this.param(w, 'auraRadius', 64), this.param(w, 'damageMult', 1));
+        hooks.onAura?.(player.x, player.y, this.param(w, 'auraRadius', 64), this.param(w, 'damageMult', 1), this.param(w, 'knockback', 0));
       } else if (w.def.type === 'placeable') {
         // 목표 쪽으로 조금 앞에 설치(적이 지나갈 자리)
         const dx = target.x - player.x;

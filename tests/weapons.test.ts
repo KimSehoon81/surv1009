@@ -51,8 +51,8 @@ describe('캐릭터 30명 스키마', () => {
     }
   });
 
-  it('구현 캐릭터 A01~A15, 패시브 트리거의 효과가 레지스트리에 있음', () => {
-    expect(Object.entries(C).filter(([, c]) => c.implemented).map(([id]) => id)).toEqual(Array.from({ length: 15 }, (_, i) => `A${String(i + 1).padStart(2, '0')}`));
+  it('구현 캐릭터 A01~A23, 패시브 트리거의 효과가 레지스트리에 있음', () => {
+    expect(Object.entries(C).filter(([, c]) => c.implemented).map(([id]) => id)).toEqual(Array.from({ length: 23 }, (_, i) => `A${String(i + 1).padStart(2, '0')}`));
     for (const [id, c] of Object.entries(C)) {
       for (const p of c.passive) {
         if (p.trigger) {

@@ -14,6 +14,8 @@ export interface ChanceRules {
 export interface ChanceInput {
   /** 뒷면 카드 제출 보너스(G9) */
   extraFaceDown?: number;
+  /** 캐릭터 보정(태그별 +%p, 공군 지상통제관 등 D30) */
+  charBonus?: number;
   /** 마이너스를 뺀 실제 카드 수 */
   realCount: number;
   hasIntel: boolean;
@@ -31,7 +33,7 @@ export interface ChanceInput {
   seal: boolean;
 }
 
-export type ChanceKey = 'base' | 'count' | 'intel' | 'luck' | 'extra' | 'gamble' | 'faceDown' | 'penalty' | 'env';
+export type ChanceKey = 'base' | 'count' | 'intel' | 'luck' | 'extra' | 'char' | 'gamble' | 'faceDown' | 'penalty' | 'env';
 
 export interface ChanceResult {
   terms: { key: ChanceKey; value: number }[];
@@ -49,6 +51,7 @@ export function chanceBreakdown(i: ChanceInput, r: ChanceRules): ChanceResult {
   if (i.luck) terms.push({ key: 'luck', value: i.luck * r.luckPerPoint });
   if (i.extra) terms.push({ key: 'extra', value: i.extra });
   if (i.gamble) terms.push({ key: 'gamble', value: r.gambleBonus });
+  if (i.charBonus) terms.push({ key: 'char', value: i.charBonus });
   if (i.extraFaceDown) terms.push({ key: 'faceDown', value: i.extraFaceDown });
   if (i.penalty) terms.push({ key: 'penalty', value: -i.penalty });
   if (i.envPenalty) terms.push({ key: 'env', value: -i.envPenalty });

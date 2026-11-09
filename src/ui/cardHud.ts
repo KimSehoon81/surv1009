@@ -390,7 +390,7 @@ export class CardHud {
     const recipes = CARD_DATA.combos.map((c) => `${c.name.padEnd(8, ' ')} ${c.tags.map((t) => TAG_NAMES[t] ?? t).join(' + ')}`).join('\n');
     root.add(text(this.scene, 12, '#e8dcc0').setText(`조합표\n${recipes}`).setPosition(80, 76).setLineSpacing(4));
     const pv = this.cards.preview(false);
-    const labels: Record<string, string> = { base: '기본', count: '장수', intel: '정보', luck: '행운', extra: '숙련·업그레이드', gamble: '무리수', faceDown: '뒷면 카드', penalty: '오보', env: '환경 방해(방공망 등)' };
+    const labels: Record<string, string> = { base: '기본', count: '장수', intel: '정보', luck: '행운', extra: '숙련·업그레이드', char: '캐릭터 보정', gamble: '무리수', faceDown: '뒷면 카드', penalty: '오보', env: '환경 방해(방공망 등)' };
     const lines = pv?.chance
       ? [...pv.chance.terms.map((t) => `${labels[t.key] ?? t.key}  ${t.value >= 0 ? '+' : ''}${Math.round(t.value * 100)}%p`), `최종  ${Math.round(pv.chance.final * 100)}% (상한 ${Math.round(CARD_DATA.rules.cap * 100)}%)`]
       : ['카드를 고르면 성공률 내역이 보입니다'];

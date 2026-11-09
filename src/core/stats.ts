@@ -5,6 +5,8 @@ export interface StatMod {
   stat: string;
   op: 'add' | 'mul';
   value: number;
+  /** 분류(terrain = 지형·기후 감속: 그리스군 산악병 등 immuneTags가 무시) */
+  tag?: string;
 }
 
 export type StatLimits = Readonly<Record<string, readonly number[]>>;

@@ -170,6 +170,7 @@ export const EFFECTS: Record<string, EffectHandler> = {
     const op = str(p, 'op', 'mul') === 'add' ? 'add' : 'mul';
     const mods: StatMod[] = [{ stat: str(p, 'stat'), op, value: num(p, 'value') * power }];
     if (p.stat2 !== undefined) mods.push({ stat: str(p, 'stat2'), op: 'add', value: num(p, 'value2') * power });
+    if (p.tag !== undefined) for (const m of mods) m.tag = str(p, 'tag');
     ctx.addBuff(str(p, 'id', 'buff'), mods, num(p, 'ms', 10000));
   },
 

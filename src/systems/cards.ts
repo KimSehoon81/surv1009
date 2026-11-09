@@ -54,6 +54,8 @@ export interface CardHost {
   canAct(): boolean;
   /** 환경 보정: 태그별 판정 감점(적 방공망 공군 −15%p 등, 같은 태그는 중첩 없음) */
   tagPenalty?(): Readonly<Record<string, number>>;
+  /** 캐릭터 보정(태그별 +%p) */
+  tagBonus?(): Readonly<Record<string, number>>;
   /** 판정 결과 연출(금색 플래시 등) */
   onResult(success: boolean): void;
   /** 카드 효과·조합 스킬·마이너스 발동·실패 소멸(잔효) */
@@ -106,6 +108,7 @@ export class CardSystem {
       disguiseMinus: mix.disguise,
       blockedTags: s.blockIntel > 0 ? ['intel'] : [],
       tagPenalty: this.host.tagPenalty?.(),
+      tagBonus: this.host.tagBonus?.(),
     };
   }
 

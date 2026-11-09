@@ -171,6 +171,14 @@
         "radius": 52,
         "scale": 0.4
       }
+    },
+    "guard_aura": {
+      "name": "방어 오라",
+      "type": "aura",
+      "damageMult": 0.3,
+      "cooldownMs": 1200,
+      "auraRadius": 64,
+      "knockback": 14
     }
   }
 }

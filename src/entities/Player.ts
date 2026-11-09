@@ -52,6 +52,8 @@ export class Player {
   private base!: Stats;
   /** 캐릭터 패시브 능력치 수정자(캐릭터를 바꾸면 바뀜) */
   private passiveMods: StatMod[] = [];
+  /** 무시하는 수정자 분류(A21 산악병: terrain) */
+  private immune: readonly string[] = [];
   /** 이동 속도 배율(슬로우 디버프·가속 버프가 바꾼다). 1 = 기본 */
   speedMul = 1;
   hp = 1;
@@ -97,6 +99,7 @@ export class Player {
     this.id = id;
     this.base = { ...characters.characters[id].stats, ...levels.extraBaseStats };
     this.passiveMods = passiveOf(id).flatMap((p) => p.mods ?? []);
+    this.immune = (characters.characters[id] as { immuneTags?: string[] }).immuneTags ?? [];
     this.recalc();
     this.hp = this.maxHp;
     this.anims = registerUnitAnims(this.scene, id);
@@ -124,7 +127,8 @@ export class Player {
   /** 능력치 재계산. 최대 체력이 오르면 오른 만큼 현재 체력도 채운다 */
   private recalc(): void {
     const prevMax = this.maxHp;
-    this.stats = applyMods(this.base, [...this.passiveMods, ...this.mods, ...this.buffs.mods()], LIMITS);
+    const buffs = this.buffs.mods().filter((m) => !m.tag || !this.immune.includes(m.tag));
+    this.stats = applyMods(this.base, [...this.passiveMods, ...this.mods, ...buffs], LIMITS);
     this.maxHp = Math.round(this.stats.hp);
     if (this.maxHp > prevMax) this.hp += this.maxHp - prevMax;
     this.hp = Math.min(this.hp, this.maxHp);
