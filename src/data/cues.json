@@ -479,6 +479,11 @@
     "boss_intro": {
       "feel": "impact_l",
       "sfx": "explode_l"
+    },
+    "summon_puff": {
+      "fx": "dust",
+      "fxScale": 0.7,
+      "fxLayer": "explosion"
     }
   },
   "countries": [

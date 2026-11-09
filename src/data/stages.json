@@ -1,5 +1,5 @@
 {
-  "$comment": "스테이지 정의(PRD §3 타임라인·§7.1·§5.4). 공통 스키마: floor=floor.json 키, maxAlive=동시 적 상한, phases=[{from,to(null=끝까지),spawns:[{enemy,perSec}]}](시각은 전투 시계 초), pacing=스폰 밀도 배율 구간(대군집 ×1.8 90초 → 숨 고르기 ×0.5 20초, label이 있으면 HUD 예고), elites=[{at,enemy,warnSec}](등장 warnSec초 전 예고), boss={enemy,trigger:{level,time},warnSec,spawnMult}(Lv 도달 또는 time 중 먼저, warnSec초 경고 뒤 등장, 보스전 동안 일반 스폰 ×spawnMult), disruptions=[{type,category(a=카드를 가림),firstAt,intervalSec,durationSec,warnSec,minEnemiesOnScreen,priority,source}]. rules: 새 요소(적 첫 등장·엘리트·방해·NPC)는 newElementGapSec초에 1개 이하(테스트로 검사), 방해 동시 최대 maxDisruptions·카드 가림 maxCardObscuring. S1 시각: 1:30 척후병, 2:30 박격포병, 4:00 T-34, 5:00 첫 포연, 6:00·10:00 NPC(종군기자 → 군의관), 7:30 숨 고르기, 8~12분 대군집 2회, Lv10 또는 13:00 보스 npcs=이 스테이지에 나오는 NPC 순서(npcAt 시각마다 차례로) bgm·bossBgm=sfx.json bgm.tracks 이름(파일이 없으면 무음)",
+  "$comment": "스테이지 정의(PRD §3 타임라인·§7.1·§5.4). 공통 스키마: floor=floor.json 키, maxAlive=동시 적 상한, phases=[{from,to(null=끝까지),spawns:[{enemy,perSec}]}](시각은 전투 시계 초), pacing=스폰 밀도 배율 구간(대군집 ×1.8 90초 → 숨 고르기 ×0.5 20초, label이 있으면 HUD 예고), elites=[{at,enemy,warnSec}](등장 warnSec초 전 예고), boss={enemy,trigger:{level,time},warnSec,spawnMult}(Lv 도달 또는 time 중 먼저, warnSec초 경고 뒤 등장, 보스전 동안 일반 스폰 ×spawnMult), disruptions=[{type,category(a=카드를 가림),firstAt,intervalSec,durationSec,warnSec,minEnemiesOnScreen,priority,source}]. rules: 새 요소(적 첫 등장·엘리트·방해·NPC)는 newElementGapSec초에 1개 이하(테스트로 검사), 방해 동시 최대 maxDisruptions·카드 가림 maxCardObscuring. S1 시각: 1:30 척후병, 2:30 박격포병, 4:00 T-34, 5:00 첫 포연, 6:00·10:00 NPC(종군기자 → 군의관), 7:30 숨 고르기, 8~12분 대군집 2회, Lv10 또는 13:00 보스 npcs=이 스테이지에 나오는 NPC 순서(npcAt 시각마다 차례로) bgm·bossBgm=sfx.json bgm.tracks 이름(파일이 없으면 무음) S2 호남 수복(D27): 점령부대·저격수(통신 노이즈 방해원)·기관총반, 엘리트 SU-76, 보스 호남 점령사단장. S3 대전 탈환: 공병(지뢰 지대)·전령 오토바이·대전차포병, 엘리트 T-34/85, 보스 포병연대장. 환경 방해는 적이 건다(S2 저격수 노이즈·S3 공병 지뢰)라 disruptions 표는 비움. 스폰은 S1과 같은 시간 틀, 스테이지 배율(§7.3 core/scaling)이 체력·공격·밀도를 올림.",
   "rules": {
     "newElementGapSec": 60,
     "maxDisruptions": 2,
@@ -187,6 +187,412 @@
       "npcs": [
         "N01",
         "N02"
+      ],
+      "bgm": "bgm_stage01",
+      "bossBgm": "bgm_boss"
+    },
+    "S2": {
+      "name": "호남 수복",
+      "region": "전라도",
+      "floor": "S2",
+      "maxAlive": 170,
+      "phases": [
+        {
+          "from": 0,
+          "to": 90,
+          "spawns": [
+            {
+              "enemy": "E01",
+              "perSec": 0.35
+            },
+            {
+              "enemy": "E06",
+              "perSec": 0.3
+            }
+          ]
+        },
+        {
+          "from": 90,
+          "to": 180,
+          "spawns": [
+            {
+              "enemy": "E01",
+              "perSec": 0.3
+            },
+            {
+              "enemy": "E06",
+              "perSec": 0.45
+            },
+            {
+              "enemy": "E07",
+              "perSec": 0.05
+            }
+          ]
+        },
+        {
+          "from": 180,
+          "to": 300,
+          "spawns": [
+            {
+              "enemy": "E01",
+              "perSec": 0.3
+            },
+            {
+              "enemy": "E06",
+              "perSec": 0.5
+            },
+            {
+              "enemy": "E07",
+              "perSec": 0.06
+            },
+            {
+              "enemy": "E08",
+              "perSec": 0.07
+            }
+          ]
+        },
+        {
+          "from": 300,
+          "to": 480,
+          "spawns": [
+            {
+              "enemy": "E01",
+              "perSec": 0.35
+            },
+            {
+              "enemy": "E06",
+              "perSec": 0.6
+            },
+            {
+              "enemy": "E07",
+              "perSec": 0.07
+            },
+            {
+              "enemy": "E08",
+              "perSec": 0.1
+            }
+          ]
+        },
+        {
+          "from": 480,
+          "to": 720,
+          "spawns": [
+            {
+              "enemy": "E01",
+              "perSec": 0.45
+            },
+            {
+              "enemy": "E06",
+              "perSec": 0.75
+            },
+            {
+              "enemy": "E07",
+              "perSec": 0.08
+            },
+            {
+              "enemy": "E08",
+              "perSec": 0.12
+            }
+          ]
+        },
+        {
+          "from": 720,
+          "to": null,
+          "spawns": [
+            {
+              "enemy": "E01",
+              "perSec": 0.5
+            },
+            {
+              "enemy": "E06",
+              "perSec": 0.8
+            },
+            {
+              "enemy": "E07",
+              "perSec": 0.08
+            },
+            {
+              "enemy": "E08",
+              "perSec": 0.13
+            }
+          ]
+        }
+      ],
+      "pacing": [
+        {
+          "from": 450,
+          "to": 470,
+          "mult": 0.5,
+          "label": "숨 고르기"
+        },
+        {
+          "from": 480,
+          "to": 570,
+          "mult": 1.8,
+          "label": "대군집 접근!"
+        },
+        {
+          "from": 570,
+          "to": 590,
+          "mult": 0.5,
+          "label": "숨 고르기"
+        },
+        {
+          "from": 620,
+          "to": 710,
+          "mult": 1.8,
+          "label": "대군집 접근!"
+        },
+        {
+          "from": 710,
+          "to": 730,
+          "mult": 0.5,
+          "label": "숨 고르기"
+        }
+      ],
+      "elites": [
+        {
+          "at": 240,
+          "enemy": "E09",
+          "warnSec": 3
+        },
+        {
+          "at": 540,
+          "enemy": "E09",
+          "warnSec": 3
+        },
+        {
+          "at": 680,
+          "enemy": "E09",
+          "warnSec": 3
+        }
+      ],
+      "boss": {
+        "enemy": "E10",
+        "trigger": {
+          "level": 10,
+          "time": 780
+        },
+        "warnSec": 15,
+        "spawnMult": 0.6
+      },
+      "disruptions": [],
+      "npcAt": [
+        360,
+        600
+      ],
+      "npcs": [
+        "N03",
+        "N01"
+      ],
+      "bgm": "bgm_stage01",
+      "bossBgm": "bgm_boss"
+    },
+    "S3": {
+      "name": "대전 탈환",
+      "region": "충청도",
+      "floor": "S3",
+      "maxAlive": 170,
+      "phases": [
+        {
+          "from": 0,
+          "to": 90,
+          "spawns": [
+            {
+              "enemy": "E01",
+              "perSec": 0.4
+            },
+            {
+              "enemy": "E06",
+              "perSec": 0.3
+            }
+          ]
+        },
+        {
+          "from": 90,
+          "to": 180,
+          "spawns": [
+            {
+              "enemy": "E01",
+              "perSec": 0.4
+            },
+            {
+              "enemy": "E06",
+              "perSec": 0.35
+            },
+            {
+              "enemy": "E11",
+              "perSec": 0.05
+            }
+          ]
+        },
+        {
+          "from": 180,
+          "to": 300,
+          "spawns": [
+            {
+              "enemy": "E01",
+              "perSec": 0.4
+            },
+            {
+              "enemy": "E06",
+              "perSec": 0.4
+            },
+            {
+              "enemy": "E11",
+              "perSec": 0.06
+            },
+            {
+              "enemy": "E13",
+              "perSec": 0.08
+            }
+          ]
+        },
+        {
+          "from": 300,
+          "to": 480,
+          "spawns": [
+            {
+              "enemy": "E01",
+              "perSec": 0.45
+            },
+            {
+              "enemy": "E06",
+              "perSec": 0.45
+            },
+            {
+              "enemy": "E11",
+              "perSec": 0.07
+            },
+            {
+              "enemy": "E13",
+              "perSec": 0.1
+            },
+            {
+              "enemy": "E12",
+              "perSec": 0.05
+            }
+          ]
+        },
+        {
+          "from": 480,
+          "to": 720,
+          "spawns": [
+            {
+              "enemy": "E01",
+              "perSec": 0.55
+            },
+            {
+              "enemy": "E06",
+              "perSec": 0.55
+            },
+            {
+              "enemy": "E11",
+              "perSec": 0.08
+            },
+            {
+              "enemy": "E13",
+              "perSec": 0.12
+            },
+            {
+              "enemy": "E12",
+              "perSec": 0.07
+            }
+          ]
+        },
+        {
+          "from": 720,
+          "to": null,
+          "spawns": [
+            {
+              "enemy": "E01",
+              "perSec": 0.6
+            },
+            {
+              "enemy": "E06",
+              "perSec": 0.6
+            },
+            {
+              "enemy": "E11",
+              "perSec": 0.08
+            },
+            {
+              "enemy": "E13",
+              "perSec": 0.13
+            },
+            {
+              "enemy": "E12",
+              "perSec": 0.08
+            }
+          ]
+        }
+      ],
+      "pacing": [
+        {
+          "from": 450,
+          "to": 470,
+          "mult": 0.5,
+          "label": "숨 고르기"
+        },
+        {
+          "from": 480,
+          "to": 570,
+          "mult": 1.8,
+          "label": "대군집 접근!"
+        },
+        {
+          "from": 570,
+          "to": 590,
+          "mult": 0.5,
+          "label": "숨 고르기"
+        },
+        {
+          "from": 620,
+          "to": 710,
+          "mult": 1.8,
+          "label": "대군집 접근!"
+        },
+        {
+          "from": 710,
+          "to": 730,
+          "mult": 0.5,
+          "label": "숨 고르기"
+        }
+      ],
+      "elites": [
+        {
+          "at": 240,
+          "enemy": "E14",
+          "warnSec": 3
+        },
+        {
+          "at": 540,
+          "enemy": "E14",
+          "warnSec": 3
+        },
+        {
+          "at": 680,
+          "enemy": "E14",
+          "warnSec": 3
+        }
+      ],
+      "boss": {
+        "enemy": "E15",
+        "trigger": {
+          "level": 10,
+          "time": 780
+        },
+        "warnSec": 15,
+        "spawnMult": 0.6
+      },
+      "disruptions": [],
+      "npcAt": [
+        360,
+        600
+      ],
+      "npcs": [
+        "N05",
+        "N04"
       ],
       "bgm": "bgm_stage01",
       "bossBgm": "bgm_boss"

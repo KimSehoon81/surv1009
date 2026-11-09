@@ -37,9 +37,12 @@ export interface AttackSpec {
   hazard?: { kind: string; lifeMs: number; tickMs: number };
   /** layMine: 지뢰 규격(systems/mines) */
   mine?: { armMs: number; lifeMs: number; triggerRadius: number; radius: number; scale: number; alpha?: number };
-  /** lob: 포탄 수(목표 + 둘레 고리), 고리 반지름 px */
+  /** lob: 포탄 수(목표 + 둘레 고리), 고리 반지름 px. pattern line = 쏜 쪽→목표 축을 따라 spread 간격 탄막선(옆으로 비켜야 함) */
   count?: number;
   spread?: number;
+  pattern?: string;
+  /** summon(보스 포위 명령): 목표 둘레 ring px 고리에 count체 */
+  summon?: { enemy: string; count: number; ring: number };
   /** fanShot: 사거리 px, 부채꼴 각도 */
   angleDeg?: number;
   /** opCard(보스 작전 카드): windup = 충전, 성공 확률(카드와 같은 연속 실패 완충), 충전 중 최대 체력의 이 비율만큼 맞으면 취소, 실패·취소 경직 시간 */
@@ -125,6 +128,8 @@ export const ATTACK_PARTS: Record<string, AttackPart> = {
     move: (ph) => (ph === 'idle' ? 'free' : 'hold'),
     taken: (spec, ph, st) => (ph === 'recover' && st.failed ? (spec.weakMult ?? 1) : 1),
   },
+  /** 소환(보스 포위 명령): 예고 원 자리에 적을 불러냄 */
+  summon: { threat: true, ready: inRange, move: (ph) => (ph === 'idle' ? 'free' : 'hold') },
   /** 차징 돌진: 예고선 뒤 고정 방향으로 빠르게 */
   chargeDash: {
     threat: true,

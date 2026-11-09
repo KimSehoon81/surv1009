@@ -55,7 +55,7 @@ import { ProjectileSystem, type ProjectileHooks } from '../systems/projectiles';
 import { WeaponSystem, isWeaponId, type WeaponHooks } from '../systems/weapons';
 import { Player, isCharacterId, isImplemented, passiveOf, type CharacterId, type PassiveDef } from '../entities/Player';
 import characterData from '../data/characters.json';
-import { MAX_ENEMY_RADIUS, type Enemy, type EnemyId } from '../entities/Enemy';
+import { MAX_ENEMY_RADIUS, isEnemyId, type Enemy, type EnemyId } from '../entities/Enemy';
 import enemyData from '../data/enemies.json';
 import { manifest } from '../assets/manifest';
 import { SceneKey } from './keys';
@@ -228,6 +228,8 @@ export class BattleScene extends Phaser.Scene {
 
     this.player = new Player(this, 0, 0, this.payload.char);
     this.enemies = new EnemySystem(this, spawnData.S1, rng.fork('enemies'));
+    // 난이도 스케일링(PRD §7.3): 스테이지 번호
+    this.enemies.stage = stageNumber(this.payload.stage);
     this.enemies.maxAliveNormal = this.stage.maxAlive;
     const first = this.director.spawnsAt(0);
     this.enemies.setSpawns(first.spawns, first.mult);
@@ -350,6 +352,11 @@ export class BattleScene extends Phaser.Scene {
       hitPlayer: (attack, x, y, cause) => this.hitPlayer(attack, x, y, cause),
       player: () => this.player,
       placeMine: (x, y, mine, attack) => this.mines.place(x, y, { faction: 'enemy', ...mine, damage: attack }, this.clock.timeMs),
+      summon: (id, x, y) => {
+        if (!isEnemyId(id)) return;
+        this.enemies.spawn(id, x, y, this.clock.timeMs, true);
+        this.timelines.cue('summon_puff', x, y);
+      },
       placeHazard: (x, y, spec, attack) => {
         const h = spec.hazard;
         if (h) this.hazards.place(x, y, { kind: h.kind, faction: 'enemy', radius: spec.radius ?? 40, lifeMs: h.lifeMs, tickMs: h.tickMs, damage: attack }, this.clock.timeMs);

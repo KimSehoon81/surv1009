@@ -13,9 +13,25 @@ const RED = parseColor(TM.color);
 const GUARD = parseColor(feelData.guardRing.guard);
 const WEAK = parseColor(feelData.guardRing.weak);
 
+/** 소환 자리: 목표 둘레 고리에 고르게 */
+export function summonPoints(tx: number, ty: number, s: { count: number; ring: number }): { x: number; y: number }[] {
+  return Array.from({ length: s.count }, (_, i) => {
+    const a = (i / s.count) * Math.PI * 2;
+    return { x: tx + Math.cos(a) * s.ring, y: ty + Math.sin(a) * s.ring * 0.75 };
+  });
+}
+
 /** 곡사 탄착점: 목표 하나 + count−1개를 spread 반지름 고리에 고르게 */
-export function lobPoints(tx: number, ty: number, spec: AttackSpec): { x: number; y: number }[] {
+export function lobPoints(tx: number, ty: number, spec: AttackSpec, fromX = tx, fromY = ty): { x: number; y: number }[] {
   const n = Math.max(1, spec.count ?? 1);
+  if (spec.pattern === 'line') {
+    // 탄막선: 쏜 쪽 → 목표 축을 따라 목표를 가운데로(옆으로 비켜야 피함)
+    const d = Math.hypot(tx - fromX, ty - fromY) || 1;
+    const ux = (tx - fromX) / d;
+    const uy = (ty - fromY) / d;
+    const gap = spec.spread ?? 60;
+    return Array.from({ length: n }, (_, i) => ({ x: tx + ux * gap * (i - (n - 1) / 2), y: ty + uy * gap * (i - (n - 1) / 2) }));
+  }
   const pts = [{ x: tx, y: ty }];
   for (let i = 1; i < n; i++) {
     const a = ((i - 1) / (n - 1)) * Math.PI * 2;
@@ -54,6 +70,8 @@ export interface EnemyAttackHost {
   placeHazard?(x: number, y: number, spec: AttackSpec, attack: number): void;
   /** 적 지뢰 설치(공병, systems/mines faction enemy) */
   placeMine?(x: number, y: number, mine: NonNullable<AttackSpec['mine']>, attack: number): void;
+  /** 보스 포위 명령: 그 자리에 적 소환 */
+  summon?(id: string, x: number, y: number): void;
   /** 단계 이벤트 알림(보스 작전 카드 HUD 등) */
   onEvent?(e: Enemy, ev: AttackEvent, spec: AttackSpec): void;
   player(): { x: number; y: number };
@@ -96,7 +114,7 @@ export class EnemyAttackSystem {
     const tele = phaseMs(spec, 'telegraph', combat.minTelegraphMs);
     const cause = (kind: string) => (e.tier === 'boss' ? `boss:${kind}` : kind);
     if (spec.type === 'lob') {
-      const pts = lobPoints(st.tx, st.ty, spec);
+      const pts = lobPoints(st.tx, st.ty, spec, e.x, e.y);
       if (ev.type === 'telegraph') {
         // 예고 시간 = 포탄 비행 시간(쏘는 순간 마커, 떨어지는 순간 피해)
         for (const p of pts) {
@@ -126,6 +144,12 @@ export class EnemyAttackSystem {
         this.telegraph({ kind: 'circle', x: st.tx, y: st.ty, r: spec.radius ?? 40 }, nowMs, tele);
         e.trigger('attack', nowMs);
       } else if (ev.type === 'active') this.host.placeHazard?.(st.tx, st.ty, spec, e.attack * (spec.damage ?? 1));
+    } else if (spec.type === 'summon' && spec.summon) {
+      const pts = summonPoints(st.tx, st.ty, spec.summon);
+      if (ev.type === 'telegraph') {
+        for (const q of pts) this.telegraph({ kind: 'circle', x: q.x, y: q.y, r: 18 }, nowMs, tele);
+        e.trigger('skill', nowMs);
+      } else if (ev.type === 'active') for (const q of pts) this.host.summon?.(spec.summon.enemy, q.x, q.y);
     } else if (spec.type === 'layMine') {
       if (ev.type === 'active' && spec.mine) {
         this.host.placeMine?.(e.x, e.y + 4, spec.mine, e.attack * (spec.damage ?? 1));

@@ -21,6 +21,12 @@ import { CUES } from '../systems/timeline';
 import { isImplemented } from '../entities/Player';
 import skillsData from '../data/skills.json';
 
+/** 모든 스테이지 바닥 타일(floor.json) */
+function floorTiles(): AssetSpec[] {
+  const cfgs = Object.entries(floorData).filter(([k]) => !k.startsWith('$')).map(([, v]) => v as { base: string; patch: string });
+  return [...new Set(cfgs.flatMap((c) => [c.base, c.patch]))].map((t) => manifest.tile(t));
+}
+
 /** 전투 시작에 필요한 에셋: 선택 가능한 캐릭터 전원 + 스테이지에 나오는 적 + 바닥 */
 function battleAssets(): AssetSpec[] {
   // 스테이지의 모든 적(구간 스폰·엘리트·보스)
@@ -50,7 +56,7 @@ function battleAssets(): AssetSpec[] {
   const fx = [...fxNames].filter((n): n is string => typeof n === 'string').map((n) => manifest.fx(n));
   const skillIcons = Object.values(skillsData.skills).map((sk) => manifest.image('skills', sk.icon, 32, 32));
   const cards = cardAssetSpecs(Object.keys(cardsData.cards), Object.keys(cardsData.tags));
-  return [...units, ...ui, ...fx, ...skillIcons, ...cards, manifest.tile(floorData.S1.base), manifest.tile(floorData.S1.patch)];
+  return [...units, ...ui, ...fx, ...skillIcons, ...cards, ...floorTiles()];
 }
 
 export class PreloadScene extends Phaser.Scene {

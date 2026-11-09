@@ -103,3 +103,18 @@ describe('스테이지 3 적 부품(D23)', () => {
     expect(E.E14?.attacks?.some((a) => a.damageKind === 'antiTank')).toBe(true);
   });
 });
+
+describe('보스 데이터(D27)', () => {
+  it('보스는 패턴 3개 이상, 모든 공격 예고 0.8초 이상, 보스마다 고유 패턴', async () => {
+    const { default: data } = await import('../src/data/enemies.json');
+    const bosses = Object.entries(data.enemies as Record<string, { tier: string; attacks?: { type: string; telegraphMs?: number; pattern?: string }[] }>).filter(([, e]) => e.tier === 'boss');
+    expect(bosses.length).toBeGreaterThanOrEqual(3);
+    const sig = (a: { type: string; pattern?: string }) => `${a.type}${a.pattern ? `:${a.pattern}` : ''}`;
+    for (const [id, e] of bosses) {
+      expect(e.attacks?.length, id).toBeGreaterThanOrEqual(3);
+      for (const a of e.attacks ?? []) expect(a.telegraphMs ?? 0, `${id}:${a.type}`).toBeGreaterThanOrEqual(800);
+      const others = new Set(bosses.filter(([o]) => o !== id).flatMap(([, o]) => (o.attacks ?? []).map(sig)));
+      expect((e.attacks ?? []).some((a) => !others.has(sig(a))), `${id} 고유 패턴`).toBe(true);
+    }
+  });
+});
