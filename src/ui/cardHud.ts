@@ -13,6 +13,7 @@ import { PIXEL_FONT } from './pixelFont';
 const TAG_NAMES = cardsData.tags as Record<string, string>;
 const COL = Object.fromEntries(Object.entries(cardUi.colors).map(([k, v]) => [k, parseColor(v)])) as Record<keyof typeof cardUi.colors, number>;
 const FLIP = cardUi.flipMs;
+import { prefs } from '../systems/prefs';
 const REJECT_TEXT: Record<string, string> = {
   cooldown: '재정비 중',
   empty: '낼 카드가 없음',
@@ -35,6 +36,8 @@ const cardName = (id: string) => CARD_DATA.cards[id]?.name ?? id;
  * 판정 뒤집기 연출, 작전판(Tab). 상태는 CardSystem(core)이 들고 여기서는 그리기·입력만.
  */
 export class CardHud {
+  /** 추천 조합 안내 줄(편의 옵션, 꺼도 Space 두 번은 그대로) */
+  recommendHint = prefs().recommendHint;
   private readonly images = new Map<number, Phaser.GameObjects.Image>();
   private readonly labels = new Map<number, Phaser.GameObjects.BitmapText>();
   private readonly gfx: Phaser.GameObjects.Graphics;
@@ -275,7 +278,7 @@ export class CardHud {
       } else this.info.setText(REJECT_TEXT[pv.reason ?? ''] ?? '');
     } else if (n > 0) {
       const a = this.cards.advice();
-      this.info.setText(a ? `Space: 추천 — ${a.combo ? comboName(a.combo) : cardName(hand.find((c) => c.uid === a.uids[0])?.id ?? '')} ${Math.round(a.chance * 100)}%` : '');
+      this.info.setText(a && this.recommendHint ? `Space: 추천 — ${a.combo ? comboName(a.combo) : cardName(hand.find((c) => c.uid === a.uids[0])?.id ?? '')} ${Math.round(a.chance * 100)}%` : '');
     } else this.info.setText('');
     // 포연: 수치 흐림
     if (smoke > 0) this.info.setText(this.info.text.replace(/\d+%/g, '??%'));
@@ -325,7 +328,7 @@ export class CardHud {
       view.add(title);
       this.judgeView = view;
     }
-    const t = time - j.startReal;
+    const t = (time - j.startReal) / this.cards.judgeMul;
     const view = this.judgeView;
     const title = view.getByName('title') as Phaser.GameObjects.Text;
     const cards = view.list.filter((o): o is Phaser.GameObjects.Image => o instanceof Phaser.GameObjects.Image);

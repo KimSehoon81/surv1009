@@ -18,6 +18,8 @@ export interface RunRecord {
   comboSuccesses: number;
   /** 마지막으로 플레이어를 해친 공격 종류(contact·lob·dash·boss 등) */
   lastHitBy: string;
+  /** 신병 모드(받는 피해 −30%)로 한 판 — 결과 화면에 표시(보상 불이익 없음) */
+  recruit?: boolean;
 }
 
 export interface MeritFormula {

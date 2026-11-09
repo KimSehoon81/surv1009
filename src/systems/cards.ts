@@ -68,6 +68,10 @@ export class CardSystem {
   state: CardState;
   /** 고른 카드 uid(고른 순서) */
   selected: number[] = [];
+  /** 편의 옵션(설정): 선택 슬로모, 판정 연출 시간 배율(짧게 0.5), 마이너스 자동 폐기 */
+  selectSlowmo = true;
+  judgeMul = 1;
+  autoDiscardMinus = false;
   judging: Judging | null = null;
   /** 마지막 거부 사유와 시각(HUD 안내용) */
   lastReject: { reason: string; atReal: number } | null = null;
@@ -145,9 +149,10 @@ export class CardSystem {
     if (dtMs > 0) this.apply(cardStep(this.state, { type: 'tick', dtMs }, this.env(), this.rng, CARD_DATA));
     // 손에서 사라진 카드는 선택에서 뺀다(마이너스 자동 발동·섞임 등)
     this.selected = this.selected.filter((uid) => this.state.hand.some((c) => c.uid === uid));
-    if (this.judging && !this.judging.resolved && nowReal - this.judging.startReal >= FLIP_TOTAL_MS) this.resolve();
-    if (this.judging && nowReal - this.judging.startReal >= FLIP_TOTAL_MS + cardUi.resultMs) this.judging = null;
+    if (this.judging && !this.judging.resolved && nowReal - this.judging.startReal >= FLIP_TOTAL_MS * this.judgeMul) this.resolve();
+    if (this.judging && nowReal - this.judging.startReal >= (FLIP_TOTAL_MS + cardUi.resultMs) * this.judgeMul) this.judging = null;
     this.updateSelectSlowmo(nowReal);
+    this.autoDiscard(nowReal);
   }
 
   /** 손패 i번째 칸 선택/해제 */
@@ -218,7 +223,7 @@ export class CardSystem {
     this.host.audio.play('judge_roll');
     // 조합 판정(실제 카드 2장 이상)만 판정 슬로모(PRD §5.1 v0.2)
     const real = judged.cards.filter((c) => CARD_DATA.cards[c.id]?.tag !== 'minus').length;
-    if (real >= 2) this.host.clock.setScale('judge', cardUi.judgeSlowmo.scale, cardUi.judgeSlowmo.ms);
+    if (real >= 2 && this.judgeMul >= 1) this.host.clock.setScale('judge', cardUi.judgeSlowmo.scale, cardUi.judgeSlowmo.ms);
     this.judging = { startReal: nowReal, judged, events: r.events, resolved: false };
   }
 
@@ -267,11 +272,22 @@ export class CardSystem {
     }
   }
 
+  /** 마이너스 자동 폐기(편의 옵션): 고른 카드가 없고 OP가 되면 드러난 마이너스를 바로 폐기 */
+  private autoDiscard(nowReal: number): void {
+    if (!this.autoDiscardMinus || this.judging || this.selected.length > 0 || !this.host.canAct()) return;
+    if (this.state.op < CARD_DATA.rules.minusDiscardOp) return;
+    const m = this.state.hand.find((c) => !c.disguised && CARD_DATA.cards[c.id]?.tag === 'minus');
+    if (!m) return;
+    this.selected = [m.uid];
+    this.submit(false, nowReal);
+    this.selected = [];
+  }
+
   /** 카드를 고른 동안 전투 0.6배, 한 번 고르기 시작해 2초가 지나면 풀림(편의 옵션) */
   private updateSelectSlowmo(nowReal: number): void {
     const cfg = cardUi.selectSlowmo;
     const clock = this.host.clock;
-    if (!cfg.enabled || this.selected.length === 0 || !this.host.canAct()) {
+    if (!cfg.enabled || !this.selectSlowmo || this.selected.length === 0 || !this.host.canAct()) {
       clock.clearScale('select');
       if (this.selected.length === 0) {
         this.selectStartReal = null;

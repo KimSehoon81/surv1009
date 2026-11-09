@@ -435,7 +435,7 @@ export class HudScene extends Phaser.Scene {
     const mm = Math.floor(rec.timeSec / 60);
     const ss = String(Math.floor(rec.timeSec % 60)).padStart(2, '0');
     const lines = [
-      `시간 ${mm}:${ss}    레벨 ${rec.level}    처치 ${rec.kills}${rec.eliteKills > 0 ? ` (엘리트 ${rec.eliteKills})` : ''}`,
+      `시간 ${mm}:${ss}    레벨 ${rec.level}    처치 ${rec.kills}${rec.eliteKills > 0 ? ` (엘리트 ${rec.eliteKills})` : ''}${rec.recruit ? '    [신병 모드]' : ''}`,
       `전공 포인트 +${r.merit}${rec.victory ? '' : '  (전사: 50%)'}`,
       '',
       '작전 기록',

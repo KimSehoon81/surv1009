@@ -27,6 +27,22 @@ export function openSlots(save: SaveData): string[] {
   return ['Q', ...((save.unlocks as { slots?: string[] }).slots ?? [])];
 }
 
+/** 열린 슬롯이 비어 있으면 그 슬롯의 해금된 첫 스킬을 끼운다(새로 열린 E·R 슬롯을 그냥 출정해도 쓰게, D29) */
+export function autoEquip(
+  skills: Readonly<Record<string, string | null>>,
+  open: readonly string[],
+  unlocked: readonly string[],
+  slotOf: (id: string) => string | undefined,
+): Record<string, string | null> {
+  const out: Record<string, string | null> = { ...skills };
+  for (const key of open) {
+    if (out[key]) continue;
+    const first = unlocked.find((id) => slotOf(id) === key);
+    if (first) out[key] = first;
+  }
+  return out;
+}
+
 /**
  * 판 정산: 점령 기록·전공을 세이브에 더하고, 그 지역을 처음 점령했으면 해금 스케줄을 연다.
  * 반환 unlocked는 결과 화면 "새로 해금됨" 표시용.

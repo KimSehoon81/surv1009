@@ -43,6 +43,8 @@ import { EnemyAttackSystem } from '../systems/enemyAttacks';
 import { SkillSlots, type CastReject, type SkillDef } from '../core/skills';
 import { damageTakenMult } from '../core/enemyAttack';
 import { runEffect, type Params } from '../systems/effects';
+import { prefs, type Prefs } from '../systems/prefs';
+import settingsData from '../data/settings.json';
 import shopData from '../data/shop.json';
 import { buy, type BuyResult, type ShopItem, type ShopState } from '../core/shop';
 import { stageNumber, type CardEvent } from '../core/cards';
@@ -161,6 +163,8 @@ export class BattleScene extends Phaser.Scene {
   private hazards!: HazardSystem;
   /** 뒤집힌 카드 방해가 걸려 있는지(바뀌는 순간 손패를 뒤집거나 되돌림) */
   private flipOn = false;
+  /** 설정(전투 시작 때 읽음) */
+  pref!: Prefs;
   private debugNpcIndex = 0;
   private modalClosedFrame = -1;
   private lastInterceptToastMs = -Infinity;
@@ -188,6 +192,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.pref = prefs();
     this.clock.reset();
     Object.assign(this.run, {
       xp: 0,
@@ -245,7 +250,11 @@ export class BattleScene extends Phaser.Scene {
     });
     this.fx = new FxSystem(this, feelData.fxCap);
     this.feel = new Feel(this, this.clock, this.fx, rng.fork('feel'));
+    // 흔들림·점멸 강도(설정 0~100%)
+    this.feel.intensity.shake = feelData.intensity.shake * this.pref.feel;
+    this.feel.intensity.flash = feelData.intensity.flash * this.pref.feel;
     this.audio = new AudioSystem(this, rng.fork('audio'));
+    this.audio.mono = this.pref.mono;
     this.feel.setAudio(this.audio);
     this.audio.playBgm(this.stage.bgm ?? null);
     // 큰 착탄 직전 0.2초 무음(타임라인 훅, PRD §6.2)
@@ -275,6 +284,9 @@ export class BattleScene extends Phaser.Scene {
       rng.fork('cards'),
       this.payload.deck ?? cardsData.starterDeck,
     );
+    this.cards.selectSlowmo = this.pref.selectSlowmo;
+    this.cards.judgeMul = this.pref.shortJudge ? settingsData.shortJudgeMul : 1;
+    this.cards.autoDiscardMinus = this.pref.autoDiscardMinus;
     this.weapons = new WeaponSystem();
     this.equipStartingWeapons();
     this.hooks = {
@@ -743,7 +755,9 @@ export class BattleScene extends Phaser.Scene {
     this.run.lastHitBy = cause;
     // 장갑(전차병 등): 공격 종류별 피해 배율(대전차포는 antiTank, D23)
     const kind = cause.endsWith('antiTank') ? 'antiTank' : 'normal';
-    const res = computeHit({ attack: attack * armorMult(p.armorType, kind, combat.armor), critChance: 0, critMult: 1, defense: p.stats.defense, ...HIT }, this.combatRng);
+    // 신병 모드(편의 옵션): 받는 피해 −30%
+    const recruit = this.pref.recruit ? settingsData.recruitDamageMul : 1;
+    const res = computeHit({ attack: attack * armorMult(p.armorType, kind, combat.armor) * recruit, critChance: 0, critMult: 1, defense: p.stats.defense, ...HIT }, this.combatRng);
     p.hp = Math.max(0, p.hp - res.damage);
     p.invulnUntilMs = now + combat.playerInvulnMs;
     this.run.damageTaken += res.damage;
@@ -831,7 +845,7 @@ export class BattleScene extends Phaser.Scene {
 
   /** 자동 조준 위협 우선(설정, 기본 켬) */
   private get threatFirst(): boolean {
-    return loadProfile().settings.threatFirst !== false;
+    return this.pref.threatFirst;
   }
 
   /** 방해원(G6): 플레이어가 반경 안이면 그 방해를 건다(같은 방해는 원인만 더함) */
@@ -1011,6 +1025,7 @@ export class BattleScene extends Phaser.Scene {
       successes: cs.stats.successes,
       longestFailStreak: cs.stats.longestFailStreak,
       sealsUsed: cs.stats.sealsUsed,
+      ...(this.pref.recruit ? { recruit: true } : {}),
       sealsHeld: cs.seals,
       residueDamage: Math.round(this.run.residueDamage),
       comboSuccesses: this.run.comboSuccesses,

@@ -5,7 +5,7 @@ import { loadProfile, loadStatus } from '../systems/save';
 import { uiText } from '../ui/text';
 import { SceneKey } from './keys';
 
-/** 메인 메뉴(임시, 정식 화면은 목업 수령 후): 출정 → 작전지도 */
+/** 메인 메뉴(임시, 정식 화면은 목업 수령 후 — docs/mockup/main.png 대기): 출정 → 작전지도 / 설정 */
 export class MenuScene extends Phaser.Scene {
   private controls!: InputMap;
 
@@ -20,13 +20,28 @@ export class MenuScene extends Phaser.Scene {
     const cx = LOGICAL_WIDTH / 2;
     this.add.text(cx, 150, '압록강 서바이벌', uiText(40, '#ffe14d')).setOrigin(0.5);
     this.add.text(cx, 200, '가칭 · 수직 슬라이스', uiText(13, '#b0a890')).setOrigin(0.5);
-    const start = this.add.text(cx, 300, '▶ 출정  (Enter)', uiText(20, '#ffffff')).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    start.on('pointerdown', () => this.go());
+    this.sel = 0;
+    this.items = [
+      { label: '출정', run: () => this.go() },
+      { label: '설정', run: () => this.scene.start(SceneKey.Settings, { back: SceneKey.Menu }) },
+    ].map((it, i) => {
+      const t = this.add.text(cx, 290 + i * 30, '', uiText(20, '#ffffff')).setOrigin(0.5).setInteractive({ useHandCursor: true });
+      t.on('pointerdown', () => it.run());
+      return { ...it, text: t };
+    });
+    this.renderItems();
     const captured = Object.values(prof.stages).filter((s) => s.captured).length;
-    this.add.text(cx, 350, `점령 ${captured}/10 · 전공 포인트 ${prof.merit}`, uiText(13)).setOrigin(0.5);
+    this.add.text(cx, 370, `점령 ${captured}/10 · 전공 포인트 ${prof.merit}`, uiText(13)).setOrigin(0.5);
     const status = loadStatus();
     if (status === 'corrupt') this.add.text(cx, LOGICAL_HEIGHT - 40, '세이브가 손상되어 백업해 두고 새로 시작했습니다', uiText(12, '#ff8060')).setOrigin(0.5);
     else if (status === 'migrated') this.add.text(cx, LOGICAL_HEIGHT - 40, '이전 저장을 새 형식으로 옮겼습니다', uiText(12, '#7fd8ff')).setOrigin(0.5);
+  }
+
+  private items: { label: string; run: () => void; text: Phaser.GameObjects.Text }[] = [];
+  private sel = 0;
+
+  private renderItems(): void {
+    this.items.forEach((it, i) => it.text.setText(`${i === this.sel ? '▶ ' : '  '}${it.label}`).setColor(i === this.sel ? '#ffe14d' : '#e8dcc0'));
   }
 
   private go(): void {
@@ -34,7 +49,16 @@ export class MenuScene extends Phaser.Scene {
   }
 
   override update(): void {
-    if (this.controls.justDown('uiConfirm')) this.go();
+    const c = this.controls;
+    // 이동과 확인이 한 프레임에 같이 와도(빠른 입력) 둘 다 처리
+    const n = this.items.length;
+    const up = c.justDown('uiUp');
+    const down = c.justDown('uiDown');
+    if (up || down) {
+      this.sel = (this.sel + (up ? n - 1 : 1)) % n;
+      this.renderItems();
+    }
+    if (c.justDown('uiConfirm')) this.items[this.sel]?.run();
     this.controls.endFrame();
   }
 }

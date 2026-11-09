@@ -12,6 +12,7 @@
     "assets:check": "tsx tools/check-assets.ts",
     "audio:bake": "tsx tools/audio/bake.mjs",
     "sim": "tsx tools/sim.ts",
+    "sim:curve": "tsx tools/curve.ts",
     "predev": "npm run assets",
     "dev": "vite",
     "prebuild": "npm run assets",

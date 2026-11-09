@@ -1,0 +1,151 @@
+{
+  "$comment": "설정 화면(PRD §11, D29). defaults=편의·접근성 기본값(저장에 없으면 이 값), options=탭별 항목(라벨·종류·저장 키), keys.remappable=키 재설정 가능한 액션(라벨), keys.conflictGroup=전투 중 함께 쓰이는 액션(이 안에서 같은 키는 거부, 레벨업 숫자키와 카드 숫자키처럼 화면이 다른 것은 기본 공유 허용). recruitDamageMul=신병 모드 받는 피해 배율(PRD §11: −30%), shortJudgeMul=판정 연출 짧게 배율.",
+  "defaults": {
+    "feel": 1,
+    "mono": false,
+    "selectSlowmo": true,
+    "recommendHint": true,
+    "shortJudge": false,
+    "threatFirst": true,
+    "autoDiscardMinus": false,
+    "recruit": false
+  },
+  "recruitDamageMul": 0.7,
+  "shortJudgeMul": 0.5,
+  "tabs": [
+    {
+      "id": "basic",
+      "name": "기본",
+      "options": [
+        {
+          "key": "feel",
+          "label": "화면 흔들림·점멸 강도",
+          "kind": "percent"
+        },
+        {
+          "key": "volume.master",
+          "label": "전체 볼륨",
+          "kind": "percent"
+        },
+        {
+          "key": "volume.bgm",
+          "label": "배경 음악",
+          "kind": "percent"
+        },
+        {
+          "key": "volume.sfx",
+          "label": "효과음",
+          "kind": "percent"
+        },
+        {
+          "key": "volume.ui",
+          "label": "UI 소리",
+          "kind": "percent"
+        },
+        {
+          "key": "mono",
+          "label": "모노 출력",
+          "kind": "toggle"
+        },
+        {
+          "key": "guide",
+          "label": "첫 플레이 안내",
+          "kind": "toggle"
+        }
+      ]
+    },
+    {
+      "id": "assist",
+      "name": "편의",
+      "options": [
+        {
+          "key": "selectSlowmo",
+          "label": "카드 고르는 동안 느리게",
+          "kind": "toggle",
+          "hint": "카드를 고른 동안 전투 0.6배(최대 2초)"
+        },
+        {
+          "key": "recommendHint",
+          "label": "추천 조합 안내",
+          "kind": "toggle",
+          "hint": "손패 위 'Space: 추천' 줄. 꺼도 Space 두 번은 그대로"
+        },
+        {
+          "key": "shortJudge",
+          "label": "판정 연출 짧게",
+          "kind": "toggle",
+          "hint": "카드 뒤집기 시간 절반, 판정 슬로모 없음"
+        },
+        {
+          "key": "threatFirst",
+          "label": "위협 우선 조준",
+          "kind": "toggle",
+          "hint": "방해원 > 엘리트 > 가까운 적"
+        },
+        {
+          "key": "autoDiscardMinus",
+          "label": "마이너스 자동 폐기",
+          "kind": "toggle",
+          "hint": "OP 3 이상이면 드러난 마이너스 카드를 바로 폐기"
+        },
+        {
+          "key": "recruit",
+          "label": "신병 모드",
+          "kind": "toggle",
+          "hint": "받는 피해 −30%, 결과 화면에 표시"
+        }
+      ]
+    },
+    {
+      "id": "keys",
+      "name": "키",
+      "options": []
+    }
+  ],
+  "keys": {
+    "remappable": {
+      "up": "위로",
+      "down": "아래로",
+      "left": "왼쪽",
+      "right": "오른쪽",
+      "skillQ": "고급 스킬 Q",
+      "skillE": "고급 스킬 E",
+      "skillR": "고급 스킬 R",
+      "skillF": "고급 스킬 F",
+      "cardSubmit": "카드 제출",
+      "cardClear": "선택 해제",
+      "opsBoard": "작전판",
+      "modShift": "인장 보조키",
+      "cardSelect1": "카드 1",
+      "cardSelect2": "카드 2",
+      "cardSelect3": "카드 3",
+      "cardSelect4": "카드 4",
+      "cardSelect5": "카드 5"
+    },
+    "conflictGroup": [
+      "up",
+      "down",
+      "left",
+      "right",
+      "skillQ",
+      "skillE",
+      "skillR",
+      "skillF",
+      "cardSubmit",
+      "cardClear",
+      "opsBoard",
+      "modShift",
+      "cardSelect1",
+      "cardSelect2",
+      "cardSelect3",
+      "cardSelect4",
+      "cardSelect5",
+      "pause",
+      "levelReroll",
+      "levelPick1",
+      "levelPick2",
+      "levelPick3",
+      "levelPick4"
+    ]
+  }
+}

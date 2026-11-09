@@ -83,6 +83,8 @@ export const fromFile = new Set<string>();
  * WebAudio가 없으면(오디오 없는 환경) 아무것도 하지 않는다.
  */
 export class AudioSystem implements AudioSink {
+  /** 모노 출력(설정): 좌우 팬 없음 */
+  mono = false;
   private readonly ctx: AudioContext | null;
   private master: GainNode | null = null;
   private comp: DynamicsCompressorNode | null = null;
@@ -213,7 +215,7 @@ export class AudioSystem implements AudioSink {
         this.dropped++;
         return;
       }
-      pan = panFromX(x, this.camX, LOGICAL_WIDTH / 2, LIMITS.panWidth);
+      pan = this.mono ? 0 : panFromX(x, this.camX, LOGICAL_WIDTH / 2, LIMITS.panWidth);
     }
 
     const g = this.gate.check(cue, now, c.cooldownMs, this.frame);

@@ -6,7 +6,7 @@ import characters from '../data/characters.json';
 import skillsData from '../data/skills.json';
 import mapData from '../data/map.json';
 import metaData from '../data/meta.json';
-import { buyStartUpgrade, nextCost, openSlots, type StartUpgradeDef } from '../core/meta';
+import { autoEquip, buyStartUpgrade, nextCost, openSlots, type StartUpgradeDef } from '../core/meta';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { addCard, available, countBy, maxCopies, recommendedDeck, removeCard, validateDeck, type DeckCard, type DeckError, type DeckRules } from '../core/deckBuild';
 import type { Loadout } from '../core/save';
@@ -63,7 +63,7 @@ export class PrepScene extends Phaser.Scene {
     this.loadout = {
       char: saved && prof.unlocks.chars.includes(saved.char) ? saved.char : (prof.unlocks.chars[0] ?? 'A01'),
       deck: saved && validateDeck(saved.deck, CARDS, RULES, this.unlockedCards).length === 0 ? [...saved.deck] : [...cardsData.starterDeck],
-      skills: { ...Object.fromEntries(skillsData.slots.map((s) => [s.key, s.equip])), ...(saved?.skills ?? {}) },
+      skills: autoEquip({ ...Object.fromEntries(skillsData.slots.map((s) => [s.key, s.equip])), ...(saved?.skills ?? {}) }, openSlots(prof), prof.unlocks.skills, (id) => SKILLS[id]?.slot),
     };
 
     const st = (stagesData.stages as Record<string, { name: string; region: string }>)[this.payload.stage];

@@ -73,3 +73,13 @@ describe('스타팅 포인트', () => {
     expect(r).toEqual({ level: 3, handSizeBonus: 1, seals: 1, weaponDamageMul: 0.3, tp: 30, sealOpReduction: 2 });
   });
 });
+
+describe('자동 장착(D29)', () => {
+  it('열린 빈 슬롯에만 해금된 첫 스킬, 이미 고른 것·잠긴 슬롯은 그대로', async () => {
+    const { autoEquip } = await import('../src/core/meta');
+    const slot = (id: string) => ({ AS03: 'Q', AS01: 'Q', AS05: 'E', AS06: 'E', AS08: 'R' })[id];
+    const r = autoEquip({ Q: 'AS03', E: null, R: null, F: null }, ['Q', 'E'], ['AS03', 'AS01', 'AS06', 'AS05', 'AS08'], slot);
+    expect(r).toEqual({ Q: 'AS03', E: 'AS06', R: null, F: null });
+    expect(autoEquip({ E: 'AS05' }, ['E'], ['AS06'], slot).E).toBe('AS05');
+  });
+});

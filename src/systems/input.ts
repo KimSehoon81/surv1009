@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import controls from '../data/controls.json';
+import { keyMap } from './prefs';
 import { normalizeAxis, type Vec2 } from '../core/movement';
 
 export type InputAction = keyof typeof controls.keys;
@@ -17,7 +18,8 @@ export class InputMap {
   constructor(scene: Phaser.Scene) {
     const kb = scene.input.keyboard;
     if (!kb) throw new Error('키보드 입력을 사용할 수 없음');
-    for (const [action, names] of Object.entries(controls.keys) as Array<[InputAction, string[]]>) {
+    // 키 재설정(설정 화면)을 반영한 배치
+    for (const [action, names] of Object.entries(keyMap()) as Array<[InputAction, string[]]>) {
       // enableCapture: 방향키가 페이지를 스크롤하지 않게
       const keys = names.map((n) => kb.addKey(n, true));
       for (const k of keys) {

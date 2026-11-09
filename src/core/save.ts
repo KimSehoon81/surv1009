@@ -26,6 +26,16 @@ export interface SaveData {
     guide: boolean;
     /** 자동 조준이 방해원·위협 적 우선(G6, 기본 켬) */
     threatFirst?: boolean;
+    /** 설정 화면(D29, 없으면 settings.json 기본값): 흔들림·점멸 강도 0~1, 모노, 편의 옵션 */
+    feel?: number;
+    mono?: boolean;
+    selectSlowmo?: boolean;
+    recommendHint?: boolean;
+    shortJudge?: boolean;
+    autoDiscardMinus?: boolean;
+    recruit?: boolean;
+    /** 키 재설정: 액션 → 키(기본값 위에 덮어쓰기만) */
+    keys?: Record<string, string[]>;
   };
   flags: {
     guideSeen: string[];
