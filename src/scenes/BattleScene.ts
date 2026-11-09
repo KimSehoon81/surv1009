@@ -74,12 +74,13 @@ const DEBUG_SETS: [string, number][][] = [
   [['E06', 4], ['E07', 2], ['E08', 2], ['E09', 1]],
   [['E11', 2], ['E12', 2], ['E13', 3], ['E14', 1]],
   [['E16', 4], ['E17', 2], ['E18', 2], ['E19', 1]],
+  [['E21', 5], ['E22', 2], ['E23', 1], ['E24', 1]],
 ];
 const TP = skillsData.tp;
 const TP_BY_TIER: Record<string, number> = { normal: TP.perKill, elite: TP.perEliteKill, boss: TP.perBossKill };
 const SKILL_ACTIONS = skillsData.slots.map((s) => s.action as InputAction);
 const STAGES = stagesData.stages as unknown as Record<string, StageDef>;
-type DisruptionType = { name: string; category: string; priority: number; hint: string; selectDelayMs?: number; interactions?: { on: string; tag: string; do: string; ms: number }[] };
+type DisruptionType = { name: string; category: string; priority: number; hint: string; selectDelayMs?: number; tagPenalty?: Record<string, number>; interactions?: { on: string; tag: string; do: string; ms: number }[] };
 const DTYPES = disruptionsData.types as Record<string, DisruptionType>;
 const DISRUPTION_NAMES: Record<string, string> = Object.fromEntries(Object.entries(DTYPES).map(([k, v]) => [k, v.name]));
 const CAST_REJECT: Record<CastReject, string> = { locked: '잠긴 슬롯', empty: '장착한 스킬 없음', cooldown: '재사용 대기 중', tp: 'TP 부족', unimplemented: '준비 중인 스킬' };
@@ -152,6 +153,7 @@ export class BattleScene extends Phaser.Scene {
   private hazards!: HazardSystem;
   /** 뒤집힌 카드 방해가 걸려 있는지(바뀌는 순간 손패를 뒤집거나 되돌림) */
   private flipOn = false;
+  private lastInterceptToastMs = -Infinity;
   private debugComboIndex = 0;
   private debugSetIndex = 0;
   /** 콤보 보급: 다음 문턱 번호, 최근 보급 시각(전투 시계) */
@@ -247,6 +249,7 @@ export class BattleScene extends Phaser.Scene {
         stage: () => 1,
         sealOpReduction: () => Math.round(battle.player.stats.sealOpReduction),
         canAct: () => !battle.run.defeated && !battle.run.captured && !battle.progression.isOpen && !battle.clock.hasScale('pause') && !battle.opsOpen,
+        tagPenalty: () => battle.tagPenalty(),
         onResult: (success) => {
           battle.feel.hit(success ? 'card_success' : 'card_fail', battle.player.x, battle.player.y - combat.bodyOffsetY);
           if (!success) battle.tip('firstFail');
@@ -326,6 +329,7 @@ export class BattleScene extends Phaser.Scene {
     this.mines = new MineSystem(this, combat.mineCap);
     this.hazards = new HazardSystem(this);
     this.flipOn = false;
+    this.lastInterceptToastMs = -Infinity;
     this.enemyAttacks = new EnemyAttackSystem(this, {
       feel: this.feel,
       audio: this.audio,
@@ -356,6 +360,13 @@ export class BattleScene extends Phaser.Scene {
       damage: (x, y, r, m) => this.explode(x, y, r, m, undefined, 1, undefined),
       damageEnemy: (e, m, dx, dy) => this.damageEnemy(e, m, dx, dy, true),
       cutCooldowns: (frac, from) => this.skills.cutCooldowns(frac, this.clock.timeMs, from),
+      interceptActive: () => this.antiAirOnScreen(),
+      onIntercept: () => {
+        const now = this.clock.timeMs;
+        if (now - this.lastInterceptToastMs < combat.intercept.toastGapMs) return;
+        this.lastInterceptToastMs = now;
+        this.toast('대공포 요격 — 폭탄 일부 공중 폭발 (방공포병을 처치하세요)', '#ff8060');
+      },
       enemiesOnScreen: () => {
         const v = this.cameras.main.worldView;
         return this.enemies.pool.active.filter((e) => e.alive && v.contains(e.x, e.y));
@@ -763,6 +774,21 @@ export class BattleScene extends Phaser.Scene {
     for (const d of this.disruptions.update(t)) this.toast(`${DISRUPTION_NAMES[d.type] ?? d.type} 걷힘`, '#b0a890');
   }
 
+  /** 환경 보정: 걸린 방해의 태그 감점(같은 태그는 가장 큰 값 하나, 중첩 없음) */
+  tagPenalty(): Record<string, number> {
+    const out: Record<string, number> = {};
+    for (const a of this.disruptions.active) {
+      for (const [tag, v] of Object.entries(DTYPES[a.type]?.tagPenalty ?? {})) out[tag] = Math.max(out[tag] ?? 0, v);
+    }
+    return out;
+  }
+
+  /** 방공 적(antiAir)이 화면에 있는지(항공 스킬 요격) */
+  private antiAirOnScreen(): boolean {
+    const v = this.cameras.main.worldView;
+    return this.enemies.pool.active.some((e) => e.alive && (e.def as { antiAir?: boolean }).antiAir === true && v.contains(e.x, e.y));
+  }
+
   /** 뒤집힌 카드 방해가 걸리면 손패 2~3장을 뒷면으로, 풀리면 모두 앞면으로 */
   private syncFlip(): void {
     const on = this.disruptions.has('flip');
@@ -847,7 +873,7 @@ export class BattleScene extends Phaser.Scene {
         if (this.disruptions.add(ev.def, now / 1000)) this.toast(`${DISRUPTION_NAMES[ev.def.type] ?? ev.def.type}! 손패가 흐려짐 (통신 복구로 해제)`, '#b0a890');
         break;
       case 'bossWarn':
-        this.events.emit('warn', `보스 ${name(ev.enemy)} 출현`, ev.inSec);
+        this.events.emit('warn', `보스 ${name(ev.enemy)} 출현`, ev.inSec, 'boss');
         this.audio.play('debuff');
         this.saveCheckpoint();
         break;
@@ -855,6 +881,7 @@ export class BattleScene extends Phaser.Scene {
         const b = this.enemies.spawnAround(ev.enemy as EnemyId, { x: p.x, y: p.y, radius: combat.playerRadius }, now, true);
         if (b) {
           this.boss = b;
+          this.timelines.cue('boss_intro', b.x, b.y);
           this.events.emit('boss:spawn', b);
           this.audio.playBgm(this.stage.bossBgm ?? null);
         }
@@ -1063,17 +1090,20 @@ export class BattleScene extends Phaser.Scene {
       else this.weapons.add('grenade');
     }
     if (this.controls.justDown('debugSlotE')) {
-      // 슬롯 E·R 강제 개방: E는 AS05 ↔ AS06 번갈아, R은 AS08, TP 가득
-      const e = this.skills.slots[1];
-      const r = this.skills.slots[2];
-      if (e && r) {
+      // 슬롯 강제 개방: Q는 AS03 ↔ AS01, E는 AS05 → AS06 → AS04 차례, R은 AS08, TP 가득
+      const [q, e, r] = this.skills.slots;
+      if (q && e && r) {
+        const cycleE = ['AS05', 'AS06', 'AS04'];
+        q.skillId = q.skillId === 'AS03' ? 'AS01' : 'AS03';
+        q.readyAtMs = 0;
         e.locked = false;
-        e.skillId = e.skillId === 'AS05' ? 'AS06' : 'AS05';
+        e.skillId = cycleE[(cycleE.indexOf(e.skillId ?? '') + 1) % cycleE.length] ?? 'AS05';
         e.readyAtMs = 0;
         r.locked = false;
         r.skillId = 'AS08';
+        r.readyAtMs = 0;
         this.skills.addTp(100);
-        this.toast(`[디버그] E = ${e.skillId}, R = AS08`, '#b0a890');
+        this.toast(`[디버그] Q = ${q.skillId}, E = ${e.skillId}, R = AS08`, '#b0a890');
       }
     }
     if (this.controls.justDown('debugFlip')) {

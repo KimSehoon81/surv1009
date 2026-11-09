@@ -38,6 +38,8 @@ export interface TimelineEventDef {
 
 export interface TimelineDef {
   events: readonly TimelineEventDef[];
+  /** 항공 연출: 방공 적이 화면에 있으면 피해 이벤트 일부가 공중 폭발(systems/timeline, combat.json intercept) */
+  intercept?: boolean;
 }
 
 /** 펼쳐진 이벤트 하나. cue가 MARKER_CUE면 예고 마커(durationMs 동안) */

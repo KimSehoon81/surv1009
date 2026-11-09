@@ -25,6 +25,7 @@ const PICK_KEYS: InputAction[] = ['levelPick1', 'levelPick2', 'levelPick3', 'lev
 const CARD_W = 200;
 const CARD_H = 150;
 const CARD_GAP = 16;
+const BOSS_INTRO = feelData.bossIntro;
 
 const textStyle = (size: number, color = '#ffffff'): Phaser.Types.GameObjects.Text.TextStyle => ({
   fontFamily: 'monospace',
@@ -53,7 +54,9 @@ export class HudScene extends Phaser.Scene {
   private skillHud!: SkillHud;
   /** 예고(엘리트·방해·보스): 문구와 끝 시각(전투 시계) */
   private warnText!: Phaser.GameObjects.Text;
-  private warn: { msg: string; untilMs: number } | null = null;
+  private warn: { msg: string; untilMs: number; boss: boolean } | null = null;
+  private edgeGfx!: Phaser.GameObjects.Graphics;
+  private bossTitle!: Phaser.GameObjects.Text;
   private bossGfx!: Phaser.GameObjects.Graphics;
   private bossName!: Phaser.GameObjects.Text;
   private bossCard!: Phaser.GameObjects.Image;
@@ -66,8 +69,16 @@ export class HudScene extends Phaser.Scene {
   private readonly guideQueue: string[] = [];
   private guideUntil = 0;
   private readonly onGuide = (text: string) => this.guideQueue.push(text);
-  private readonly onWarn = (msg: string, inSec: number) => {
-    this.warn = { msg, untilMs: this.battle.clock.timeMs + inSec * 1000 };
+  private readonly onWarn = (msg: string, inSec: number, kind?: string) => {
+    this.warn = { msg, untilMs: this.battle.clock.timeMs + inSec * 1000, boss: kind === 'boss' };
+    this.warnText.setColor(kind === 'boss' ? '#ff4030' : '#ff8060').setFontSize(kind === 'boss' ? 20 : 16);
+  };
+  /** 보스 등장 공통 연출: 이름 카드(모든 스테이지 같은 경로) */
+  private readonly onBossSpawn = (e: Enemy) => {
+    const name = (enemiesData.enemies as Record<string, { name: string }>)[e.id]?.name ?? e.id;
+    this.bossTitle.setText(`보스 출현\n${name}`).setVisible(true).setAlpha(0).setScale(1.3);
+    this.tweens.add({ targets: this.bossTitle, alpha: 1, scale: 1, duration: 250, ease: 'Back.Out' });
+    this.tweens.add({ targets: this.bossTitle, alpha: 0, delay: BOSS_INTRO.titleMs - 400, duration: 400, onComplete: () => this.bossTitle.setVisible(false) });
   };
   private readonly onBossJudged = (result: string) => {
     const t = this.time.now + 1600;
@@ -91,6 +102,7 @@ export class HudScene extends Phaser.Scene {
     this.arrowGfx = null;
     this.resultPanel = null;
     this.levelUp = null;
+    this.warn = null;
     this.guideQueue.length = 0;
     this.controls = new InputMap(this);
     ensurePixelFont(this);
@@ -124,6 +136,11 @@ export class HudScene extends Phaser.Scene {
     });
     this.warnText = this.add.text(LOGICAL_WIDTH / 2, 66, '', { ...textStyle(16, '#ff8060'), stroke: '#1a1410', strokeThickness: 3 }).setOrigin(0.5).setVisible(false);
     this.bossGfx = this.add.graphics();
+    this.edgeGfx = this.add.graphics();
+    this.bossTitle = this.add
+      .text(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT * 0.36, '', { ...textStyle(26, '#ffd0c0'), stroke: '#1a1410', strokeThickness: 4, align: 'center' })
+      .setOrigin(0.5)
+      .setVisible(false);
     this.bossName = this.add.text(LOGICAL_WIDTH / 2, 30, '', { ...textStyle(12, '#ffd0c0'), stroke: '#1a1410', strokeThickness: 3 }).setOrigin(0.5, 1).setVisible(false);
     this.bossCard = this.add.image(LOGICAL_WIDTH / 2, 92, cardBackKey(this)).setVisible(false);
     this.bossInfo = this.add.text(LOGICAL_WIDTH / 2, 142, '', { ...textStyle(12, '#ffe14d'), stroke: '#1a1410', strokeThickness: 3 }).setOrigin(0.5).setVisible(false);
@@ -135,6 +152,7 @@ export class HudScene extends Phaser.Scene {
       .setVisible(false);
     this.battle.events.on('guide', this.onGuide);
     this.battle.events.on('warn', this.onWarn);
+    this.battle.events.on('boss:spawn', this.onBossSpawn);
     this.battle.events.on('boss:judged', this.onBossJudged);
     this.battle.events.on('result', this.onResult);
     this.skillHud = new SkillHud(this, this.battle.skills, () => this.battle.clock.timeMs);
@@ -148,6 +166,7 @@ export class HudScene extends Phaser.Scene {
       this.battle.events.off('cards:effect', this.onCardEffect);
       this.battle.events.off('toast', this.onToast);
       this.battle.events.off('warn', this.onWarn);
+      this.battle.events.off('boss:spawn', this.onBossSpawn);
       this.battle.events.off('guide', this.onGuide);
       this.battle.events.off('boss:judged', this.onBossJudged);
       this.battle.events.off('result', this.onResult);
@@ -262,10 +281,18 @@ export class HudScene extends Phaser.Scene {
   private drawWarn(time: number): void {
     const w = this.warn;
     const left = w ? (w.untilMs - this.battle.clock.timeMs) / 1000 : 0;
+    this.edgeGfx.clear();
     if (!w || left <= 0) {
       this.warnText.setVisible(false);
       this.warn = null;
       return;
+    }
+    if (w.boss) {
+      // 보스 경고: 화면 가장자리 붉은 맥동
+      const [lo = 0.1, hi = 0.4] = BOSS_INTRO.edgeAlpha;
+      const a = lo + (hi - lo) * Math.abs(Math.sin((time / BOSS_INTRO.pulseMs) * Math.PI));
+      const t = BOSS_INTRO.edgePx;
+      this.edgeGfx.lineStyle(t, parseColor(BOSS_INTRO.edgeColor), a).strokeRect(t / 2, t / 2, LOGICAL_WIDTH - t, LOGICAL_HEIGHT - t);
     }
     this.warnText.setText(`⚠ ${w.msg}  ${Math.ceil(left)}`).setVisible(left > 3 || Math.floor(time / 200) % 2 === 0);
   }

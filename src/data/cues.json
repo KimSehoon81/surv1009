@@ -467,6 +467,18 @@
         "color": "#ffc870"
       },
       "sfx": "heal"
+    },
+    "flak_burst": {
+      "fx": "burst_shell",
+      "fxFrom": 2,
+      "fxScale": 0.45,
+      "fxLayer": "air",
+      "fxAlpha": 0.95,
+      "sfx": "explode"
+    },
+    "boss_intro": {
+      "feel": "impact_l",
+      "sfx": "explode_l"
     }
   },
   "countries": [

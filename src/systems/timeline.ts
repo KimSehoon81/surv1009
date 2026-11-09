@@ -79,6 +79,7 @@ const CARRIERS = ['bullets', 'gunner', 'dash', 'mine', 'screenStrike'] as const;
 export const TIMELINES = timelinesData.timelines as unknown as Record<string, TimelineDef>;
 export const CUES = cuesData.cues as unknown as Record<string, CueDef>;
 const AIM = timelinesData.aim;
+const INTERCEPT = combat.intercept;
 const COUNTRIES = cuesData.countries.map((c) => parseColor(c));
 /** 캐릭터를 덮는 층(연기·하늘)의 알파 상한(PRD §6.4 가독성) */
 const OVERLAY_ALPHA_MAX = 0.7;
@@ -115,6 +116,10 @@ export interface TimelineDeps {
   enemiesOnScreen(): Enemy[];
   /** 고급 스킬 쿨다운 단축 */
   cutCooldowns?(frac: number, from?: string): void;
+  /** 방공 적(antiAir)이 화면에 있는지: 항공 타임라인 요격 단계 */
+  interceptActive?(): boolean;
+  /** 요격이 일어남(알림) */
+  onIntercept?(x: number, y: number): void;
 }
 
 interface Run {
@@ -122,6 +127,7 @@ interface Run {
   id: string;
   player: TimelinePlayer;
   power: number;
+  intercept: boolean;
 }
 
 /** 시간에 따라 움직이는 연출 물체. update가 false면 끝(destroy 호출) */
@@ -188,17 +194,17 @@ export class TimelineSystem {
     if (!def) return false;
     const p = this.d.player;
     const events = expandTimeline(def, { aim, player: { x: p.x, y: p.y }, minFanDist: AIM.minFanDist }, () => this.d.rng.next());
-    const run = { id, player: new TimelinePlayer(events, this.d.clock.timeMs), power };
+    const run = { id, player: new TimelinePlayer(events, this.d.clock.timeMs), power, intercept: def.intercept === true };
     this.runs.push(run);
     this.fireDue(run, this.d.clock.timeMs);
     return true;
   }
 
   private fireDue(run: Run, now: number): void {
-    for (const ev of run.player.due(now)) this.fire(ev, run.power, run.id);
+    for (const ev of run.player.due(now)) this.fire(ev, run.power, run.id, run.intercept);
   }
 
-  private fire(ev: FiredEvent, power: number, from?: string): void {
+  private fire(ev: FiredEvent, power: number, from?: string, intercept = false): void {
     const d = this.d;
     if (ev.cue === MARKER_CUE) {
       d.effects.marker(ev, ev.radius || 40, ev.durationMs, CUES[ev.for ?? '']?.whistle === true);
@@ -208,7 +214,15 @@ export class TimelineSystem {
     if (!c) return;
     const now = d.clock.timeMs;
     const dmg = ev.damage * power;
-    if (dmg > 0 && !CARRIERS.some((k) => c[k] !== undefined)) d.damage(ev.x, ev.y, ev.radius, dmg);
+    const plain = dmg > 0 && !CARRIERS.some((k) => c[k] !== undefined);
+    // 요격 단계(E23 방공포병): 항공 타임라인의 피해 이벤트 일부가 공중에서 터짐 — 피해 감소, 지상 연출 대신 공중 폭발
+    if (intercept && plain && d.interceptActive?.() && d.rng.next() < INTERCEPT.chance) {
+      d.damage(ev.x, ev.y, ev.radius, dmg * INTERCEPT.damageMul);
+      this.fire({ ...ev, cue: INTERCEPT.cue, y: ev.y - INTERCEPT.altitude, damage: 0 }, 1);
+      d.onIntercept?.(ev.x, ev.y - INTERCEPT.altitude);
+      return;
+    }
+    if (plain) d.damage(ev.x, ev.y, ev.radius, dmg);
     if (c.feel) d.feel.hit(c.feel, ev.x, ev.y - combat.bodyOffsetY * 0.4, { groundY: ev.y });
     if (c.fx) {
       const layer = c.fxLayer ?? 'explosion';

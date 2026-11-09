@@ -93,7 +93,19 @@ export class EnemySystem {
   /** 플레이어 주변 화면 밖 원형 위치에 스폰 */
   spawnAround(id: EnemyId, target: Target, nowMs: number, force = false): Enemy | null {
     const p = ringPoint(target.x, target.y, this.spawnR + this.cfg.radiusMargin * (1 + this.rng.next()), this.rng.next() * Math.PI * 2);
-    return this.spawn(id, p.x, p.y, nowMs, force);
+    const lead = this.spawn(id, p.x, p.y, nowMs, force);
+    // 무리(group): 같은 자리 주변에 함께 나옴(돌격대 집단 돌진). 상한이면 거기까지
+    const g = lead ? (lead.def as { group?: { count: number[]; spread: number } }).group : undefined;
+    if (lead && g) {
+      const [lo = 1, hi = lo] = g.count;
+      const n = lo + Math.floor(this.rng.next() * (hi - lo + 1));
+      for (let i = 1; i < n; i++) {
+        const a = this.rng.next() * Math.PI * 2;
+        const r = g.spread * (0.4 + 0.6 * this.rng.next());
+        if (!this.spawn(id, p.x + Math.cos(a) * r, p.y + Math.sin(a) * r, nowMs, force)) break;
+      }
+    }
+    return lead;
   }
 
   /** 스트레스 모드를 켜면 즉시 상한까지 채운다 */
