@@ -8,6 +8,8 @@ import type { Rng } from './rng';
 export interface UpgradeTarget {
   readonly luck: number;
   readonly weapons: readonly string[];
+  /** 레벨업 희귀 이상 가중 보정(캐릭터 상시, A30 참모장교) */
+  readonly rarePlus?: number;
   addPlayerMods(mods: readonly UpgradeMod[]): void;
   addWeaponMods(weaponId: string, mods: readonly UpgradeMod[]): void;
   addWeapon(weaponId: string): void;
@@ -83,7 +85,7 @@ export class Progression {
     this.openCtx = {
       count: b.count ?? 3,
       luck: target.luck,
-      rarePlusBonus: b.rarePlusBonus ?? 0,
+      rarePlusBonus: (b.rarePlusBonus ?? 0) + (target.rarePlus ?? 0),
       valueMultiplier: b.valueMultiplier ?? 1,
       owned: { ...this.owned },
       weapons: [...target.weapons],

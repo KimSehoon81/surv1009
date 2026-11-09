@@ -47,3 +47,25 @@ describe('캐릭터 ③ A16~A23(D30)', () => {
     expect((cardsData.cards.M06.params as { tag?: string }).tag).toBe('terrain');
   });
 });
+
+describe('캐릭터 ④ A24~A30(D31)', () => {
+  it('30명 전원 implemented, 새 성질 데이터(회피·이동 중 회피·기습·연쇄·주기 지원·참모 보정)', async () => {
+    const all = Object.entries(characters.characters);
+    expect(all).toHaveLength(30);
+    for (const [id, c] of all) expect((c as { implemented?: boolean }).implemented, id).toBe(true);
+    const mods = (id: string) => (C[id]?.passive ?? []).flatMap((p) => p.mods ?? []).map((m) => m.stat);
+    expect(mods('A24')).toContain('dodge');
+    expect(mods('A27')).toContain('dodgeMoving');
+    expect(mods('A28')).toContain('ambushCrit');
+    expect((weapons.weapons as Record<string, { cluster?: unknown }>).cluster_grenade?.cluster).toBeDefined();
+    const a29 = characters.characters.A29 as { periodic?: { timeline: string } };
+    const { default: tl } = await import('../src/data/timelines.json');
+    expect(tl.timelines).toHaveProperty(a29.periodic?.timeline ?? '?');
+  });
+
+  it("A30: 모든 제출 +5%p('*'), 태그 보정과 더해짐", () => {
+    const bonus = { '*': 0.05, air: 0.1 };
+    expect(previewSubmit(withHand(['P01']), [1], false, env({ tagBonus: bonus }), DATA).chance?.final).toBeCloseTo(0.35);
+    expect(previewSubmit(withHand(['P04']), [1], false, env({ tagBonus: bonus }), DATA).chance?.final).toBeCloseTo(0.45);
+  });
+});

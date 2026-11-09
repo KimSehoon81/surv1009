@@ -484,6 +484,33 @@
       "fx": "dust",
       "fxScale": 0.7,
       "fxLayer": "explosion"
+    },
+    "heli_strafe": {
+      "dash": {
+        "sprite": "skill_AS03",
+        "frames": [
+          1,
+          4
+        ],
+        "fps": 14,
+        "scale": 0.4,
+        "speed": 560,
+        "margin": 90,
+        "width": 36,
+        "knockback": 8,
+        "hit": true,
+        "layer": "air",
+        "dir": [
+          0,
+          -1
+        ],
+        "orient": "top",
+        "tickMs": 200,
+        "reach": 110,
+        "trailCue": "strafe_dust",
+        "trailEveryPx": 34
+      },
+      "sfx": "fighter_pass"
     }
   },
   "countries": [

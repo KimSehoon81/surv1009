@@ -52,3 +52,13 @@ describe('combat (PRD §4.1·§4.3)', () => {
     for (let i = 0; i < 50; i++) expect(computeHit({ ...base, critChance: 0.3, defense: 10 }, a)).toEqual(computeHit({ ...base, critChance: 0.3, defense: 10 }, b));
   });
 });
+
+describe('회피(D31)', () => {
+  it('회피 확률이 1이면 피해 0·dodged, 0이면 난수 순서가 그대로(기존 판정 불변)', async () => {
+    const { computeHit } = await import('../src/core/combat');
+    const { createRng } = await import('../src/core/rng');
+    const base = { attack: 20, critChance: 0.5, critMult: 2, defense: 5, blockK: 20, blockReduction: 0.5, maxBlockChance: 0.5 };
+    expect(computeHit({ ...base, dodgeChance: 1 }, createRng(1))).toEqual({ damage: 0, crit: false, blocked: false, dodged: true });
+    expect(computeHit({ ...base, dodgeChance: 0 }, createRng(7))).toEqual(computeHit(base, createRng(7)));
+  });
+});

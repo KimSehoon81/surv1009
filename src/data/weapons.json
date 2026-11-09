@@ -1,5 +1,5 @@
 {
-  "$comment": "무기 정의(D20에서 캐릭터별 무기로 확장). type: projectile=직선 투사체, lob=곡사(착지 시 범위 피해). damageMult=공격력 배율, cooldownMs가 없으면 캐릭터 attackSpeed(초당 횟수)로 계산, range가 없으면 캐릭터 range. 속도 px/초, 반지름 px. defaults=무기 정의에 없을 때 쓰는 기본값. impact=곡사 착지 지점 연출 프리셋(feel.json) type 목록(D20): projectile(직선, explode={radius,damageMult,fx,fxScale,impact}면 맞힌 자리에서 범위 폭발, pierce=관통 수), lob(곡사), melee(바라보는 쪽 arcDeg 부채꼴 meleeRadius 안 모두 타격 + knockback). 새 type은 캐릭터가 필요할 때만 추가(aura·placeable은 A09·A11). cooldownMs가 없으면 캐릭터 attackSpeed, range가 없으면 캐릭터 range (D21) projectile shots·spreadDeg=한 번에 여러 발 부채꼴, aura=cooldownMs마다 auraRadius 안 적 피해 + 고리 연출, placeable=cooldownMs마다 발밑 근처에 mine 설치(systems/mines 재사용, 피해 = damageMult × 공격력)",
+  "$comment": "무기 정의(D20에서 캐릭터별 무기로 확장). type: projectile=직선 투사체, lob=곡사(착지 시 범위 피해). damageMult=공격력 배율, cooldownMs가 없으면 캐릭터 attackSpeed(초당 횟수)로 계산, range가 없으면 캐릭터 range. 속도 px/초, 반지름 px. defaults=무기 정의에 없을 때 쓰는 기본값. impact=곡사 착지 지점 연출 프리셋(feel.json) type 목록(D20): projectile(직선, explode={radius,damageMult,fx,fxScale,impact}면 맞힌 자리에서 범위 폭발, pierce=관통 수), lob(곡사), melee(바라보는 쪽 arcDeg 부채꼴 meleeRadius 안 모두 타격 + knockback). 새 type은 캐릭터가 필요할 때만 추가(aura·placeable은 A09·A11). cooldownMs가 없으면 캐릭터 attackSpeed, range가 없으면 캐릭터 range (D21) projectile shots·spreadDeg=한 번에 여러 발 부채꼴, aura=cooldownMs마다 auraRadius 안 적 피해 + 고리 연출, placeable=cooldownMs마다 발밑 근처에 mine 설치(systems/mines 재사용, 피해 = damageMult × 공격력) cluster={count,spread px,radius,damageMult,delayMs}=곡사 착지 뒤 둘레 작은 폭발(A25 프랑스군 척탄병, D31).",
   "defaults": {
     "projectileSpeed": 400,
     "radius": 4,
@@ -179,6 +179,28 @@
       "cooldownMs": 1200,
       "auraRadius": 64,
       "knockback": 14
+    },
+    "cluster_grenade": {
+      "name": "연쇄 수류탄",
+      "type": "lob",
+      "damageMult": 1.6,
+      "cooldownMs": 2400,
+      "range": 210,
+      "flightMs": 650,
+      "arcHeight": 46,
+      "aoeRadius": 48,
+      "sprite": "icon_upgrade_weapon_grenade",
+      "scale": 0.45,
+      "fx": "explosion_s",
+      "fxScale": 0.9,
+      "impact": "impact_s",
+      "cluster": {
+        "count": 3,
+        "spread": 42,
+        "radius": 30,
+        "damageMult": 0.5,
+        "delayMs": 160
+      }
     }
   }
 }

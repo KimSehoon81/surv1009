@@ -1,5 +1,5 @@
 {
-  "$comment": "아군 캐릭터 30명(PRD §9.1). 캐릭터 = stats(능력치) + weapons(시작 무기, weapons.json) + passive. passive 항목: mods=능력치 수정자(항상), weaponMods=시작 무기 수정자, trigger=hit·crit·kill 이벤트에서 chance 확률로 effect(효과 레지스트리)를 그 자리 중심으로 실행(cooldownMs 간격). implemented=false면 출정 준비에 안 나옴(데이터 골격만). faction=국군·미군·유엔군·연합, unlock=해금 시점(unlocks.json과 일치). moveSpeed는 px/초, attackSpeed는 초당 공격 횟수, range·magnet은 px. 수치는 초안(D39 밸런스) armorType=장갑 종류(combat.json armor: armored는 일반 피해 −20%, 대전차 피해 +50%) (D30) immuneTags=무시하는 수정자 분류(terrain: 혹한 등 지형·기후 감속), cardBonus=태그별 판정 +%p(판정 내역 '캐릭터 보정' 항), cardPower=그 태그 카드가 든 카드 효과·조합 스킬 위력 +배율(A23 해군 +50%). A20 아군 공격 버프 = allyPower(levels.json 주석: 지원군·소환 사수 포함 타임라인 전부에 적용). A16 방어 오라 = guard_aura(약한 피해 + 밀쳐내기) + 방어력.",
+  "$comment": "아군 캐릭터 30명(PRD §9.1). 캐릭터 = stats(능력치) + weapons(시작 무기, weapons.json) + passive. passive 항목: mods=능력치 수정자(항상), weaponMods=시작 무기 수정자, trigger=hit·crit·kill 이벤트에서 chance 확률로 effect(효과 레지스트리)를 그 자리 중심으로 실행(cooldownMs 간격). implemented=false면 출정 준비에 안 나옴(데이터 골격만). faction=국군·미군·유엔군·연합, unlock=해금 시점(unlocks.json과 일치). moveSpeed는 px/초, attackSpeed는 초당 공격 횟수, range·magnet은 px. 수치는 초안(D39 밸런스) armorType=장갑 종류(combat.json armor: armored는 일반 피해 −20%, 대전차 피해 +50%) (D30) immuneTags=무시하는 수정자 분류(terrain: 혹한 등 지형·기후 감속), cardBonus=태그별 판정 +%p(판정 내역 '캐릭터 보정' 항), cardPower=그 태그 카드가 든 카드 효과·조합 스킬 위력 +배율(A23 해군 +50%). A20 아군 공격 버프 = allyPower(levels.json 주석: 지원군·소환 사수 포함 타임라인 전부에 적용). A16 방어 오라 = guard_aura(약한 피해 + 밀쳐내기) + 방어력. (D31) periodic={timeline,everyMs}=주기 지원 타임라인(A29 헬기, 아군 공격 배율 적용), levelUpBonus.rarePlusBonus=레벨업 희귀 이상 가중 상시 보정(A30, rollChoices ctx), cardBonus '*'=모든 제출 +%p(A30). 회피 dodge·이동 중 회피 dodgeMoving·기습 ambushCrit은 levels.json 능력치.",
   "characters": {
     "A01": {
       "name": "국군 소총수",
@@ -736,9 +736,9 @@
       "role": "균형형, 회피",
       "faction": "유엔군",
       "unlock": "S7",
-      "implemented": false,
+      "implemented": true,
       "stats": {
-        "hp": 100,
+        "hp": 105,
         "defense": 5,
         "moveSpeed": 115,
         "attack": 10,
@@ -752,20 +752,30 @@
       "weapons": [
         "rifle"
       ],
-      "passive": []
+      "passive": [
+        {
+          "mods": [
+            {
+              "stat": "dodge",
+              "op": "add",
+              "value": 0.12
+            }
+          ]
+        }
+      ]
     },
     "A25": {
       "name": "프랑스군 척탄병",
       "role": "수류탄 연쇄 폭발",
       "faction": "유엔군",
       "unlock": "S8",
-      "implemented": false,
+      "implemented": true,
       "stats": {
-        "hp": 100,
+        "hp": 105,
         "defense": 5,
         "moveSpeed": 115,
         "attack": 10,
-        "attackSpeed": 1.5,
+        "attackSpeed": 1.2,
         "range": 170,
         "critChance": 0.05,
         "critMult": 2.0,
@@ -773,7 +783,8 @@
         "luck": 0
       },
       "weapons": [
-        "rifle"
+        "cluster_grenade",
+        "pistol"
       ],
       "passive": []
     },
@@ -782,13 +793,13 @@
       "role": "연사·안정",
       "faction": "유엔군",
       "unlock": "S8",
-      "implemented": false,
+      "implemented": true,
       "stats": {
-        "hp": 100,
-        "defense": 5,
+        "hp": 105,
+        "defense": 7,
         "moveSpeed": 115,
         "attack": 10,
-        "attackSpeed": 1.5,
+        "attackSpeed": 1.8,
         "range": 170,
         "critChance": 0.05,
         "critMult": 2.0,
@@ -798,18 +809,28 @@
       "weapons": [
         "rifle"
       ],
-      "passive": []
+      "passive": [
+        {
+          "mods": [
+            {
+              "stat": "attackSpeed",
+              "op": "mul",
+              "value": 0.15
+            }
+          ]
+        }
+      ]
     },
     "A27": {
       "name": "태국군 보병",
       "role": "이동 중 회피",
       "faction": "유엔군",
       "unlock": "S8",
-      "implemented": false,
+      "implemented": true,
       "stats": {
         "hp": 100,
-        "defense": 5,
-        "moveSpeed": 115,
+        "defense": 4,
+        "moveSpeed": 125,
         "attack": 10,
         "attackSpeed": 1.5,
         "range": 170,
@@ -819,42 +840,63 @@
         "luck": 0
       },
       "weapons": [
-        "rifle"
+        "carbine"
       ],
-      "passive": []
+      "passive": [
+        {
+          "mods": [
+            {
+              "stat": "dodgeMoving",
+              "op": "add",
+              "value": 0.25
+            }
+          ]
+        }
+      ]
     },
     "A28": {
       "name": "국군 유격대원",
       "role": "기습·치명타",
       "faction": "국군",
       "unlock": "S9",
-      "implemented": false,
+      "implemented": true,
       "stats": {
-        "hp": 100,
-        "defense": 5,
-        "moveSpeed": 115,
-        "attack": 10,
+        "hp": 95,
+        "defense": 4,
+        "moveSpeed": 130,
+        "attack": 11,
         "attackSpeed": 1.5,
         "range": 170,
-        "critChance": 0.05,
-        "critMult": 2.0,
+        "critChance": 0.1,
+        "critMult": 2.3,
         "magnet": 90,
         "luck": 0
       },
       "weapons": [
-        "rifle"
+        "carbine",
+        "bayonet"
       ],
-      "passive": []
+      "passive": [
+        {
+          "mods": [
+            {
+              "stat": "ambushCrit",
+              "op": "add",
+              "value": 0.5
+            }
+          ]
+        }
+      ]
     },
     "A29": {
       "name": "미 헬기 조종사",
       "role": "공중 지원 소환",
       "faction": "미군",
       "unlock": "S9",
-      "implemented": false,
+      "implemented": true,
       "stats": {
-        "hp": 100,
-        "defense": 5,
+        "hp": 95,
+        "defense": 4,
         "moveSpeed": 115,
         "attack": 10,
         "attackSpeed": 1.5,
@@ -865,19 +907,23 @@
         "luck": 0
       },
       "weapons": [
-        "rifle"
+        "pistol"
       ],
-      "passive": []
+      "passive": [],
+      "periodic": {
+        "timeline": "heli_support",
+        "everyMs": 9000
+      }
     },
     "A30": {
       "name": "연합군 참모장교",
       "role": "카드 성공률·레벨업 보정",
       "faction": "연합",
       "unlock": "S9",
-      "implemented": false,
+      "implemented": true,
       "stats": {
-        "hp": 100,
-        "defense": 5,
+        "hp": 95,
+        "defense": 4,
         "moveSpeed": 115,
         "attack": 10,
         "attackSpeed": 1.5,
@@ -885,12 +931,18 @@
         "critChance": 0.05,
         "critMult": 2.0,
         "magnet": 90,
-        "luck": 0
+        "luck": 3
       },
       "weapons": [
-        "rifle"
+        "pistol"
       ],
-      "passive": []
+      "passive": [],
+      "cardBonus": {
+        "*": 0.05
+      },
+      "levelUpBonus": {
+        "rarePlusBonus": 0.15
+      }
     }
   }
 }

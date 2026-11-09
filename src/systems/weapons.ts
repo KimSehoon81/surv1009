@@ -150,6 +150,8 @@ export class WeaponSystem {
             fx: typeof def.fx === 'string' ? def.fx : undefined,
             fxScale: num(w.def, 'fxScale') ?? 1,
             impact: typeof def.impact === 'string' ? def.impact : undefined,
+            // 연쇄 수류탄(A25): 착지 후 둘레 폭발(BattleScene onLand)
+            ...('cluster' in def ? { tag: `cluster:${w.id}` } : {}),
           },
           player.x,
           player.y,

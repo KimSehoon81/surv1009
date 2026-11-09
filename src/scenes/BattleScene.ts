@@ -55,6 +55,7 @@ import { InputMap, type InputAction } from '../systems/input';
 import { PickupSystem } from '../systems/pickups';
 import { ProjectileSystem, type ProjectileHooks } from '../systems/projectiles';
 import { WeaponSystem, isWeaponId, type WeaponHooks } from '../systems/weapons';
+import weaponData from '../data/weapons.json';
 import { Player, isCharacterId, isImplemented, passiveOf, type CharacterId, type PassiveDef } from '../entities/Player';
 import characterData from '../data/characters.json';
 import { MAX_ENEMY_RADIUS, isEnemyId, type Enemy, type EnemyId } from '../entities/Enemy';
@@ -81,6 +82,8 @@ const DEBUG_SETS: [string, number][][] = [
   [['E21', 5], ['E22', 2], ['E23', 1], ['E24', 1]],
 ];
 const TP = skillsData.tp;
+/** 캐릭터 정의 중 능력치 밖 성질(카드 보정·강화·주기 지원·레벨업 보정) */
+type CharDef = { cardBonus?: Record<string, number>; cardPower?: Record<string, number>; periodic?: { timeline: string; everyMs: number }; levelUpBonus?: { rarePlusBonus?: number } };
 const SHOP_ITEMS = shopData.items as ShopItem[];
 const TP_BY_TIER: Record<string, number> = { normal: TP.perKill, elite: TP.perEliteKill, boss: TP.perBossKill };
 const SKILL_ACTIONS = skillsData.slots.map((s) => s.action as InputAction);
@@ -166,6 +169,8 @@ export class BattleScene extends Phaser.Scene {
   /** 설정(전투 시작 때 읽음) */
   pref!: Prefs;
   private debugNpcIndex = 0;
+  /** 주기 공중 지원(A29): 다음 실행 시각 */
+  private nextPeriodicMs = 0;
   private modalClosedFrame = -1;
   private lastInterceptToastMs = -Infinity;
   private debugComboIndex = 0;
@@ -292,7 +297,18 @@ export class BattleScene extends Phaser.Scene {
     this.equipStartingWeapons();
     this.hooks = {
       onHit: (e, mult, dx, dy, tag) => this.damageEnemy(e, mult, dx, dy, false, tag),
-      onLand: (x, y, radius, mult, fxName, fxScale, impact, tag) => this.explode(x, y, radius, mult, fxName, fxScale, impact, tag),
+      onLand: (x, y, radius, mult, fxName, fxScale, impact, tag) => {
+        // 연쇄 수류탄(A25): tag 'cluster:무기' → 둘레에 작은 폭발이 차례로
+        const cl = tag?.startsWith('cluster:') ? (weaponData.weapons as Record<string, { cluster?: { count: number; spread: number; radius: number; damageMult: number; delayMs: number } }>)[tag.slice(8)]?.cluster : undefined;
+        this.explode(x, y, radius, mult, fxName, fxScale, impact, cl ? undefined : tag);
+        if (!cl) return;
+        for (let i = 0; i < cl.count; i++) {
+          const a = (i / cl.count) * Math.PI * 2 + this.combatRng.next() * 0.6;
+          const bx = x + Math.cos(a) * cl.spread;
+          const by = y + Math.sin(a) * cl.spread * 0.7;
+          this.effects.schedule(cl.delayMs * (i + 1), () => this.explode(bx, by, cl.radius, mult * cl.damageMult, fxName, fxScale * 0.6, 'impact_s'));
+        }
+      },
     };
 
     this.weaponHooks = {
@@ -363,6 +379,7 @@ export class BattleScene extends Phaser.Scene {
     this.mines = new MineSystem(this, combat.mineCap);
     this.hazards = new HazardSystem(this);
     this.flipOn = false;
+    this.nextPeriodicMs = 0;
     this.shopOpen = false;
     this.shopState = null;
     this.supply = null;
@@ -417,6 +434,9 @@ export class BattleScene extends Phaser.Scene {
     });
     const scene = this;
     this.upgradeTarget = {
+      get rarePlus() {
+        return scene.charDef.levelUpBonus?.rarePlusBonus ?? 0;
+      },
       get luck() {
         return scene.player.stats.luck;
       },
@@ -592,6 +612,7 @@ export class BattleScene extends Phaser.Scene {
       this.hazards.update(now, target, { hitPlayer: (x, y, spec) => this.hitPlayer(spec.damage, x, y, spec.kind) });
       this.syncFlip();
       this.updateSupply();
+      this.periodicSupport(now);
       this.mines.update(now, this.enemies.grid, target, {
         onExplode: (x, y, spec) => {
           this.timelines.cue('mine_blast', x, y);
@@ -628,7 +649,8 @@ export class BattleScene extends Phaser.Scene {
     // 방어 자세 −60%, 약점 노출 ×1.5(core/enemyAttack)
     const taken = e.attacks.length > 0 ? damageTakenMult(e.atk, e.attacks) : 1;
     const res = computeHit(
-      { attack: s.attack * damageMult * taken, critChance: s.critChance, critMult: s.critMult, defense: e.def.defense, ...HIT },
+      // 기습(A28): 체력이 가득한 적에게 치명 확률 +
+      { attack: s.attack * damageMult * taken, critChance: s.critChance + (e.hp >= e.maxHp ? s.ambushCrit : 0), critMult: s.critMult, defense: e.def.defense, ...HIT },
       this.combatRng,
     );
     e.lastHurtMs = now;
@@ -699,8 +721,18 @@ export class BattleScene extends Phaser.Scene {
   }
 
   /** 캐릭터 정의(카드 보정·강화 등 능력치 밖 성질) */
-  get charDef(): { cardBonus?: Record<string, number>; cardPower?: Record<string, number> } {
-    return (characterData.characters as Record<string, { cardBonus?: Record<string, number>; cardPower?: Record<string, number> }>)[this.player.id] ?? {};
+  get charDef(): CharDef {
+    return (characterData.characters as Record<string, CharDef>)[this.player.id] ?? {};
+  }
+
+  /** 주기 공중 지원(A29 헬기 조종사): everyMs마다 타임라인(아군 공격 배율 적용) */
+  private periodicSupport(now: number): void {
+    const per = this.charDef.periodic;
+    if (!per) return;
+    if (this.nextPeriodicMs === 0) this.nextPeriodicMs = now + per.everyMs;
+    if (now < this.nextPeriodicMs || this.enemies.alive === 0) return;
+    this.nextPeriodicMs = now + per.everyMs;
+    this.timelines.play(per.timeline, this.player.stats.allyPower);
   }
 
   /** 태그 강화(A23 해군 카드 +50%): 쓰인 카드 태그 중 가장 큰 강화 */
@@ -779,7 +811,14 @@ export class BattleScene extends Phaser.Scene {
     const kind = cause.endsWith('antiTank') ? 'antiTank' : 'normal';
     // 신병 모드(편의 옵션): 받는 피해 −30%
     const recruit = this.pref.recruit ? settingsData.recruitDamageMul : 1;
-    const res = computeHit({ attack: attack * armorMult(p.armorType, kind, combat.armor) * recruit, critChance: 0, critMult: 1, defense: p.stats.defense, ...HIT }, this.combatRng);
+    // 회피(A24) + 이동 중 회피(A27, 조건부)
+    const dodgeChance = p.stats.dodge + (p.isMoving ? p.stats.dodgeMoving : 0);
+    const res = computeHit({ attack: attack * armorMult(p.armorType, kind, combat.armor) * recruit, critChance: 0, critMult: 1, defense: p.stats.defense, ...HIT, dodgeChance }, this.combatRng);
+    if (res.dodged) {
+      this.feel.numbers.show('block', p.x, p.y - combat.bodyOffsetY - 10, 'MISS');
+      this.feel.flash(p.sprite, 0xffffff, 60);
+      return;
+    }
     p.hp = Math.max(0, p.hp - res.damage);
     p.invulnUntilMs = now + combat.playerInvulnMs;
     this.run.damageTaken += res.damage;

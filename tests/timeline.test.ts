@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import charactersData from '../src/data/characters.json';
 import timelinesData from '../src/data/timelines.json';
 import cuesData from '../src/data/cues.json';
 import combosData from '../src/data/combos.json';
@@ -16,12 +17,17 @@ const origin = { aim: { x: 300, y: 0 }, player: { x: 0, y: 0 }, minFanDist: 100 
 const rand = () => 0.5;
 
 describe('연출 타임라인 데이터', () => {
-  it('조합 11종 전부 타임라인이 있고, 쓰는 큐·프리셋·소리가 모두 정의돼 있다', () => {
+  it('조합 11종 전부 타임라인이 있고(그 밖은 고급 스킬·캐릭터 주기 지원), 쓰는 큐·프리셋·소리가 모두 정의돼 있다', () => {
     const combos = new Set(combosData.combos.map((c) => c.id));
     expect(combos.size).toBe(11);
     for (const id of combos) expect(TL[id], id).toBeDefined();
     // 타임라인은 조합 스킬 또는 고급 스킬(skills.json timeline)이 쓴다
     const skillTimelines = new Set(Object.values(skillsData.skills).map((s) => (s as { timeline?: string }).timeline));
+    // 캐릭터 주기 지원(A29 헬기 등)도 타임라인을 쓴다
+    for (const c of Object.values(charactersData.characters)) {
+      const per = (c as { periodic?: { timeline: string } }).periodic;
+      if (per) skillTimelines.add(per.timeline);
+    }
     for (const [id, def] of Object.entries(TL)) {
       expect(combos.has(id) || skillTimelines.has(id), id).toBe(true);
       for (const ev of def.events) {
