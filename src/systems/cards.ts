@@ -58,6 +58,8 @@ export interface CardHost {
   tagBonus?(): Readonly<Record<string, number>>;
   /** 드로우 속도 배율(보급선 차단 −50% 등) */
   drawMul?(): number;
+  /** 방해가 막는 태그(악천후 → 공군 제출 불가) */
+  blockedTags?(): readonly string[];
   /** 판정 결과 연출(금색 플래시 등) */
   onResult(success: boolean): void;
   /** 카드 효과·조합 스킬·마이너스 발동·실패 소멸(잔효) */
@@ -108,7 +110,7 @@ export class CardSystem {
       opForSeal: CARD_DATA.rules.opForSeal - this.host.sealOpReduction(),
       minusChance: mix.chance,
       disguiseMinus: mix.disguise,
-      blockedTags: s.blockIntel > 0 ? ['intel'] : [],
+      blockedTags: [...(s.blockIntel > 0 ? ['intel'] : []), ...(this.host.blockedTags?.() ?? [])],
       tagPenalty: this.host.tagPenalty?.(),
       tagBonus: this.host.tagBonus?.(),
     };

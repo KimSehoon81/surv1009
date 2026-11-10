@@ -151,7 +151,7 @@ export class EnemySystem {
         e.contactMult = mode === 'dash' ? (e.attacks[e.atk.index]?.damage ?? 1) : 1;
         const d = (speed * dtMs) / 1000;
         e.setPosition(e.x + dir.x * d, e.y + dir.y * d);
-        if (this.blocker) {
+        if (this.blocker && !e.air) {
           // 길찾기 없이: 밀어내고, 막히면 벽 법선에 수직(목표 쪽)으로 미끄러짐
           const r = this.blocker.resolve(e.x, e.y, e.radius);
           if (r.nx !== 0 || r.ny !== 0) {
@@ -164,6 +164,13 @@ export class EnemySystem {
         const face = mode === 'hold' ? target.x - e.x : dir.x;
         if (face < -0.05) e.sprite.setFlipX(true);
         else if (face > 0.05) e.sprite.setFlipX(false);
+        // 출격 시간(공중 유닛 lifeMs): 지나면 이탈(처치 아님, 경험치 없음)
+        const life = (e.def as { lifeMs?: number }).lifeMs;
+        if (life !== undefined && e.ageMs > life) {
+          e.despawn();
+          this.pool.release(e);
+          continue;
+        }
         // 너무 멀어진 적은 화면 밖 반대편으로 재배치(개체 수 유지, 뒤처진 적이 영영 안 오는 문제 방지)
         const dx = e.x - target.x;
         const dy = e.y - target.y;
@@ -195,8 +202,9 @@ export class EnemySystem {
         let checks = 0;
         let px = 0;
         let py = 0;
+        if (e.air) continue;
         this.grid.forEachNear(e.x, e.y, e.radius + MAX_ENEMY_RADIUS, (n, d2) => {
-          if (n === e) return;
+          if (n === e || n.air) return;
           const minD = e.radius + n.radius;
           if (d2 < minD * minD) {
             const d = Math.sqrt(d2) || 0.01;
@@ -228,7 +236,7 @@ export class EnemySystem {
     this.applyAuras(list);
 
     // 4) 화면 위아래 순서(아래쪽이 앞)
-    for (const e of list) e.sprite.setDepth(Depth.Unit + (e.y - cam.scrollY) * 0.001);
+    for (const e of list) e.sprite.setDepth((e.air ? Depth.Air : Depth.Unit) + (e.y - cam.scrollY) * 0.001);
   }
 
   /** 지금 적 체력 배율(스테이지·레벨, 바리케이드 체력 등에 씀) */

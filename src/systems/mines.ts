@@ -113,7 +113,7 @@ export class MineSystem {
     let hit = false;
     grid.forEachNear(m.x, m.y, r + MAX_ENEMY_RADIUS, (e, d2) => {
       const rr = r + e.radius;
-      if (e.alive && d2 <= rr * rr) {
+      if (e.alive && !e.air && d2 <= rr * rr) {
         hit = true;
         return true;
       }

@@ -43,6 +43,8 @@ export interface AttackSpec {
   pattern?: string;
   /** summon(보스 포위 명령): 목표 둘레 ring px 고리에 count체, 그 적이 이미 max체 이상 살아 있으면 그만큼만 */
   summon?: { enemy: string; count: number; ring: number; max?: number };
+  /** strafe(D34 MiG 기총소사): 목표를 지나는 길이 length·폭 width 띠, 예고 뒤 한 번에 */
+  length?: number;
   /** barricade(D32): 폭 w·두께 h 장애물을 lifeMs 동안(체력 hp). ring이면 목표 둘레 count개, 아니면 쏜 쪽 앞 offset px에 하나 */
   barricade?: { w: number; h: number; lifeMs: number; hp: number; ring?: number; count?: number; offset?: number };
   /** fanShot: 사거리 px, 부채꼴 각도 */
@@ -130,6 +132,8 @@ export const ATTACK_PARTS: Record<string, AttackPart> = {
     move: (ph) => (ph === 'idle' ? 'free' : 'hold'),
     taken: (spec, ph, st) => (ph === 'recover' && st.failed ? (spec.weakMult ?? 1) : 1),
   },
+  /** 공중 기총소사(MiG): 날면서(이동 유지) 목표를 지나는 띠를 예고 → 쓸고 지나감 */
+  strafe: { threat: true, ready: inRange, move: () => 'free' },
   /** 바리케이드 설치: 예고 원 자리에 장애물(공병은 엄폐물, 보스는 포위 고리) */
   barricade: { threat: true, ready: inRange, move: (ph) => (ph === 'idle' ? 'free' : 'hold') },
   /** 소환(보스 포위 명령): 예고 원 자리에 적을 불러냄 */

@@ -103,6 +103,8 @@ export interface EnemyAttackHost {
   summon?(id: string, x: number, y: number): void;
   /** 살아 있는 그 적 수(소환 상한) */
   aliveCount?(id: string): number;
+  /** 연출 큐(타임라인 원자 재사용) */
+  cue?(name: string, x: number, y: number): void;
   /** 선분이 장애물에 막히는지(조준 사격 엄폐) */
   blocks?(x0: number, y0: number, x1: number, y1: number): boolean;
   /** 바리케이드 세우기(E27 공병·E30 보스) */
@@ -187,6 +189,31 @@ export class EnemyAttackSystem {
       } else if (ev.type === 'active') {
         const room = Math.max(0, (spec.summon.max ?? Infinity) - (this.host.aliveCount?.(spec.summon.enemy) ?? 0));
         for (const q of pts.slice(0, room)) this.host.summon?.(spec.summon.enemy, q.x, q.y);
+      }
+    } else if (spec.type === 'strafe') {
+      // 띠: 쏜 쪽 → 목표 방향으로 목표를 가운데 둔 length 길이
+      const len = spec.length ?? 640;
+      const w = spec.width ?? 40;
+      const d = Math.hypot(st.tx - e.x, st.ty - e.y) || 1;
+      const ux = (st.tx - e.x) / d;
+      const uy = (st.ty - e.y) / d;
+      const sx = st.tx - ux * (len / 2);
+      const sy = st.ty - uy * (len / 2);
+      if (ev.type === 'telegraph') {
+        this.telegraph({ kind: 'line', x: sx, y: sy, dirX: ux, dirY: uy, length: len, width: w }, nowMs, tele);
+        this.host.audio.play('fighter_pass', e.x, e.y);
+      } else if (ev.type === 'active') {
+        // 기총 탄착: 띠를 따라 흙먼지(AS03 연출 재사용) + 예광선
+        for (let k = 0; k <= 8; k++) {
+          const x = sx + ux * (len * k) / 8;
+          const y = sy + uy * (len * k) / 8;
+          this.host.cue?.('strafe_dust', x, y);
+          if (k % 2 === 0) this.tracers.push({ x1: x, y1: y - 60, x2: x + ux * 30, y2: y + uy * 30, untilMs: nowMs + 120 });
+        }
+        const p = this.host.player();
+        const t = Math.max(0, Math.min(len, (p.x - sx) * ux + (p.y - sy) * uy));
+        const r = w / 2 + combat.playerRadius;
+        if ((p.x - (sx + ux * t)) ** 2 + (p.y - (sy + uy * t)) ** 2 <= r * r) this.host.hitPlayer(e.attack * (spec.damage ?? 1), e.x, e.y, cause('strafe'));
       }
     } else if (spec.type === 'barricade' && spec.barricade) {
       const pts = barricadePoints(e.x, e.y, st.tx, st.ty, spec.barricade);

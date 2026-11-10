@@ -62,7 +62,8 @@
       "tpCost": 45,
       "cooldownMs": 20000,
       "icon": "AS02",
-      "desc": "단일 지점 초대형 폭발"
+      "desc": "단일 지점 초대형 폭발",
+      "timeline": "AS02"
     },
     "AS05": {
       "name": "포병 집중사격",

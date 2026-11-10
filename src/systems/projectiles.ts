@@ -181,7 +181,7 @@ export class ProjectileSystem {
       }
       let done = false;
       grid.forEachNear(p.x, feetY, p.radius + MAX_ENEMY_RADIUS, (e, d2) => {
-        if (!e.alive || p.hit.has(e)) return;
+        if (!e.alive || p.hit.has(e) || (e.air && p.tag !== 'aa')) return;
         const r = p.radius + e.radius;
         if (d2 > r * r) return;
         p.hit.add(e);

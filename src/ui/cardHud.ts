@@ -19,7 +19,7 @@ const REJECT_TEXT: Record<string, string> = {
   empty: '낼 카드가 없음',
   tooMany: '최대 3장',
   notInHand: '손패에 없음',
-  blockedTag: '통신 두절: 정보 카드 사용 불가',
+  blockedTag: '지금 낼 수 없는 카드 (통신 두절·악천후)',
   noSeal: '인장 없음',
   notEnoughOp: 'OP 부족(마이너스 폐기 3)',
   judging: '판정 중',
@@ -183,6 +183,8 @@ export class CardHud {
     const g = this.gfx.clear();
     const smoke = this.host.smoke();
     const noise = this.host.noise();
+    // 낼 수 없는 태그(통신 두절·악천후): 카드에 잠금 표시
+    const blocked = new Set(this.cards.env().blockedTags ?? []);
     const sg = this.smokeGfx.clear();
     const coolLeft = Math.max(0, st.cooldownUntilMs - now);
 
@@ -199,6 +201,12 @@ export class CardHud {
       const key = card.faceDown ? cardBackKey(this.scene) : cardFaceKey(this.scene, shownId, CARD_DATA.cards[shownId] as never);
       if (img.texture.key !== key) img.setTexture(key);
       img.setPosition(Math.round(x), Math.round(y)).setVisible(true).setAlpha(coolLeft > 0 && !sel ? 0.6 : card.disguised ? 0.8 : 1);
+      if (!card.faceDown && !card.disguised && blocked.has(CARD_DATA.cards[card.id]?.tag ?? '')) {
+        const l = Math.round(x - FACE_W / 2);
+        const t = Math.round(y - FACE_H / 2);
+        sg.fillStyle(0x000000, 0.5).fillRect(l, t, FACE_W, FACE_H);
+        sg.lineStyle(3, 0xff6050, 0.9).lineBetween(l + 8, t + 12, l + FACE_W - 8, t + FACE_H - 12).lineBetween(l + FACE_W - 8, t + 12, l + 8, t + FACE_H - 12);
+      }
       if (card.disguised && !card.faceDown) {
         const l = Math.round(x - FACE_W / 2) + 3;
         const t = Math.round(y - FACE_H / 2) + 15;

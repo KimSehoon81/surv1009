@@ -83,6 +83,7 @@ const DEBUG_SETS: [string, number][][] = [
   [['E21', 5], ['E22', 2], ['E23', 1], ['E24', 1]],
   [['E26', 2], ['E27', 2], ['E28', 1], ['E06', 6], ['E29', 1]],
   [['E31', 12], ['E32', 2], ['E33', 1], ['E34', 1]],
+  [['E36', 2], ['E37', 3], ['E38', 2], ['E39', 1]],
 ];
 const TP = skillsData.tp;
 /** 위협 우선 조준(G6): 방해원(disrupt)·버프 오라(aura)·지정 우선(targetPriority) */
@@ -96,7 +97,7 @@ const SHOP_ITEMS = shopData.items as ShopItem[];
 const TP_BY_TIER: Record<string, number> = { normal: TP.perKill, elite: TP.perEliteKill, boss: TP.perBossKill };
 const SKILL_ACTIONS = skillsData.slots.map((s) => s.action as InputAction);
 const STAGES = stagesData.stages as unknown as Record<string, StageDef>;
-type DisruptionType = { name: string; category: string; priority: number; hint: string; selectDelayMs?: number; drawMul?: number; tagPenalty?: Record<string, number>; interactions?: { on: string; tag: string; do: string; ms: number }[] };
+type DisruptionType = { name: string; category: string; priority: number; hint: string; selectDelayMs?: number; drawMul?: number; blockTags?: string[]; tagPenalty?: Record<string, number>; interactions?: { on: string; tag: string; do: string; ms: number }[] };
 const DTYPES = disruptionsData.types as Record<string, DisruptionType>;
 const DISRUPTION_NAMES: Record<string, string> = Object.fromEntries(Object.entries(DTYPES).map(([k, v]) => [k, v.name]));
 const CAST_REJECT: Record<CastReject, string> = { locked: '잠긴 슬롯', empty: '장착한 스킬 없음', cooldown: '재사용 대기 중', tp: 'TP 부족', unimplemented: '준비 중인 스킬' };
@@ -174,6 +175,8 @@ export class BattleScene extends Phaser.Scene {
   private hazards!: HazardSystem;
   /** 뒤집힌 카드 방해가 걸려 있는지(바뀌는 순간 손패를 뒤집거나 되돌림) */
   private flipOn = false;
+  /** explode가 공중 유닛도 맞히는 중(타임라인 피해) */
+  private airStrike = false;
   /** 방어 돔(AS10): 끝 시각·감소·반사·반경·색 */
   private dome: { untilMs: number; reduce: number; reflect: number; radius: number; color: number } | null = null;
   private domeGfx: Phaser.GameObjects.Graphics | null = null;
@@ -291,6 +294,7 @@ export class BattleScene extends Phaser.Scene {
         tagPenalty: () => battle.tagPenalty(),
         tagBonus: () => battle.charDef.cardBonus ?? {},
         drawMul: () => battle.drawMul(),
+        blockedTags: () => battle.blockedTags(),
         onResult: (success) => {
           battle.feel.hit(success ? 'card_success' : 'card_fail', battle.player.x, battle.player.y - combat.bodyOffsetY);
           if (!success) battle.tip('firstFail');
@@ -339,7 +343,7 @@ export class BattleScene extends Phaser.Scene {
         const hit: Enemy[] = [];
         this.enemies.grid.forEachNear(x, y, radius + MAX_ENEMY_RADIUS, (e, d2) => {
           const r = radius + e.radius;
-          if (e.alive && d2 <= r * r) hit.push(e);
+          if (e.alive && !e.air && d2 <= r * r) hit.push(e);
         });
         for (const e of hit) {
           this.damageEnemy(e, mult, e.x - x, e.y - y, true);
@@ -418,6 +422,7 @@ export class BattleScene extends Phaser.Scene {
       placeMine: (x, y, mine, attack) => this.mines.place(x, y, { faction: 'enemy', ...mine, damage: attack }, this.clock.timeMs),
       aliveCount: (id) => this.enemies.pool.active.reduce((n, e) => n + (e.alive && e.id === id ? 1 : 0), 0),
       blocks: (x0, y0, x1, y1) => this.obstacles.blocks(x0, y0, x1, y1),
+      cue: (name, x, y) => this.timelines.cue(name, x, y),
       placeBarricade: (x, y, w, h, lifeMs, hp) => this.obstacles.addBarricade(x, y, w, h, this.clock.timeMs + lifeMs, hp * this.enemies.scaleHp()),
       summon: (id, x, y) => {
         if (!isEnemyId(id)) return;
@@ -445,7 +450,12 @@ export class BattleScene extends Phaser.Scene {
       grid: this.enemies.grid,
       player: this.player,
       rng: rng.fork('timelines'),
-      damage: (x, y, r, m) => this.explode(x, y, r, m, undefined, 1, undefined),
+      damage: (x, y, r, m) => {
+        // 스킬·조합 연출 피해는 공중 유닛에도(대공 판정)
+        this.airStrike = true;
+        this.explode(x, y, r, m, undefined, 1, undefined);
+        this.airStrike = false;
+      },
       damageEnemy: (e, m, dx, dy) => this.damageEnemy(e, m, dx, dy, true),
       cutCooldowns: (frac, from) => this.skills.cutCooldowns(frac, this.clock.timeMs, from),
       interceptActive: () => this.antiAirOnScreen(),
@@ -564,11 +574,12 @@ export class BattleScene extends Phaser.Scene {
 
   /** 근접 휘두르기: 부채꼴 안 적 전부 타격 + 밀어내기, 짧은 호 연출 */
   private melee(x: number, y: number, dx: number, dy: number, radius: number, arcDeg: number, mult: number, knockback: number): void {
+    // 공중 유닛은 근접에 안 맞음
     const half = ((arcDeg / 2) * Math.PI) / 180;
     const hit: Enemy[] = [];
     this.enemies.grid.forEachNear(x, y, radius + MAX_ENEMY_RADIUS, (e, d2) => {
       const r = radius + e.radius;
-      if (!e.alive || d2 > r * r) return;
+      if (!e.alive || e.air || d2 > r * r) return;
       const ex = e.x - x;
       const ey = e.y - y;
       const off = Math.abs(Math.atan2(dx * ey - dy * ex, dx * ex + dy * ey));
@@ -815,7 +826,8 @@ export class BattleScene extends Phaser.Scene {
     const hit: Enemy[] = [];
     this.enemies.grid.forEachNear(x, y, radius + MAX_ENEMY_RADIUS, (e, d2) => {
       const r = radius + e.radius;
-      if (e.alive && d2 <= r * r) hit.push(e);
+      // 공중 유닛은 지상 폭발에 안 맞음(스킬·조합 연출 피해는 맞음, D34)
+      if (e.alive && (!e.air || this.airStrike) && d2 <= r * r) hit.push(e);
     });
     for (const e of hit) this.damageEnemy(e, mult, e.x - x, e.y - y, true, tag);
   }
@@ -827,7 +839,7 @@ export class BattleScene extends Phaser.Scene {
     let attacker: Enemy | null = null;
     this.enemies.grid.forEachNear(p.x, p.y, combat.playerRadius + MAX_ENEMY_RADIUS + combat.contactSlackPx, (e, d2) => {
       const r = combat.playerRadius + e.radius + combat.contactSlackPx;
-      if (e.alive && d2 <= r * r) {
+      if (e.alive && !e.air && d2 <= r * r) {
         attacker = e;
         return true;
       }
@@ -927,6 +939,11 @@ export class BattleScene extends Phaser.Scene {
     this.enemies.setSpawns(sp.spawns, sp.mult);
     this.disruptorTick();
     for (const d of this.disruptions.update(t)) this.toast(`${DISRUPTION_NAMES[d.type] ?? d.type} 걷힘`, '#b0a890');
+  }
+
+  /** 걸린 방해가 막는 카드 태그(악천후 → 공군) */
+  blockedTags(): string[] {
+    return [...new Set(this.disruptions.active.flatMap((a) => DTYPES[a.type]?.blockTags ?? []))];
   }
 
   /** 드로우 속도 배율: 걸린 방해 중 가장 낮은 값(보급선 차단 0.5) */

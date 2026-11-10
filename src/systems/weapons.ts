@@ -84,7 +84,8 @@ export class WeaponSystem {
       const range = this.param(w, 'range', stats.range);
       // 은신 중인 적은 자동 조준 대상이 아님
       // 시야(장애물 뒤가 아닌 적)를 먼저, 없으면 아무나(곡사·범위 무기는 넘겨 맞힘)
-      const ok = (e: Enemy) => e.alive && !e.hidden;
+      const aa = (w.def as { antiAir?: boolean }).antiAir === true;
+      const ok = (e: Enemy) => e.alive && !e.hidden && (!e.air || aa);
       const seen = (e: Enemy) => ok(e) && (!sight || sight(e));
       const target =
         (prefer && grid.nearest(player.x, player.y, range, (e) => seen(e) && prefer(e))) ||
@@ -136,6 +137,7 @@ export class WeaponSystem {
               damageMult: this.param(w, 'damageMult', 1),
               rangePx: range,
               ...(def.explode ? { explode: def.explode as ExplodeSpec } : {}),
+              ...(aa ? { tag: 'aa' } : {}),
             },
             muzzleX,
             muzzleY + combat.bodyOffsetY,
