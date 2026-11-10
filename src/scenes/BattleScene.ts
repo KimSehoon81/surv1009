@@ -84,6 +84,7 @@ const DEBUG_SETS: [string, number][][] = [
   [['E26', 2], ['E27', 2], ['E28', 1], ['E06', 6], ['E29', 1]],
   [['E31', 12], ['E32', 2], ['E33', 1], ['E34', 1]],
   [['E36', 2], ['E37', 3], ['E38', 2], ['E39', 1]],
+  [['E41', 4], ['E42', 3], ['E43', 1], ['E44', 1]],
 ];
 const TP = skillsData.tp;
 /** 위협 우선 조준(G6): 방해원(disrupt)·버프 오라(aura)·지정 우선(targetPriority) */
@@ -97,7 +98,7 @@ const SHOP_ITEMS = shopData.items as ShopItem[];
 const TP_BY_TIER: Record<string, number> = { normal: TP.perKill, elite: TP.perEliteKill, boss: TP.perBossKill };
 const SKILL_ACTIONS = skillsData.slots.map((s) => s.action as InputAction);
 const STAGES = stagesData.stages as unknown as Record<string, StageDef>;
-type DisruptionType = { name: string; category: string; priority: number; hint: string; selectDelayMs?: number; drawMul?: number; blockTags?: string[]; tagPenalty?: Record<string, number>; interactions?: { on: string; tag: string; do: string; ms: number }[] };
+type DisruptionType = { name: string; category: string; priority: number; hint: string; selectDelayMs?: number; drawMul?: number; blockTags?: string[]; spawnMul?: number; playerSpeedMul?: number; tagPenalty?: Record<string, number>; interactions?: { on: string; tag: string; do: string; ms: number }[] };
 const DTYPES = disruptionsData.types as Record<string, DisruptionType>;
 const DISRUPTION_NAMES: Record<string, string> = Object.fromEntries(Object.entries(DTYPES).map(([k, v]) => [k, v.name]));
 const CAST_REJECT: Record<CastReject, string> = { locked: '잠긴 슬롯', empty: '장착한 스킬 없음', cooldown: '재사용 대기 중', tp: 'TP 부족', unimplemented: '준비 중인 스킬' };
@@ -659,6 +660,9 @@ export class BattleScene extends Phaser.Scene {
       this.guideTick(now);
       this.hazards.update(now, target, { hitPlayer: (x, y, spec) => this.hitPlayer(spec.damage, x, y, spec.kind) });
       this.syncFlip();
+      // 포위망(D35): 스폰 밀도 + 사방 고르게, 플레이어 이동 배율
+      this.enemies.encircle = Math.max(1, ...this.disruptions.active.map((a) => DTYPES[a.type]?.spawnMul ?? 1));
+      p.envSpeedMul = Math.min(1, ...this.disruptions.active.map((a) => DTYPES[a.type]?.playerSpeedMul ?? 1));
       this.updateSupply();
       this.periodicSupport(now);
       this.drawDome(now);

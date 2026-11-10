@@ -43,3 +43,15 @@ describe('악천후(PRD §5.4 b, D34)', () => {
     expect(aa).toEqual(['bar', 'mg']);
   });
 });
+
+describe('포위망·순간 돌파(D35)', () => {
+  it('포위망은 엘리트 근위연대가 거는 방해(스폰 +50%·이동 −10%), 특수부대 대시는 chargeDash 수치만(예고 0.6초)', () => {
+    expect(disruptions.types.encircle).toMatchObject({ spawnMul: 1.5, playerSpeedMul: 0.9 });
+    const e44 = enemies.enemies.E44 as { tier: string; disrupt?: { type: string } };
+    expect(e44.tier).toBe('elite');
+    expect(e44.disrupt?.type).toBe('encircle');
+    const dash = (enemies.enemies.E42.attacks as { type: string; telegraphMs?: number }[])[0];
+    expect(dash).toMatchObject({ type: 'chargeDash', telegraphMs: 600 });
+    expect((enemies.enemies.E43 as { antiAir?: boolean }).antiAir).toBe(true);
+  });
+});

@@ -554,6 +554,22 @@
       },
       "sfx": "buff_up",
       "feel": "supply_land"
+    },
+    "implode_pull": {
+      "pull": {
+        "radius": 220,
+        "ms": 1400,
+        "strength": 260,
+        "color": "#ff8040"
+      },
+      "sfx": "bomber_drone"
+    },
+    "implode_blast": {
+      "feel": "impact_l",
+      "fx": "explosion_l",
+      "fxScale": 1.6,
+      "fxLayer": "explosion",
+      "sfx": "explode_l"
     }
   },
   "countries": [

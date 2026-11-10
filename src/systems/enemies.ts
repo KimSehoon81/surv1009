@@ -40,6 +40,9 @@ export class EnemySystem {
   readonly pool: Pool<Enemy>;
   readonly grid = new SpatialHash<Enemy>(64);
   stage = 1;
+  /** 포위망(D35): 스폰 밀도 배율, 1보다 크면 각도를 고르게(사방을 둘러쌈) */
+  encircle = 1;
+  private ringStep = 0;
   /** 대규모 군집 대기열(상한이 차면 남은 수는 자리가 날 때) */
   private burstQueue: BurstJob[] = [];
   /** 장애물(서울 시가전 등): 있으면 밀어내고 벽을 따라 미끄러진다 */
@@ -97,7 +100,9 @@ export class EnemySystem {
 
   /** 플레이어 주변 화면 밖 원형 위치에 스폰 */
   spawnAround(id: EnemyId, target: Target, nowMs: number, force = false): Enemy | null {
-    const p = ringPoint(target.x, target.y, this.spawnR + this.cfg.radiusMargin * (1 + this.rng.next()), this.rng.next() * Math.PI * 2);
+    // 포위망이면 황금각으로 돌아가며 사방에 고르게(가장자리 가중), 아니면 무작위
+    const angle = this.encircle > 1 ? (this.ringStep++ * 2.39996) % (Math.PI * 2) : this.rng.next() * Math.PI * 2;
+    const p = ringPoint(target.x, target.y, this.spawnR + this.cfg.radiusMargin * (1 + this.rng.next()), angle);
     const lead = this.spawn(id, p.x, p.y, nowMs, force);
     // 무리(group): 같은 자리 주변에 함께 나옴(돌격대 집단 돌진). 상한이면 거기까지
     const g = lead ? (lead.def as { group?: { count: number[]; spread: number } }).group : undefined;
@@ -280,7 +285,7 @@ export class EnemySystem {
         if (isEnemyId(s.id)) this.spawn(s.id, p.x, p.y, nowMs);
       }
     }
-    const density = enemyScale(this.stage, this.level).density * this.spawnMult;
+    const density = enemyScale(this.stage, this.level).density * this.spawnMult * this.encircle;
     for (const s of this.spawns) {
       const r = accumulate(this.acc.get(s.enemy) ?? 0, s.perSec * density, dtMs);
       this.acc.set(s.enemy, r.acc);

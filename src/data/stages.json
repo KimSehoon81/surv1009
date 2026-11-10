@@ -1,5 +1,5 @@
 {
-  "$comment": "스테이지 정의(PRD §3 타임라인·§7.1·§5.4). 공통 스키마: floor=floor.json 키, maxAlive=동시 적 상한, phases=[{from,to(null=끝까지),spawns:[{enemy,perSec}]}](시각은 전투 시계 초), pacing=스폰 밀도 배율 구간(대군집 ×1.8 90초 → 숨 고르기 ×0.5 20초, label이 있으면 HUD 예고), elites=[{at,enemy,warnSec}](등장 warnSec초 전 예고), boss={enemy,trigger:{level,time},warnSec,spawnMult}(Lv 도달 또는 time 중 먼저, warnSec초 경고 뒤 등장, 보스전 동안 일반 스폰 ×spawnMult), disruptions=[{type,category(a=카드를 가림),firstAt,intervalSec,durationSec,warnSec,minEnemiesOnScreen,priority,source}]. rules: 새 요소(적 첫 등장·엘리트·방해·NPC)는 newElementGapSec초에 1개 이하(테스트로 검사), 방해 동시 최대 maxDisruptions·카드 가림 maxCardObscuring. S1 시각: 1:30 척후병, 2:30 박격포병, 4:00 T-34, 5:00 첫 포연, 6:00·10:00 NPC(종군기자 → 군의관), 7:30 숨 고르기, 8~12분 대군집 2회, Lv10 또는 13:00 보스 npcs=이 스테이지에 나오는 NPC 순서(npcAt 시각마다 차례로) bgm·bossBgm=sfx.json bgm.tracks 이름(파일이 없으면 무음) S2 호남 수복(D27): 점령부대·저격수(통신 노이즈 방해원)·기관총반, 엘리트 SU-76, 보스 호남 점령사단장. S3 대전 탈환: 공병(지뢰 지대)·전령 오토바이·대전차포병, 엘리트 T-34/85, 보스 포병연대장. 환경 방해는 적이 건다(S2 저격수 노이즈·S3 공병 지뢰)라 disruptions 표는 비움. 스폰은 S1과 같은 시간 틀, 스테이지 배율(§7.3 core/scaling)이 체력·공격·밀도를 올림. S4 산악 능선(D28): 침투병(은신)·수류탄병·화염방사병, 엘리트 산악포 진지(고정), 환경 방해 뒤집힌 카드(스테이지 일정). S5 인천 상륙 후 북진: 돌격대(무리)·박격포 분대·방공포병(5:00부터, 등장 중 적 방공망 — 방해원이 거는 환경 방해), 엘리트 자주포 대대. S4부터 적 이동 ×1.1(scaling.json speedBands). S6 서울 수복(D32): 장애물 있는 첫 전장(floor S6 obstacles), 저격수·정치보위요원이 통신 노이즈 + 스테이지 포연(7:00부터) 복합 — 카드 가림은 동시 1개라 우선순위로 번갈아, 엘리트 중전차 대대, 보스 서울방어사령관. S7 38선 돌파(D33): 중공군 첫 등장, bursts=[{at,enemy,count,arcDeg,warnSec,label}] 대규모 군집(동시 상한 maxAlive 우선, 남은 수는 대기열), 보급선 차단은 척후병이 거는 방해. S8 청천강 전선(D34): 저격 분대(무리)·대전차 공격조·MiG-15(공중, 5:00부터), 엘리트 로켓포대, 환경 방해 악천후(7:00부터 3분마다 60초).",
+  "$comment": "스테이지 정의(PRD §3 타임라인·§7.1·§5.4). 공통 스키마: floor=floor.json 키, maxAlive=동시 적 상한, phases=[{from,to(null=끝까지),spawns:[{enemy,perSec}]}](시각은 전투 시계 초), pacing=스폰 밀도 배율 구간(대군집 ×1.8 90초 → 숨 고르기 ×0.5 20초, label이 있으면 HUD 예고), elites=[{at,enemy,warnSec}](등장 warnSec초 전 예고), boss={enemy,trigger:{level,time},warnSec,spawnMult}(Lv 도달 또는 time 중 먼저, warnSec초 경고 뒤 등장, 보스전 동안 일반 스폰 ×spawnMult), disruptions=[{type,category(a=카드를 가림),firstAt,intervalSec,durationSec,warnSec,minEnemiesOnScreen,priority,source}]. rules: 새 요소(적 첫 등장·엘리트·방해·NPC)는 newElementGapSec초에 1개 이하(테스트로 검사), 방해 동시 최대 maxDisruptions·카드 가림 maxCardObscuring. S1 시각: 1:30 척후병, 2:30 박격포병, 4:00 T-34, 5:00 첫 포연, 6:00·10:00 NPC(종군기자 → 군의관), 7:30 숨 고르기, 8~12분 대군집 2회, Lv10 또는 13:00 보스 npcs=이 스테이지에 나오는 NPC 순서(npcAt 시각마다 차례로) bgm·bossBgm=sfx.json bgm.tracks 이름(파일이 없으면 무음) S2 호남 수복(D27): 점령부대·저격수(통신 노이즈 방해원)·기관총반, 엘리트 SU-76, 보스 호남 점령사단장. S3 대전 탈환: 공병(지뢰 지대)·전령 오토바이·대전차포병, 엘리트 T-34/85, 보스 포병연대장. 환경 방해는 적이 건다(S2 저격수 노이즈·S3 공병 지뢰)라 disruptions 표는 비움. 스폰은 S1과 같은 시간 틀, 스테이지 배율(§7.3 core/scaling)이 체력·공격·밀도를 올림. S4 산악 능선(D28): 침투병(은신)·수류탄병·화염방사병, 엘리트 산악포 진지(고정), 환경 방해 뒤집힌 카드(스테이지 일정). S5 인천 상륙 후 북진: 돌격대(무리)·박격포 분대·방공포병(5:00부터, 등장 중 적 방공망 — 방해원이 거는 환경 방해), 엘리트 자주포 대대. S4부터 적 이동 ×1.1(scaling.json speedBands). S6 서울 수복(D32): 장애물 있는 첫 전장(floor S6 obstacles), 저격수·정치보위요원이 통신 노이즈 + 스테이지 포연(7:00부터) 복합 — 카드 가림은 동시 1개라 우선순위로 번갈아, 엘리트 중전차 대대, 보스 서울방어사령관. S7 38선 돌파(D33): 중공군 첫 등장, bursts=[{at,enemy,count,arcDeg,warnSec,label}] 대규모 군집(동시 상한 maxAlive 우선, 남은 수는 대기열), 보급선 차단은 척후병이 거는 방해. S8 청천강 전선(D34): 저격 분대(무리)·대전차 공격조·MiG-15(공중, 5:00부터), 엘리트 로켓포대, 환경 방해 악천후(7:00부터 3분마다 60초). S9 평양 탈환(D35): 근위병(무리)·특수부대원(대시)·대공 기관포(5:00부터 → 적 방공망), 엘리트 중전차 근위연대 = 포위망(스폰 +50% 사방·이동 −10%, 처치하면 해제), 보스 평양 방어 총사령관.",
   "rules": {
     "newElementGapSec": 60,
     "maxDisruptions": 2,
@@ -1684,6 +1684,215 @@
       "npcs": [
         "N03",
         "N04"
+      ],
+      "bgm": "bgm_stage01",
+      "bossBgm": "bgm_boss"
+    },
+    "S9": {
+      "name": "평양 탈환",
+      "region": "평양",
+      "floor": "S9",
+      "maxAlive": 200,
+      "phases": [
+        {
+          "from": 0,
+          "to": 90,
+          "spawns": [
+            {
+              "enemy": "E31",
+              "perSec": 0.5
+            },
+            {
+              "enemy": "E01",
+              "perSec": 0.3
+            }
+          ]
+        },
+        {
+          "from": 90,
+          "to": 180,
+          "spawns": [
+            {
+              "enemy": "E31",
+              "perSec": 0.5
+            },
+            {
+              "enemy": "E01",
+              "perSec": 0.3
+            },
+            {
+              "enemy": "E41",
+              "perSec": 0.05
+            }
+          ]
+        },
+        {
+          "from": 180,
+          "to": 300,
+          "spawns": [
+            {
+              "enemy": "E31",
+              "perSec": 0.55
+            },
+            {
+              "enemy": "E01",
+              "perSec": 0.3
+            },
+            {
+              "enemy": "E41",
+              "perSec": 0.06
+            },
+            {
+              "enemy": "E42",
+              "perSec": 0.06
+            }
+          ]
+        },
+        {
+          "from": 300,
+          "to": 480,
+          "spawns": [
+            {
+              "enemy": "E31",
+              "perSec": 0.6
+            },
+            {
+              "enemy": "E01",
+              "perSec": 0.3
+            },
+            {
+              "enemy": "E41",
+              "perSec": 0.07
+            },
+            {
+              "enemy": "E42",
+              "perSec": 0.07
+            },
+            {
+              "enemy": "E43",
+              "perSec": 0.012
+            }
+          ]
+        },
+        {
+          "from": 480,
+          "to": 720,
+          "spawns": [
+            {
+              "enemy": "E31",
+              "perSec": 0.7
+            },
+            {
+              "enemy": "E01",
+              "perSec": 0.35
+            },
+            {
+              "enemy": "E41",
+              "perSec": 0.08
+            },
+            {
+              "enemy": "E42",
+              "perSec": 0.08
+            },
+            {
+              "enemy": "E43",
+              "perSec": 0.015
+            }
+          ]
+        },
+        {
+          "from": 720,
+          "to": null,
+          "spawns": [
+            {
+              "enemy": "E31",
+              "perSec": 0.75
+            },
+            {
+              "enemy": "E01",
+              "perSec": 0.35
+            },
+            {
+              "enemy": "E41",
+              "perSec": 0.08
+            },
+            {
+              "enemy": "E42",
+              "perSec": 0.09
+            },
+            {
+              "enemy": "E43",
+              "perSec": 0.015
+            }
+          ]
+        }
+      ],
+      "pacing": [
+        {
+          "from": 450,
+          "to": 470,
+          "mult": 0.5,
+          "label": "숨 고르기"
+        },
+        {
+          "from": 480,
+          "to": 570,
+          "mult": 1.8,
+          "label": "대군집 접근!"
+        },
+        {
+          "from": 570,
+          "to": 590,
+          "mult": 0.5,
+          "label": "숨 고르기"
+        },
+        {
+          "from": 620,
+          "to": 710,
+          "mult": 1.8,
+          "label": "대군집 접근!"
+        },
+        {
+          "from": 710,
+          "to": 730,
+          "mult": 0.5,
+          "label": "숨 고르기"
+        }
+      ],
+      "elites": [
+        {
+          "at": 240,
+          "enemy": "E44",
+          "warnSec": 3
+        },
+        {
+          "at": 540,
+          "enemy": "E44",
+          "warnSec": 3
+        },
+        {
+          "at": 680,
+          "enemy": "E44",
+          "warnSec": 3
+        }
+      ],
+      "boss": {
+        "enemy": "E45",
+        "trigger": {
+          "level": 10,
+          "time": 780
+        },
+        "warnSec": 15,
+        "spawnMult": 0.6
+      },
+      "disruptions": [],
+      "npcAt": [
+        360,
+        600
+      ],
+      "npcs": [
+        "N05",
+        "N02"
       ],
       "bgm": "bgm_stage01",
       "bossBgm": "bgm_boss"

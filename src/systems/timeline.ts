@@ -71,6 +71,8 @@ export interface CueDef {
   mine?: { armMs: number; lifeMs: number; triggerRadius: number; radius: number; scale: number };
   heal?: number;
   shield?: { ms: number; color: string };
+  /** 끌어당김(AS11): 반경 안 적을 ms 동안 중심으로 strength px/초 */
+  pull?: { radius: number; ms: number; strength: number; color: string };
   /** 방어 돔(AS10): ms 동안 받는 피해 −reduce, 받은 피해의 reflect를 공격자에게 */
   dome?: { ms: number; reduce: number; reflect: number; radius: number; color: string };
   screenStrike?: boolean;
@@ -240,6 +242,7 @@ export class TimelineSystem {
     if (c.cooldownCut) d.cutCooldowns?.(c.cooldownCut, from);
     if (c.shield) this.shield(c.shield, now);
     if (c.dome) d.dome?.(c.dome);
+    if (c.pull) this.add(this.pull(ev, c.pull, now));
     if (c.bullets) this.bullets(ev, c.bullets, dmg);
     if (c.screenStrike) for (const e of d.enemiesOnScreen()) d.damageEnemy(e, dmg, e.x - d.player.x, e.y - d.player.y);
     if (c.mine) d.mines.place(ev.x, ev.y, { faction: 'ally', ...c.mine, damage: dmg }, now);
@@ -593,6 +596,34 @@ export class TimelineSystem {
   }
 
   /** 보호막: 플레이어 발밑 따뜻한 색 오라 */
+  /** 끌어당김: 반경 안 적(공중 포함)을 중심으로, 소용돌이 고리 */
+  private pull(ev: FiredEvent, c: NonNullable<CueDef['pull']>, start: number): Actor {
+    const d = this.d;
+    const g = d.scene.add.graphics().setDepth(Depth.Decal + 4);
+    const col = parseColor(c.color);
+    let last = start;
+    return {
+      update: (now) => {
+        const dt = Math.max(0, now - last);
+        last = now;
+        const k = (now - start) / c.ms;
+        if (k >= 1) return false;
+        const step = (c.strength * dt) / 1000;
+        d.grid.forEachNear(ev.x, ev.y, c.radius, (e, d2) => {
+          if (!e.alive || d2 < 16) return;
+          const dist = Math.sqrt(d2);
+          const m = Math.min(step, dist - 4);
+          e.setPosition(e.x + ((ev.x - e.x) / dist) * m, e.y + ((ev.y - e.y) / dist) * m);
+        });
+        const r = c.radius * (1 - 0.6 * k);
+        g.clear().lineStyle(2, col, 0.7 * (1 - k * 0.5)).strokeEllipse(ev.x, ev.y, r * 2, r * 1.5);
+        g.lineStyle(1, col, 0.4).strokeEllipse(ev.x, ev.y, r * 1.3, r);
+        return true;
+      },
+      destroy: () => g.destroy(),
+    };
+  }
+
   private shield(c: NonNullable<CueDef['shield']>, start: number): void {
     const p = this.d.player;
     p.shieldUntilMs = Math.max(p.shieldUntilMs, start + c.ms);

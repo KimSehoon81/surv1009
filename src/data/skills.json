@@ -134,7 +134,8 @@
       "cooldownMs": 45000,
       "icon": "AS11",
       "desc": "적을 중심으로 수축시킨 뒤 일제 폭발",
-      "cutIn": true
+      "cutIn": true,
+      "timeline": "AS11"
     },
     "AS09": {
       "name": "총공세",

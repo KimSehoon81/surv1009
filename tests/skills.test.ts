@@ -45,7 +45,7 @@ describe('스킬 슬롯과 TP', () => {
     expect(s.cast(1, 0)).toEqual({ ok: false, reason: 'locked' });
     s.slots[1] = { key: 'E', skillId: null, locked: false, readyAtMs: 0 };
     expect(s.cast(1, 0)).toEqual({ ok: false, reason: 'empty' });
-    s.slots[1] = { key: 'E', skillId: 'AS11', locked: false, readyAtMs: 0 };
+    s.slots[1] = { key: 'E', skillId: 'AS12', locked: false, readyAtMs: 0 };
     expect(s.cast(1, 0)).toEqual({ ok: false, reason: 'unimplemented' });
   });
 });

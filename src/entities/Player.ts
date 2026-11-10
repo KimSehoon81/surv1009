@@ -56,6 +56,8 @@ export class Player {
   private immune: readonly string[] = [];
   /** 이동 속도 배율(슬로우 디버프·가속 버프가 바꾼다). 1 = 기본 */
   speedMul = 1;
+  /** 환경 이동 배율(포위망 −10% 등, 방해가 정함) */
+  envSpeedMul = 1;
   hp = 1;
   maxHp = 1;
   /** 장갑 종류(characters.json armorType, 없으면 none) */
@@ -192,7 +194,7 @@ export class Player {
     const dir = nowMs < this.stunUntilMs ? { x: 0, y: 0 } : input.moveVector();
     this.moving = dir.x !== 0 || dir.y !== 0;
     if (this.moving && dtMs > 0) {
-      const next = step(this.sprite, dir, this.stats.moveSpeed * this.speedMul, dtMs);
+      const next = step(this.sprite, dir, this.stats.moveSpeed * this.speedMul * this.envSpeedMul, dtMs);
       this.sprite.setPosition(next.x, next.y);
     }
     if (this.moving) {
