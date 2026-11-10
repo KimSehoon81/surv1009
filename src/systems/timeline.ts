@@ -205,6 +205,7 @@ export class TimelineSystem {
     const run = { id, player: new TimelinePlayer(events, this.d.clock.timeMs), power, intercept: def.intercept === true };
     this.runs.push(run);
     this.fireDue(run, this.d.clock.timeMs);
+    for (const other of def.with ?? []) if (other !== id) this.play(other, power, aim);
     return true;
   }
 

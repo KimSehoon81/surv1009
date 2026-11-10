@@ -115,6 +115,7 @@ export class HudScene extends Phaser.Scene {
     this.battle = this.scene.get(SceneKey.Battle) as BattleScene;
     // 씬 재시작 때 지난 그리기 객체를 버림
     this.arrowGfx = null;
+    this.snowGfx = null;
     this.resultPanel = null;
     this.levelUp = null;
     this.warn = null;
@@ -148,6 +149,7 @@ export class HudScene extends Phaser.Scene {
       // 포연: 40~70% 사이로 일렁임
       smoke: () => (this.battle.disruptions.has('smoke') ? 0.55 + 0.15 * Math.sin(this.time.now / 300) : 0),
       noise: () => this.battle.disruptions.has('noise'),
+      blizzard: () => this.battle.disruptions.has('blizzard'),
       selectDelayMs: () => this.battle.selectDelayMs,
     });
     this.warnText = this.add.text(LOGICAL_WIDTH / 2, 66, '', { ...textStyle(16, '#ff8060'), stroke: '#1a1410', strokeThickness: 3 }).setOrigin(0.5).setVisible(false);
@@ -225,6 +227,7 @@ export class HudScene extends Phaser.Scene {
     this.drawWarn(time);
     this.drawBoss(time);
     this.drawDisruptorArrows(time);
+    this.drawBlizzard(time);
     if (this.resultPanel) {
       if (this.controls.justDown('redeploy')) b.redeploy();
       else if (this.controls.justDown('toMap')) b.toMap();
@@ -235,6 +238,22 @@ export class HudScene extends Phaser.Scene {
   }
 
   private arrowGfx: Phaser.GameObjects.Graphics | null = null;
+  private snowGfx: Phaser.GameObjects.Graphics | null = null;
+
+  /** 눈보라(방해 a): 화면을 조금 어둡게 + 비스듬히 날리는 눈(실시간, 결정적 무늬) */
+  private drawBlizzard(time: number): void {
+    this.snowGfx ??= this.add.graphics().setDepth(-1);
+    const g = this.snowGfx.clear();
+    if (!this.battle.disruptions.has('blizzard')) return;
+    g.fillStyle(0x0a1420, 0.28).fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+    for (let i = 0; i < 90; i++) {
+      const sx = (i * 97.3) % LOGICAL_WIDTH;
+      const sp = 60 + ((i * 37) % 50);
+      const y = (((i * 53.7) % LOGICAL_HEIGHT) + (time / 1000) * sp) % LOGICAL_HEIGHT;
+      const x = (sx - (time / 1000) * sp * 0.6 + LOGICAL_WIDTH * 4) % LOGICAL_WIDTH;
+      g.fillStyle(0xffffff, 0.55 + 0.35 * ((i * 13) % 3) / 2).fillRect(Math.round(x), Math.round(y), 2, 2);
+    }
+  }
 
   /** 전공 상점 창(N03): 전투가 멈춘 동안 ↑↓·Enter·Esc, 클릭으로도 구매 */
   private shop: { root: Phaser.GameObjects.Container; rows: Phaser.GameObjects.Text[]; info: Phaser.GameObjects.Text; merit: Phaser.GameObjects.Text; index: number; note: string } | null = null;

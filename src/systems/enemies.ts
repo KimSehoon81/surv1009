@@ -152,7 +152,10 @@ export class EnemySystem {
           mode = moveMode(e.atk, e.attacks);
         }
         const dir = mode === 'free' ? steer(e, e.behaviors, ctx) : mode === 'dash' ? { x: e.atk.dirX, y: e.atk.dirY } : { x: 0, y: 0 };
-        const speed = mode === 'dash' ? (e.attacks[e.atk.index]?.speed ?? e.speed) : e.speed;
+        // 빙판 가속(E46, 지형): 계속 움직이면 최대 max배까지, 멈추거나 경직되면 처음부터
+        const ice = (e.def as { iceAccel?: { max: number; perSec: number } }).iceAccel;
+        if (ice) e.iceMul = mode === 'free' && (dir.x !== 0 || dir.y !== 0) ? Math.min(ice.max, e.iceMul + (ice.perSec * dtMs) / 1000) : 1;
+        const speed = mode === 'dash' ? (e.attacks[e.atk.index]?.speed ?? e.speed) : e.speed * e.iceMul;
         e.contactMult = mode === 'dash' ? (e.attacks[e.atk.index]?.damage ?? 1) : 1;
         const d = (speed * dtMs) / 1000;
         e.setPosition(e.x + dir.x * d, e.y + dir.y * d);

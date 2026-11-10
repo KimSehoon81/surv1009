@@ -49,6 +49,8 @@ export interface StageDef {
   bossBgm?: string;
   /** npcAt 시각마다 차례로 나올 NPC */
   npcs?: readonly string[];
+  /** 상시 환경(D36 혹한): 방해 수에 넣지 않는 플레이어 수정자(지형 태그면 산악병이 무시) */
+  environment?: { name: string; mods: readonly { stat: string; op: 'add' | 'mul'; value: number; tag?: string }[] };
   /** 대규모 군집(D33): at초에 count체를 원호(arcDeg)로 한꺼번에, warnSec초 전 예고 */
   bursts?: readonly BurstDef[];
 }

@@ -145,7 +145,8 @@
       "cooldownMs": 60000,
       "icon": "AS09",
       "desc": "전 화면 연속 폭발 + 3초 무적",
-      "cutIn": true
+      "cutIn": true,
+      "timeline": "AS09"
     },
     "AS12": {
       "name": "연합 합동 타격",
@@ -155,7 +156,8 @@
       "cooldownMs": 60000,
       "icon": "AS12",
       "desc": "공습·포격·지원군 동시 발동",
-      "cutIn": true
+      "cutIn": true,
+      "timeline": "AS12"
     }
   },
   "cutInMs": 300

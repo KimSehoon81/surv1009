@@ -570,6 +570,22 @@
       "fxScale": 1.6,
       "fxLayer": "explosion",
       "sfx": "explode_l"
+    },
+    "offensive_shield": {
+      "shield": {
+        "ms": 3000,
+        "color": "#ffe14d"
+      },
+      "sfx": "buff_up"
+    },
+    "allied_call": {
+      "edgeFlash": {
+        "side": "left",
+        "ms": 160,
+        "color": "#fff0b0",
+        "width": 24
+      },
+      "sfx": "naval_gun"
     }
   },
   "countries": [

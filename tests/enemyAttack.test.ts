@@ -113,7 +113,8 @@ describe('보스 데이터(D27)', () => {
     for (const [id, e] of bosses) {
       expect(e.attacks?.length, id).toBeGreaterThanOrEqual(3);
       for (const a of e.attacks ?? []) expect(a.telegraphMs ?? 0, `${id}:${a.type}`).toBeGreaterThanOrEqual(800);
-      const others = new Set(bosses.filter(([o]) => o !== id).flatMap(([, o]) => (o.attacks ?? []).map(sig)));
+      // 최종 보스(final)는 이전 보스 패턴의 총결산이라 비교에서 뺀다
+      const others = new Set(bosses.filter(([o, ob]) => o !== id && !(ob as { final?: boolean }).final).flatMap(([, o]) => (o.attacks ?? []).map(sig)));
       expect((e.attacks ?? []).some((a) => !others.has(sig(a))), `${id} 고유 패턴`).toBe(true);
     }
   });

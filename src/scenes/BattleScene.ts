@@ -85,6 +85,7 @@ const DEBUG_SETS: [string, number][][] = [
   [['E31', 12], ['E32', 2], ['E33', 1], ['E34', 1]],
   [['E36', 2], ['E37', 3], ['E38', 2], ['E39', 1]],
   [['E41', 4], ['E42', 3], ['E43', 1], ['E44', 1]],
+  [['E46', 6], ['E47', 2], ['E48', 2], ['E49', 1]],
 ];
 const TP = skillsData.tp;
 /** 위협 우선 조준(G6): 방해원(disrupt)·버프 오라(aura)·지정 우선(targetPriority) */
@@ -407,6 +408,9 @@ export class BattleScene extends Phaser.Scene {
     // 장애물(서울 시가전 등 floor.json obstacles) + 적이 세우는 바리케이드
     this.obstacles = new ObstacleSystem(this, (floorData[this.stage.floor as keyof typeof floorData] as { obstacles?: ObstacleConfig }).obstacles ?? null, params.seed);
     this.enemies.blocker = this.obstacles;
+    // 상시 환경(혹한 등): 판 내내 걸린 수정자, 방해 수에 넣지 않음
+    const envDef = this.stage.environment;
+    if (envDef) this.player.addBuff(`env_${envDef.name}`, envDef.mods, 24 * 3600 * 1000, 0);
     this.flipOn = false;
     this.dome = null;
     this.domeGfx = null;

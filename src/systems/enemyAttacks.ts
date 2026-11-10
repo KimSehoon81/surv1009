@@ -147,6 +147,15 @@ export class EnemyAttackSystem {
     const spec = e.attacks[ev.index] as AttackSpec | undefined;
     if (!spec) return;
     this.host.onEvent?.(e, ev, spec);
+    // 조합(최종 보스 '총결산'): 하위 부품을 같은 단계에서 함께(예고·발동 시각은 조합 부품 것)
+    if (spec.type === 'combo') {
+      for (const sub of spec.parts ?? []) this.runSpec(e, ev, sub, nowMs);
+      return;
+    }
+    this.runSpec(e, ev, spec, nowMs);
+  }
+
+  private runSpec(e: Enemy, ev: AttackEvent, spec: AttackSpec, nowMs: number): void {
     const st = e.atk;
     const tele = phaseMs(spec, 'telegraph', combat.minTelegraphMs);
     const cause = (kind: string) => (e.tier === 'boss' ? `boss:${kind}` : kind);

@@ -45,8 +45,9 @@ describe('스킬 슬롯과 TP', () => {
     expect(s.cast(1, 0)).toEqual({ ok: false, reason: 'locked' });
     s.slots[1] = { key: 'E', skillId: null, locked: false, readyAtMs: 0 };
     expect(s.cast(1, 0)).toEqual({ ok: false, reason: 'empty' });
-    s.slots[1] = { key: 'E', skillId: 'AS12', locked: false, readyAtMs: 0 };
-    expect(s.cast(1, 0)).toEqual({ ok: false, reason: 'unimplemented' });
+    // 12종 모두 연출이 생겨(D36) 미구현은 타임라인 없는 가짜 정의로 확인
+    const fake = new SkillSlots([{ key: 'E', skillId: 'X', locked: false, readyAtMs: 0 }], { X: { name: 'x', slot: 'E', tpCost: 0, cooldownMs: 1 } }, 100);
+    expect(fake.cast(0, 0)).toEqual({ ok: false, reason: 'unimplemented' });
   });
 });
 

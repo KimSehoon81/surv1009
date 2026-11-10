@@ -70,7 +70,7 @@ export class CardHud {
     private readonly scene: Phaser.Scene,
     private readonly cards: CardSystem,
     private readonly controls: InputMap,
-    private readonly host: { pauseForBoard(on: boolean): void; canOpenBoard(): boolean; smoke(): number; noise(): boolean; selectDelayMs(): number },
+    private readonly host: { pauseForBoard(on: boolean): void; canOpenBoard(): boolean; smoke(): number; noise(): boolean; selectDelayMs(): number; blizzard?(): boolean },
   ) {
     this.gfx = scene.add.graphics();
     // 포연(방해 a): 카드 위를 덮되 태그 아이콘·테두리는 가리지 않는다(PRD §5.4 v0.2)
@@ -200,7 +200,9 @@ export class CardHud {
       const shownId = card.disguised && card.disguiseAs ? card.disguiseAs : card.id;
       const key = card.faceDown ? cardBackKey(this.scene) : cardFaceKey(this.scene, shownId, CARD_DATA.cards[shownId] as never);
       if (img.texture.key !== key) img.setTexture(key);
-      img.setPosition(Math.round(x), Math.round(y)).setVisible(true).setAlpha(coolLeft > 0 && !sel ? 0.6 : card.disguised ? 0.8 : 1);
+      // 눈보라: 손패 반투명(고르면 또렷)
+      const snow = this.host.blizzard?.() && !sel ? 0.45 : 1;
+      img.setPosition(Math.round(x), Math.round(y)).setVisible(true).setAlpha((coolLeft > 0 && !sel ? 0.6 : card.disguised ? 0.8 : 1) * snow);
       if (!card.faceDown && !card.disguised && blocked.has(CARD_DATA.cards[card.id]?.tag ?? '')) {
         const l = Math.round(x - FACE_W / 2);
         const t = Math.round(y - FACE_H / 2);

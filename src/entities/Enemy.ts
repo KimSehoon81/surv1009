@@ -35,6 +35,8 @@ export class Enemy implements Agent {
   buffed = false;
   /** 공중 유닛(MiG 등, D34): 장애물·지상 충돌·접촉 피해 없음, 대공 무기·스킬만 맞힘 */
   air = false;
+  /** 빙판 가속 배율(E46) */
+  iceMul = 1;
   radius = 12;
   ageMs = 0;
   phase = 0;
@@ -111,6 +113,7 @@ export class Enemy implements Agent {
     this.baseSpeed = this.speed;
     this.buffed = false;
     this.air = (def as { air?: boolean }).air === true;
+    this.iceMul = 1;
     this.radius = def.radius;
     this.ageMs = 0;
     this.phase = rng.next();

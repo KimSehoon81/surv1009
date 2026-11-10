@@ -67,6 +67,12 @@
       "spawnMul": 1.5,
       "playerSpeedMul": 0.9,
       "hint": "사방에서 적 +50%·이동 −10%, 근위연대(엘리트)를 처치하면 해제"
+    },
+    "blizzard": {
+      "name": "눈보라",
+      "category": "a",
+      "priority": 2,
+      "hint": "화면이 어둡고 손패가 흐려짐(고르면 또렷), 40초 뒤 잦아듦"
     }
   }
 }
