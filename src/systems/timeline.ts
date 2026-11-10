@@ -71,6 +71,8 @@ export interface CueDef {
   mine?: { armMs: number; lifeMs: number; triggerRadius: number; radius: number; scale: number };
   heal?: number;
   shield?: { ms: number; color: string };
+  /** 방어 돔(AS10): ms 동안 받는 피해 −reduce, 받은 피해의 reflect를 공격자에게 */
+  dome?: { ms: number; reduce: number; reflect: number; radius: number; color: string };
   screenStrike?: boolean;
   /** 고급 스킬 남은 쿨다운을 이 비율만큼 줄임(공수 보급) */
   cooldownCut?: number;
@@ -120,6 +122,8 @@ export interface TimelineDeps {
   cutCooldowns?(frac: number, from?: string): void;
   /** 방공 적(antiAir)이 화면에 있는지: 항공 타임라인 요격 단계 */
   interceptActive?(): boolean;
+  /** 방어 돔 켜기 */
+  dome?(spec: NonNullable<CueDef['dome']>): void;
   /** 요격이 일어남(알림) */
   onIntercept?(x: number, y: number): void;
 }
@@ -235,6 +239,7 @@ export class TimelineSystem {
     if (c.heal) d.effects.heal(c.heal * power);
     if (c.cooldownCut) d.cutCooldowns?.(c.cooldownCut, from);
     if (c.shield) this.shield(c.shield, now);
+    if (c.dome) d.dome?.(c.dome);
     if (c.bullets) this.bullets(ev, c.bullets, dmg);
     if (c.screenStrike) for (const e of d.enemiesOnScreen()) d.damageEnemy(e, dmg, e.x - d.player.x, e.y - d.player.y);
     if (c.mine) d.mines.place(ev.x, ev.y, { faction: 'ally', ...c.mine, damage: dmg }, now);

@@ -82,15 +82,21 @@ const DEBUG_SETS: [string, number][][] = [
   [['E16', 4], ['E17', 2], ['E18', 2], ['E19', 1]],
   [['E21', 5], ['E22', 2], ['E23', 1], ['E24', 1]],
   [['E26', 2], ['E27', 2], ['E28', 1], ['E06', 6], ['E29', 1]],
+  [['E31', 12], ['E32', 2], ['E33', 1], ['E34', 1]],
 ];
 const TP = skillsData.tp;
+/** 위협 우선 조준(G6): 방해원(disrupt)·버프 오라(aura)·지정 우선(targetPriority) */
+const isPriorityTarget = (e: Enemy): boolean => {
+  const d = e.def as { disrupt?: unknown; aura?: unknown; targetPriority?: number };
+  return d.disrupt !== undefined || d.aura !== undefined || d.targetPriority !== undefined;
+};
 /** 캐릭터 정의 중 능력치 밖 성질(카드 보정·강화·주기 지원·레벨업 보정) */
 type CharDef = { cardBonus?: Record<string, number>; cardPower?: Record<string, number>; periodic?: { timeline: string; everyMs: number }; levelUpBonus?: { rarePlusBonus?: number } };
 const SHOP_ITEMS = shopData.items as ShopItem[];
 const TP_BY_TIER: Record<string, number> = { normal: TP.perKill, elite: TP.perEliteKill, boss: TP.perBossKill };
 const SKILL_ACTIONS = skillsData.slots.map((s) => s.action as InputAction);
 const STAGES = stagesData.stages as unknown as Record<string, StageDef>;
-type DisruptionType = { name: string; category: string; priority: number; hint: string; selectDelayMs?: number; tagPenalty?: Record<string, number>; interactions?: { on: string; tag: string; do: string; ms: number }[] };
+type DisruptionType = { name: string; category: string; priority: number; hint: string; selectDelayMs?: number; drawMul?: number; tagPenalty?: Record<string, number>; interactions?: { on: string; tag: string; do: string; ms: number }[] };
 const DTYPES = disruptionsData.types as Record<string, DisruptionType>;
 const DISRUPTION_NAMES: Record<string, string> = Object.fromEntries(Object.entries(DTYPES).map(([k, v]) => [k, v.name]));
 const CAST_REJECT: Record<CastReject, string> = { locked: '잠긴 슬롯', empty: '장착한 스킬 없음', cooldown: '재사용 대기 중', tp: 'TP 부족', unimplemented: '준비 중인 스킬' };
@@ -168,6 +174,9 @@ export class BattleScene extends Phaser.Scene {
   private hazards!: HazardSystem;
   /** 뒤집힌 카드 방해가 걸려 있는지(바뀌는 순간 손패를 뒤집거나 되돌림) */
   private flipOn = false;
+  /** 방어 돔(AS10): 끝 시각·감소·반사·반경·색 */
+  private dome: { untilMs: number; reduce: number; reflect: number; radius: number; color: number } | null = null;
+  private domeGfx: Phaser.GameObjects.Graphics | null = null;
   obstacles!: ObstacleSystem;
   /** 설정(전투 시작 때 읽음) */
   pref!: Prefs;
@@ -281,6 +290,7 @@ export class BattleScene extends Phaser.Scene {
         canAct: () => !battle.run.defeated && !battle.run.captured && !battle.progression.isOpen && !battle.clock.hasScale('pause') && !battle.modalOpen,
         tagPenalty: () => battle.tagPenalty(),
         tagBonus: () => battle.charDef.cardBonus ?? {},
+        drawMul: () => battle.drawMul(),
         onResult: (success) => {
           battle.feel.hit(success ? 'card_success' : 'card_fail', battle.player.x, battle.player.y - combat.bodyOffsetY);
           if (!success) battle.tip('firstFail');
@@ -393,6 +403,8 @@ export class BattleScene extends Phaser.Scene {
     this.obstacles = new ObstacleSystem(this, (floorData[this.stage.floor as keyof typeof floorData] as { obstacles?: ObstacleConfig }).obstacles ?? null, params.seed);
     this.enemies.blocker = this.obstacles;
     this.flipOn = false;
+    this.dome = null;
+    this.domeGfx = null;
     this.nextPeriodicMs = 0;
     this.shopOpen = false;
     this.shopState = null;
@@ -437,6 +449,10 @@ export class BattleScene extends Phaser.Scene {
       damageEnemy: (e, m, dx, dy) => this.damageEnemy(e, m, dx, dy, true),
       cutCooldowns: (frac, from) => this.skills.cutCooldowns(frac, this.clock.timeMs, from),
       interceptActive: () => this.antiAirOnScreen(),
+      dome: (d) => {
+        this.dome = { untilMs: this.clock.timeMs + d.ms, reduce: d.reduce, reflect: d.reflect, radius: d.radius, color: parseColor(d.color) };
+        this.toast(`방어 돔 ${Math.round(d.ms / 1000)}초 — 받는 피해 −${Math.round(d.reduce * 100)}%·반사`, '#7fd8ff');
+      },
       onIntercept: () => {
         const now = this.clock.timeMs;
         if (now - this.lastInterceptToastMs < combat.intercept.toastGapMs) return;
@@ -598,7 +614,7 @@ export class BattleScene extends Phaser.Scene {
     this.perf.lap('enemies');
     if (!this.run.defeated && !this.run.captured) {
       const sight = this.obstacles.any ? (e: Enemy) => !this.obstacles.blocks(p.x, p.y, e.x, e.y) : undefined;
-      this.weapons.update(dt, now, p, this.enemies.grid, this.projectiles, this.weaponHooks, this.threatFirst ? (e) => (e.def as { targetPriority?: number }).targetPriority !== undefined : undefined, sight);
+      this.weapons.update(dt, now, p, this.enemies.grid, this.projectiles, this.weaponHooks, this.threatFirst ? isPriorityTarget : undefined, sight);
       this.projectiles.update(dt, this.enemies.grid, this.hooks);
       this.contactDamage(now);
       // 경험치 배율(전공 훈장 등)은 주울 때 곱한다
@@ -634,6 +650,7 @@ export class BattleScene extends Phaser.Scene {
       this.syncFlip();
       this.updateSupply();
       this.periodicSupport(now);
+      this.drawDome(now);
       this.mines.update(now, this.enemies.grid, target, {
         onExplode: (x, y, spec) => {
           this.timelines.cue('mine_blast', x, y);
@@ -830,8 +847,9 @@ export class BattleScene extends Phaser.Scene {
     this.run.lastHitBy = cause;
     // 장갑(전차병 등): 공격 종류별 피해 배율(대전차포는 antiTank, D23)
     const kind = cause.endsWith('antiTank') ? 'antiTank' : 'normal';
-    // 신병 모드(편의 옵션): 받는 피해 −30%
-    const recruit = this.pref.recruit ? settingsData.recruitDamageMul : 1;
+    // 신병 모드(편의 옵션): 받는 피해 −30%, 방어 돔(AS10) −reduce
+    const dome = this.dome && now < this.dome.untilMs ? this.dome : null;
+    const recruit = (this.pref.recruit ? settingsData.recruitDamageMul : 1) * (dome ? 1 - dome.reduce : 1);
     // 회피(A24) + 이동 중 회피(A27, 조건부)
     const dodgeChance = p.stats.dodge + (p.isMoving ? p.stats.dodgeMoving : 0);
     const res = computeHit({ attack: attack * armorMult(p.armorType, kind, combat.armor) * recruit, critChance: 0, critMult: 1, defense: p.stats.defense, ...HIT, dodgeChance }, this.combatRng);
@@ -841,6 +859,11 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
     p.hp = Math.max(0, p.hp - res.damage);
+    // 반사: 받은 피해의 일부를 쏜 자리 가까운 적에게
+    if (dome && dome.reflect > 0) {
+      const src = this.enemies.grid.nearest(fromX, fromY, 40, (e) => e.alive);
+      if (src) this.damageEnemy(src, (res.damage * dome.reflect) / Math.max(1, p.stats.attack), src.x - p.x, src.y - p.y, true);
+    }
     p.invulnUntilMs = now + combat.playerInvulnMs;
     this.run.damageTaken += res.damage;
     this.feel.flash(p.sprite, parseColor(res.blocked ? feelData.playerFlash.block : feelData.playerFlash.hurt), combat.playerHurtFlashMs);
@@ -872,6 +895,12 @@ export class BattleScene extends Phaser.Scene {
       this.toast(`${this.skills.slots[i]?.key ?? ''}: ${CAST_REJECT[r.reason]}`, '#b0a890');
       return false;
     }
+    if (r.def.cutIn) {
+      // 컷인(PRD §6.4): 전투 시계를 cutInMs 멈추고 HUD가 실시간으로 띠를 그린다. 연출은 시계가 풀린 뒤 시작
+      this.clock.pause('cutin');
+      this.events.emit('cutin', r.def.name);
+      this.time.delayedCall(skillsData.cutInMs, () => this.clock.resume('cutin'));
+    }
     this.timelines.play(r.def.timeline as string, this.player.stats.allyPower);
     this.player.trigger('skill', now);
     this.run.skillsUsed++;
@@ -898,6 +927,28 @@ export class BattleScene extends Phaser.Scene {
     this.enemies.setSpawns(sp.spawns, sp.mult);
     this.disruptorTick();
     for (const d of this.disruptions.update(t)) this.toast(`${DISRUPTION_NAMES[d.type] ?? d.type} 걷힘`, '#b0a890');
+  }
+
+  /** 드로우 속도 배율: 걸린 방해 중 가장 낮은 값(보급선 차단 0.5) */
+  drawMul(): number {
+    return Math.min(1, ...this.disruptions.active.map((a) => DTYPES[a.type]?.drawMul ?? 1));
+  }
+
+  /** 방어 돔 그리기(청록 반투명 원, 끝 2초는 깜빡임) */
+  private drawDome(now: number): void {
+    const d = this.dome;
+    this.domeGfx ??= this.add.graphics().setDepth(Depth.Player + 2);
+    const g = this.domeGfx.clear();
+    if (!d) return;
+    if (now >= d.untilMs) {
+      this.dome = null;
+      return;
+    }
+    const left = d.untilMs - now;
+    if (left < 2000 && Math.floor(now / 120) % 2 === 0) return;
+    const p = this.player;
+    g.fillStyle(d.color, 0.12).fillEllipse(p.x, p.y - 10, d.radius * 2, d.radius * 1.6);
+    g.lineStyle(2, d.color, 0.7).strokeEllipse(p.x, p.y - 10, d.radius * 2, d.radius * 1.6);
   }
 
   /** 환경 보정: 걸린 방해의 태그 감점(같은 태그는 가장 큰 값 하나, 중첩 없음) */
@@ -1016,6 +1067,13 @@ export class BattleScene extends Phaser.Scene {
       case 'npc':
         this.npcs.spawn(ev.npc as NpcId, p, now);
         this.toast(`${npcData.npcs[ev.npc as NpcId]?.name ?? ev.npc} 등장 — 다가가서 만나기`, '#6fd06f');
+        break;
+      case 'burstWarn':
+        this.events.emit('warn', ev.burst.label ?? `${name(ev.burst.enemy)} 대규모 군집 접근!`, ev.inSec);
+        this.audio.play('debuff');
+        break;
+      case 'burst':
+        this.enemies.burst(ev.burst.enemy, ev.burst.count, ev.burst.arcDeg);
         break;
       case 'pacing':
         this.toast(ev.label, ev.mult > 1 ? '#ff8060' : '#7fd8ff');
@@ -1292,7 +1350,12 @@ export class BattleScene extends Phaser.Scene {
     }
     if (this.controls.justDown('debugSlotE')) {
       // 슬롯 강제 개방: Q는 AS03 ↔ AS01, E는 AS05 → AS06 → AS04 차례, R은 AS08, TP 가득
-      const [q, e, r] = this.skills.slots;
+      const [q, e, r, f] = this.skills.slots;
+      if (f) {
+        f.locked = false;
+        f.skillId = 'AS10';
+        f.readyAtMs = 0;
+      }
       if (q && e && r) {
         const cycleE = ['AS05', 'AS06', 'AS04'];
         q.skillId = q.skillId === 'AS03' ? 'AS01' : 'AS03';
@@ -1304,7 +1367,7 @@ export class BattleScene extends Phaser.Scene {
         r.skillId = 'AS08';
         r.readyAtMs = 0;
         this.skills.addTp(100);
-        this.toast(`[디버그] Q = ${q.skillId}, E = ${e.skillId}, R = AS08`, '#b0a890');
+        this.toast(`[디버그] Q = ${q.skillId}, E = ${e.skillId}, R = AS08, F = AS10`, '#b0a890');
       }
     }
     if (this.controls.justDown('debugNpc')) {

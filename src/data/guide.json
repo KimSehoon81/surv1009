@@ -15,6 +15,6 @@
     "skillReady": "TP가 찼다 — Q로 고급 스킬 발동",
     "firstSeal": "Shift+Space로 인장 걸고 제출 = 확정 성공",
     "firstMinus": "마이너스 카드: 단독으로 내면 OP 3으로 폐기, 조합에 끼우면 무리수",
-    "firstDisruption": "방해는 10초 후 걷힘, 통신 복구 카드로 즉시 해제"
+    "firstDisruption": "방해는 시간이 지나거나 원인 적을 처치하면 걷힘, 통신 복구 카드로 즉시 해제"
   }
 }

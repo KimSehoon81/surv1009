@@ -49,6 +49,17 @@ export interface StageDef {
   bossBgm?: string;
   /** npcAt 시각마다 차례로 나올 NPC */
   npcs?: readonly string[];
+  /** 대규모 군집(D33): at초에 count체를 원호(arcDeg)로 한꺼번에, warnSec초 전 예고 */
+  bursts?: readonly BurstDef[];
+}
+
+export interface BurstDef {
+  at: number;
+  enemy: string;
+  count: number;
+  arcDeg: number;
+  warnSec: number;
+  label?: string;
 }
 
 export type StageEvent =
@@ -59,7 +70,9 @@ export type StageEvent =
   | { type: 'disruptionWarn'; def: DisruptionDef; inSec: number }
   | { type: 'disruption'; def: DisruptionDef }
   | { type: 'pacing'; label: string; mult: number }
-  | { type: 'npc'; npc: string };
+  | { type: 'npc'; npc: string }
+  | { type: 'burstWarn'; burst: BurstDef; inSec: number }
+  | { type: 'burst'; burst: BurstDef };
 
 export function phaseAt(stage: StageDef, t: number): StagePhase {
   return stage.phases.find((p) => t >= p.from && (p.to === null || t < p.to)) ?? (stage.phases[stage.phases.length - 1] as StagePhase);
@@ -79,6 +92,11 @@ export function introductions(stage: StageDef): { at: number; what: string }[] {
       seen.add(s.enemy);
       out.push({ at: p.from, what: s.enemy });
     }
+  }
+  for (const b of stage.bursts ?? []) {
+    if (seen.has(b.enemy)) continue;
+    seen.add(b.enemy);
+    out.push({ at: b.at, what: b.enemy });
   }
   for (const e of stage.elites) {
     if (seen.has(e.enemy)) continue;
@@ -108,7 +126,11 @@ export class StageDirector {
     this.eliteWarned = stage.elites.map(() => false);
     this.disruptionNext = stage.disruptions.map((d) => d.firstAt);
     this.disruptionPending = stage.disruptions.map(() => -1);
+    this.burstStep = (stage.bursts ?? []).map(() => 0);
   }
+
+  /** 군집 진행: 0 대기, 1 예고함, 2 나옴 */
+  private burstStep: number[];
 
   /** 지금 스폰 표와 밀도 배율(보스전이면 보스 배율까지) */
   spawnsAt(t: number): { spawns: readonly SpawnEntry[]; mult: number } {
@@ -119,6 +141,16 @@ export class StageDirector {
   update(t: number, level: number, ctx: { enemiesOnScreen: number }): StageEvent[] {
     const ev: StageEvent[] = [];
     const st = this.stage;
+    (st.bursts ?? []).forEach((b, i) => {
+      if (this.burstStep[i] === 0 && t >= b.at - b.warnSec) {
+        this.burstStep[i] = 1;
+        ev.push({ type: 'burstWarn', burst: b, inSec: Math.max(0, b.at - t) });
+      }
+      if (this.burstStep[i] === 1 && t >= b.at) {
+        this.burstStep[i] = 2;
+        ev.push({ type: 'burst', burst: b });
+      }
+    });
     st.elites.forEach((e, i) => {
       if (!this.eliteWarned[i] && t >= e.at - e.warnSec) {
         this.eliteWarned[i] = true;

@@ -5,7 +5,7 @@ import { steer } from '../core/behaviors';
 import { moveMode, stepAttack, type AttackEvent } from '../core/enemyAttack';
 import { stepKnockback } from '../core/feel';
 import { enemyScale } from '../core/scaling';
-import { accumulate, ringPoint, spawnRadius } from '../core/spawnLogic';
+import { accumulate, ringPoint, spawnRadius, takeBurst, type BurstJob } from '../core/spawnLogic';
 import { slideDir } from '../core/obstacles';
 import type { Rng } from '../core/rng';
 import { Depth } from '../config/depth';
@@ -40,6 +40,8 @@ export class EnemySystem {
   readonly pool: Pool<Enemy>;
   readonly grid = new SpatialHash<Enemy>(64);
   stage = 1;
+  /** 대규모 군집 대기열(상한이 차면 남은 수는 자리가 날 때) */
+  private burstQueue: BurstJob[] = [];
   /** 장애물(서울 시가전 등): 있으면 밀어내고 벽을 따라 미끄러진다 */
   blocker: { resolve(x: number, y: number, r: number): { x: number; y: number; nx: number; ny: number } } | null = null;
   level = 1;
@@ -252,7 +254,24 @@ export class EnemySystem {
     }
   }
 
+  /** 대규모 군집(D33): 한쪽 원호에서 count체 */
+  burst(id: string, count: number, arcDeg: number): void {
+    this.burstQueue.push({ id, left: count, angle: this.rng.next() * Math.PI * 2, arcRad: (arcDeg * Math.PI) / 180 });
+  }
+
+  get burstPending(): number {
+    return this.burstQueue.reduce((n, j) => n + j.left, 0);
+  }
+
   private spawnTick(dtMs: number, target: Target, nowMs: number): void {
+    if (this.burstQueue.length > 0) {
+      const r = takeBurst(this.burstQueue, this.maxAlive - this.pool.size);
+      this.burstQueue = r.queue;
+      for (const s of r.spawn) {
+        const p = ringPoint(target.x, target.y, this.spawnR + this.cfg.radiusMargin, s.angle + (this.rng.next() - 0.5) * s.arcRad);
+        if (isEnemyId(s.id)) this.spawn(s.id, p.x, p.y, nowMs);
+      }
+    }
     const density = enemyScale(this.stage, this.level).density * this.spawnMult;
     for (const s of this.spawns) {
       const r = accumulate(this.acc.get(s.enemy) ?? 0, s.perSec * density, dtMs);

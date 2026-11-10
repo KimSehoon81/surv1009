@@ -136,5 +136,24 @@
         "edge": "#2a2420"
       }
     }
+  },
+  "S7": {
+    "base": "T13",
+    "patch": "T14",
+    "cell": 32,
+    "chunkCells": 16,
+    "patchesPerChunk": [
+      0,
+      2
+    ],
+    "cellsPerPatch": [
+      10,
+      36
+    ],
+    "sub": 4,
+    "alpha": [
+      0.42,
+      0.88
+    ]
   }
 }

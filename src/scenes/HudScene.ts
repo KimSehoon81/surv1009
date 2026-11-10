@@ -80,6 +80,15 @@ export class HudScene extends Phaser.Scene {
     this.warnText.setColor(kind === 'boss' ? '#ff4030' : '#ff8060').setFontSize(kind === 'boss' ? 20 : 16);
   };
   /** 보스 등장 공통 연출: 이름 카드(모든 스테이지 같은 경로) */
+  /** 컷인(F 궁극기): 0.3초 동안 화면 가운데 띠 + 스킬 이름이 실시간으로 지나감 */
+  private readonly onCutIn = (name: string) => {
+    const ms = skillsData.cutInMs;
+    const band = this.add.rectangle(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT * 0.42, LOGICAL_WIDTH, 64, 0x0a0806, 0.85).setDepth(1100);
+    const stripe = this.add.rectangle(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT * 0.42 - 30, LOGICAL_WIDTH, 3, 0xffe14d, 1).setDepth(1101);
+    const label = this.add.text(-200, LOGICAL_HEIGHT * 0.42, name, { ...textStyle(30, '#ffe14d'), stroke: '#1a1410', strokeThickness: 4 }).setOrigin(0.5).setDepth(1102);
+    this.tweens.add({ targets: label, x: LOGICAL_WIDTH / 2, duration: ms * 0.6, ease: 'Cubic.Out' });
+    this.tweens.add({ targets: [band, stripe, label], alpha: 0, delay: ms, duration: 220, onComplete: () => [band, stripe, label].forEach((o) => o.destroy()) });
+  };
   private readonly onBossSpawn = (e: Enemy) => {
     const name = (enemiesData.enemies as Record<string, { name: string }>)[e.id]?.name ?? e.id;
     this.bossTitle.setText(`보스 출현\n${name}`).setVisible(true).setAlpha(0).setScale(1.3);
@@ -160,6 +169,7 @@ export class HudScene extends Phaser.Scene {
     this.battle.events.on('guide', this.onGuide);
     this.battle.events.on('warn', this.onWarn);
     this.battle.events.on('boss:spawn', this.onBossSpawn);
+    this.battle.events.on('cutin', this.onCutIn);
     this.battle.events.on('shop:open', this.onShopOpen);
     this.battle.events.on('boss:judged', this.onBossJudged);
     this.battle.events.on('result', this.onResult);
@@ -175,6 +185,7 @@ export class HudScene extends Phaser.Scene {
       this.battle.events.off('toast', this.onToast);
       this.battle.events.off('warn', this.onWarn);
       this.battle.events.off('boss:spawn', this.onBossSpawn);
+      this.battle.events.off('cutin', this.onCutIn);
       this.battle.events.off('shop:open', this.onShopOpen);
       this.battle.events.off('guide', this.onGuide);
       this.battle.events.off('boss:judged', this.onBossJudged);

@@ -8,6 +8,8 @@ export interface SkillDef {
   cooldownMs: number;
   /** timelines.json 이름(아직 없으면 발동 불가) */
   timeline?: string;
+  /** 0.3초 컷인(전투 시계 정지 + 실시간 연출): 4번째 슬롯(F) 궁극기만 */
+  cutIn?: boolean;
 }
 
 export interface SlotState {

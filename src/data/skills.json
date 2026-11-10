@@ -1,5 +1,5 @@
 {
-  "$comment": "고급 스킬(PRD §6.1·§6.3). slots=Q·E·R·F(action=controls.json 이름), unlocked=열림(Q만 시작부터, E는 S2·R은 S4·F는 S7 점령 시 — D19 메타 진행에서 연결), equip=장착 스킬. skills: tpCost=TP 소모, cooldownMs, timeline=timelines.json 이름(없으면 아직 미구현), icon=public/assets/skills 그림. tp: max 100, perKill(일반)·perEliteKill·perBossKill·perComboSuccess=충전량, perCardTp=카드 효과 TP(연합 잔효)는 그 효과 수치를 씀. 수치는 PRD 밖 값(D16 조정)",
+  "$comment": "고급 스킬(PRD §6.1·§6.3). slots=Q·E·R·F(action=controls.json 이름), unlocked=열림(Q만 시작부터, E는 S2·R은 S4·F는 S7 점령 시 — D19 메타 진행에서 연결), equip=장착 스킬. skills: tpCost=TP 소모, cooldownMs, timeline=timelines.json 이름(없으면 아직 미구현), icon=public/assets/skills 그림. tp: max 100, perKill(일반)·perEliteKill·perBossKill·perComboSuccess=충전량, perCardTp=카드 효과 TP(연합 잔효)는 그 효과 수치를 씀. 수치는 PRD 밖 값(D16 조정) cutIn=0.3초 컷인(cutInMs, 전투 시계 정지 + 실시간 띠) — PRD §6.4 'R만 컷인'은 키가 Q·W·E·R이던 때의 4번째 슬롯이라 지금의 F 슬롯 궁극기(AS09~AS12)에만.",
   "tp": {
     "max": 100,
     "start": 0,
@@ -121,7 +121,9 @@
       "tpCost": 60,
       "cooldownMs": 40000,
       "icon": "AS10",
-      "desc": "방어 돔 10초, 피해 감소 + 반사"
+      "desc": "방어 돔 10초, 피해 감소 + 반사",
+      "cutIn": true,
+      "timeline": "AS10"
     },
     "AS11": {
       "name": "포위 섬멸",
@@ -130,7 +132,8 @@
       "tpCost": 70,
       "cooldownMs": 45000,
       "icon": "AS11",
-      "desc": "적을 중심으로 수축시킨 뒤 일제 폭발"
+      "desc": "적을 중심으로 수축시킨 뒤 일제 폭발",
+      "cutIn": true
     },
     "AS09": {
       "name": "총공세",
@@ -139,7 +142,8 @@
       "tpCost": 90,
       "cooldownMs": 60000,
       "icon": "AS09",
-      "desc": "전 화면 연속 폭발 + 3초 무적"
+      "desc": "전 화면 연속 폭발 + 3초 무적",
+      "cutIn": true
     },
     "AS12": {
       "name": "연합 합동 타격",
@@ -148,7 +152,9 @@
       "tpCost": 90,
       "cooldownMs": 60000,
       "icon": "AS12",
-      "desc": "공습·포격·지원군 동시 발동"
+      "desc": "공습·포격·지원군 동시 발동",
+      "cutIn": true
     }
-  }
+  },
+  "cutInMs": 300
 }

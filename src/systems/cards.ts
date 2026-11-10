@@ -56,6 +56,8 @@ export interface CardHost {
   tagPenalty?(): Readonly<Record<string, number>>;
   /** 캐릭터 보정(태그별 +%p) */
   tagBonus?(): Readonly<Record<string, number>>;
+  /** 드로우 속도 배율(보급선 차단 −50% 등) */
+  drawMul?(): number;
   /** 판정 결과 연출(금색 플래시 등) */
   onResult(success: boolean): void;
   /** 카드 효과·조합 스킬·마이너스 발동·실패 소멸(잔효) */
@@ -100,7 +102,7 @@ export class CardSystem {
     return {
       nowMs: this.host.clock.timeMs,
       handSize: Math.round(s.handSize),
-      drawSpeed: s.drawSpeed,
+      drawSpeed: s.drawSpeed * (this.host.drawMul?.() ?? 1),
       luck: s.luck,
       extraChance: 0,
       opForSeal: CARD_DATA.rules.opForSeal - this.host.sealOpReduction(),

@@ -543,6 +543,17 @@
         "lane": -70
       },
       "sfx": "tank_engine"
+    },
+    "dome_up": {
+      "dome": {
+        "ms": 10000,
+        "reduce": 0.6,
+        "reflect": 0.5,
+        "radius": 70,
+        "color": "#4fe0d8"
+      },
+      "sfx": "buff_up",
+      "feel": "supply_land"
     }
   },
   "countries": [
