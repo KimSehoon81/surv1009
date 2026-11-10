@@ -412,6 +412,8 @@ export class BattleScene extends Phaser.Scene {
     const envDef = this.stage.environment;
     if (envDef) this.player.addBuff(`env_${envDef.name}`, envDef.mods, 24 * 3600 * 1000, 0);
     this.flipOn = false;
+    this.opsOpen = false;
+    this.revealUntil = 0;
     this.dome = null;
     this.domeGfx = null;
     this.nextPeriodicMs = 0;
@@ -1090,7 +1092,7 @@ export class BattleScene extends Phaser.Scene {
         break;
       }
       case 'npc':
-        this.npcs.spawn(ev.npc as NpcId, p, now);
+        this.npcs.spawn(ev.npc as NpcId, p, now, (x, y) => this.obstacles.resolve(x, y, 24));
         this.toast(`${npcData.npcs[ev.npc as NpcId]?.name ?? ev.npc} 등장 — 다가가서 만나기`, '#6fd06f');
         break;
       case 'burstWarn':
@@ -1295,8 +1297,9 @@ export class BattleScene extends Phaser.Scene {
     const [lo = 500, hi = lo] = cfg.distance;
     const a = this.combatRng.next() * Math.PI * 2;
     const r = lo + this.combatRng.next() * (hi - lo);
-    const x = this.player.x + Math.cos(a) * r;
-    const y = this.player.y + Math.sin(a) * r;
+    // 장애물(건물) 안에 떨어지면 닿을 수 없으므로 밖으로
+    const at = this.obstacles.resolve(this.player.x + Math.cos(a) * r, this.player.y + Math.sin(a) * r, npcData.hiddenSupply.radius + 8);
+    const { x, y } = at;
     this.supply?.sprite.destroy();
     const sprite = this.add.image(x, y, manifest.image('ui', 'supply_crate', 32, 32).key).setOrigin(0.5, 0.8).setDepth(Depth.Decal + 3);
     this.supply = { x, y, sprite };
@@ -1399,7 +1402,7 @@ export class BattleScene extends Phaser.Scene {
       // NPC 차례로(N01 → … → N05) 플레이어 곁에
       const ids = Object.keys(npcData.npcs) as NpcId[];
       const id = ids[this.debugNpcIndex++ % ids.length] as NpcId;
-      this.npcs.spawn(id, p, now);
+      this.npcs.spawn(id, p, now, (x, y) => this.obstacles.resolve(x, y, 24));
       this.toast(`[디버그] ${id} ${npcData.npcs[id].name}`, '#b0a890');
     }
     if (this.controls.justDown('debugFlip')) {

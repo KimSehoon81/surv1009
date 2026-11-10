@@ -197,7 +197,7 @@ export class TimelineSystem {
   }
 
   /** 타임라인 시작. power는 피해·회복 배수(조합 위력 능력치) */
-  play(id: string, power = 1, aim: Point = this.aimPoint()): boolean {
+  play(id: string, power = 1, aim: Point = this.aimPoint(), depth = 0): boolean {
     const def = TIMELINES[id];
     if (!def) return false;
     const p = this.d.player;
@@ -205,7 +205,8 @@ export class TimelineSystem {
     const run = { id, player: new TimelinePlayer(events, this.d.clock.timeMs), power, intercept: def.intercept === true };
     this.runs.push(run);
     this.fireDue(run, this.d.clock.timeMs);
-    for (const other of def.with ?? []) if (other !== id) this.play(other, power, aim);
+    // with 순환(A→B→A)이 있어도 두 단계까지만
+    if (depth < 2) for (const other of def.with ?? []) if (other !== id) this.play(other, power, aim, depth + 1);
     return true;
   }
 

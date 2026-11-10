@@ -42,8 +42,8 @@ export class SettingsScene extends Phaser.Scene {
     this.controls = new InputMap(this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.controls.destroy());
     this.add.text(16, 12, '설정', uiText(20, UI.hi));
-    this.add.existing(panel(this, 16, 48, 190, 140));
-    this.add.existing(panel(this, 220, 48, LOGICAL_WIDTH - 236, LOGICAL_HEIGHT - 110));
+    panel(this, 16, 48, 190, 140);
+    panel(this, 220, 48, LOGICAL_WIDTH - 236, LOGICAL_HEIGHT - 110);
     this.tabs = new UiList(this, 24, 60, 174, 4, 24);
     this.list = new UiList(this, 228, 60, LOGICAL_WIDTH - 252, 17, 24, (it) => {
       if (!this.capture) this.hint.setText(it?.hint ?? '').setColor(UI.text);

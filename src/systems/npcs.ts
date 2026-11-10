@@ -63,7 +63,8 @@ export class NpcSystem {
   }
 
   /** 플레이어 주변(화면 안) distance 거리에 등장 */
-  spawn(id: NpcId, near: { x: number; y: number }, nowMs: number): void {
+  /** fix: 놓을 자리 보정(장애물 안이면 밖으로, 서울 시가전 등) */
+  spawn(id: NpcId, near: { x: number; y: number }, nowMs: number, fix?: (x: number, y: number) => { x: number; y: number }): void {
     const n = this.pool.acquire();
     const a = this.rng.next() * Math.PI * 2;
     n.id = id;
@@ -73,8 +74,10 @@ export class NpcSystem {
     n.bornMs = nowMs;
     n.state = 'wait';
     n.stateMs = nowMs;
+    const raw = { x: near.x + Math.cos(a) * npcData.distance, y: near.y + Math.sin(a) * npcData.distance * 0.6 };
+    const at = fix ? fix(raw.x, raw.y) : raw;
     n.sprite
-      .setPosition(near.x + Math.cos(a) * npcData.distance, near.y + Math.sin(a) * npcData.distance * 0.6)
+      .setPosition(at.x, at.y)
       .setAlpha(1)
       .setFlipX(Math.cos(a) > 0)
       .setActive(true)
