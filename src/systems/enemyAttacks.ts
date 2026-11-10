@@ -13,6 +13,27 @@ const RED = parseColor(TM.color);
 const GUARD = parseColor(feelData.guardRing.guard);
 const WEAK = parseColor(feelData.guardRing.weak);
 
+/**
+ * 바리케이드 자리: ring이 있으면 목표 둘레(가로·세로를 고리 방향에 맞춤, 사이사이 틈), 없으면 쏜 쪽에서 목표 쪽 앞 offset px에 하나(엄폐물)
+ */
+export function barricadePoints(ex: number, ey: number, tx: number, ty: number, b: NonNullable<AttackSpec['barricade']>): { x: number; y: number; w: number; h: number }[] {
+  const along = (dx: number, dy: number) => (Math.abs(dx) > Math.abs(dy) ? { w: b.h, h: b.w } : { w: b.w, h: b.h });
+  if (b.ring) {
+    const n = b.count ?? 6;
+    return Array.from({ length: n }, (_, i) => {
+      const a = (i / n) * Math.PI * 2;
+      const dx = Math.cos(a);
+      const dy = Math.sin(a);
+      return { x: tx + dx * b.ring!, y: ty + dy * b.ring! * 0.75, ...along(dx, dy) };
+    });
+  }
+  const d = Math.hypot(tx - ex, ty - ey) || 1;
+  const dx = (tx - ex) / d;
+  const dy = (ty - ey) / d;
+  const off = b.offset ?? 36;
+  return [{ x: ex + dx * off, y: ey + dy * off, ...along(dx, dy) }];
+}
+
 /** 소환 자리: 목표 둘레 고리에 고르게 */
 export function summonPoints(tx: number, ty: number, s: { count: number; ring: number }): { x: number; y: number }[] {
   return Array.from({ length: s.count }, (_, i) => {
@@ -82,6 +103,10 @@ export interface EnemyAttackHost {
   summon?(id: string, x: number, y: number): void;
   /** 살아 있는 그 적 수(소환 상한) */
   aliveCount?(id: string): number;
+  /** 선분이 장애물에 막히는지(조준 사격 엄폐) */
+  blocks?(x0: number, y0: number, x1: number, y1: number): boolean;
+  /** 바리케이드 세우기(E27 공병·E30 보스) */
+  placeBarricade?(x: number, y: number, w: number, h: number, lifeMs: number, hp: number): void;
   /** 단계 이벤트 알림(보스 작전 카드 HUD 등) */
   onEvent?(e: Enemy, ev: AttackEvent, spec: AttackSpec): void;
   player(): { x: number; y: number };
@@ -163,6 +188,12 @@ export class EnemyAttackSystem {
         const room = Math.max(0, (spec.summon.max ?? Infinity) - (this.host.aliveCount?.(spec.summon.enemy) ?? 0));
         for (const q of pts.slice(0, room)) this.host.summon?.(spec.summon.enemy, q.x, q.y);
       }
+    } else if (spec.type === 'barricade' && spec.barricade) {
+      const pts = barricadePoints(e.x, e.y, st.tx, st.ty, spec.barricade);
+      if (ev.type === 'telegraph') {
+        for (const q of pts) this.telegraph({ kind: 'circle', x: q.x, y: q.y, r: Math.max(q.w, q.h) / 2 }, nowMs, tele);
+        e.trigger('skill', nowMs);
+      } else if (ev.type === 'active') for (const q of pts) this.host.placeBarricade?.(q.x, q.y, q.w, q.h, spec.barricade.lifeMs, spec.barricade.hp);
     } else if (spec.type === 'layMine') {
       if (ev.type === 'active' && spec.mine) {
         this.host.placeMine?.(e.x, e.y + 4, spec.mine, e.attack * (spec.damage ?? 1));
@@ -183,7 +214,9 @@ export class EnemyAttackSystem {
         const p = this.host.player();
         const t = Math.max(0, Math.min(length, (p.x - sx) * st.dirX + (p.y - sy) * st.dirY));
         const r = width / 2 + combat.playerRadius;
-        if ((p.x - (sx + st.dirX * t)) ** 2 + (p.y - (sy + st.dirY * t)) ** 2 <= r * r) this.host.hitPlayer(e.attack * (spec.damage ?? 1), sx, sy, cause(spec.damageKind ?? 'aim'));
+        // 엄폐(D32): 쏜 자리와 플레이어 사이에 장애물이 있으면 막힘
+        const covered = this.host.blocks?.(sx, sy, p.x, p.y) ?? false;
+        if (!covered && (p.x - (sx + st.dirX * t)) ** 2 + (p.y - (sy + st.dirY * t)) ** 2 <= r * r) this.host.hitPlayer(e.attack * (spec.damage ?? 1), sx, sy, cause(spec.damageKind ?? 'aim'));
       }
     } else if (spec.type === 'fanShot') {
       const range = spec.range?.[1] ?? 260;
@@ -240,6 +273,9 @@ export class EnemyAttackSystem {
     }
     // 방어 자세(강철색 고리)·약점 노출(주황 깜빡임)
     for (const e of enemies) {
+      // 오라 반경(정치보위요원): 옅은 붉은 원 — 이 안의 적은 강해짐
+      const aura = (e.def as { aura?: { radius: number } }).aura;
+      if (aura && e.alive) g.lineStyle(1, RED, 0.35).strokeEllipse(e.x, e.y, aura.radius * 2, aura.radius * 1.5);
       if (!e.alive || e.atk.index < 0) continue;
       const spec = e.attacks[e.atk.index];
       if (spec?.type !== 'guard') continue;

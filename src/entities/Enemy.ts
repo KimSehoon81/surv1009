@@ -29,6 +29,10 @@ export class Enemy implements Agent {
   maxHp = 1;
   attack = 0;
   speed = 0;
+  /** 오라 버프(정치보위요원)를 빼고 본 값 — 매 프레임 이 값 × 오라 배율 */
+  baseAttack = 0;
+  baseSpeed = 0;
+  buffed = false;
   radius = 12;
   ageMs = 0;
   phase = 0;
@@ -101,6 +105,9 @@ export class Enemy implements Agent {
     this.hp = this.maxHp;
     this.attack = def.attack * scale.attack;
     this.speed = def.speed * scale.speed * (1 + (rng.next() * 2 - 1) * def.speedJitter);
+    this.baseAttack = this.attack;
+    this.baseSpeed = this.speed;
+    this.buffed = false;
     this.radius = def.radius;
     this.ageMs = 0;
     this.phase = rng.next();

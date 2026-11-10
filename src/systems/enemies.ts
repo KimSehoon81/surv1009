@@ -6,6 +6,7 @@ import { moveMode, stepAttack, type AttackEvent } from '../core/enemyAttack';
 import { stepKnockback } from '../core/feel';
 import { enemyScale } from '../core/scaling';
 import { accumulate, ringPoint, spawnRadius } from '../core/spawnLogic';
+import { slideDir } from '../core/obstacles';
 import type { Rng } from '../core/rng';
 import { Depth } from '../config/depth';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
@@ -39,6 +40,8 @@ export class EnemySystem {
   readonly pool: Pool<Enemy>;
   readonly grid = new SpatialHash<Enemy>(64);
   stage = 1;
+  /** 장애물(서울 시가전 등): 있으면 밀어내고 벽을 따라 미끄러진다 */
+  blocker: { resolve(x: number, y: number, r: number): { x: number; y: number; nx: number; ny: number } } | null = null;
   level = 1;
   /** 스트레스 모드: 동시 개체를 cfg.stress로 채움 */
   stress = false;
@@ -146,6 +149,15 @@ export class EnemySystem {
         e.contactMult = mode === 'dash' ? (e.attacks[e.atk.index]?.damage ?? 1) : 1;
         const d = (speed * dtMs) / 1000;
         e.setPosition(e.x + dir.x * d, e.y + dir.y * d);
+        if (this.blocker) {
+          // 길찾기 없이: 밀어내고, 막히면 벽 법선에 수직(목표 쪽)으로 미끄러짐
+          const r = this.blocker.resolve(e.x, e.y, e.radius);
+          if (r.nx !== 0 || r.ny !== 0) {
+            const s = slideDir(dir.x, dir.y, r.nx, r.ny, target.x - e.x, target.y - e.y);
+            const q = this.blocker.resolve(r.x + s.x * d, r.y + s.y * d, e.radius);
+            e.setPosition(q.x, q.y);
+          }
+        }
         // 제자리 공격 중에는 목표 쪽을 본다
         const face = mode === 'hold' ? target.x - e.x : dir.x;
         if (face < -0.05) e.sprite.setFlipX(true);
@@ -202,12 +214,42 @@ export class EnemySystem {
           px += (tx / d) * (minP - d);
           py += (ty / d) * (minP - d);
         }
-        if (px !== 0 || py !== 0) e.setPosition(e.x + px, e.y + py);
+        if (px !== 0 || py !== 0) {
+          // 밀려서 장애물에 들어가지 않게
+          const q = this.blocker ? this.blocker.resolve(e.x + px, e.y + py, e.radius) : { x: e.x + px, y: e.y + py };
+          e.setPosition(q.x, q.y);
+        }
       }
     }
 
+    // 3.5) 오라(E28 정치보위요원): 반경 안 다른 적 공격·이동 배율(겹치면 가장 큰 값 하나)
+    this.applyAuras(list);
+
     // 4) 화면 위아래 순서(아래쪽이 앞)
     for (const e of list) e.sprite.setDepth(Depth.Unit + (e.y - cam.scrollY) * 0.001);
+  }
+
+  /** 지금 적 체력 배율(스테이지·레벨, 바리케이드 체력 등에 씀) */
+  scaleHp(): number {
+    return enemyScale(this.stage, this.level).hp;
+  }
+
+  private applyAuras(list: readonly Enemy[]): void {
+    const src = list.filter((e) => e.alive && (e.def as { aura?: unknown }).aura);
+    for (const e of list) {
+      let atk = 1;
+      let spd = 1;
+      for (const s of src) {
+        if (s === e) continue;
+        const a = (s.def as unknown as { aura: { radius: number; attackMul: number; speedMul: number } }).aura;
+        if ((s.x - e.x) ** 2 + (s.y - e.y) ** 2 > a.radius * a.radius) continue;
+        atk = Math.max(atk, a.attackMul);
+        spd = Math.max(spd, a.speedMul);
+      }
+      e.attack = e.baseAttack * atk;
+      e.speed = e.baseSpeed * spd;
+      e.buffed = atk > 1 || spd > 1;
+    }
   }
 
   private spawnTick(dtMs: number, target: Target, nowMs: number): void {

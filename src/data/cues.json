@@ -511,6 +511,38 @@
         "trailEveryPx": 34
       },
       "sfx": "fighter_pass"
+    },
+    "tank_dash_l": {
+      "dash": {
+        "sprite": "tank_charge",
+        "fps": 12,
+        "scale": 0.55,
+        "speed": 820,
+        "margin": 70,
+        "width": 60,
+        "knockback": 56,
+        "hit": true,
+        "trailCue": "tank_trail",
+        "trailEveryPx": 60,
+        "lane": 70
+      },
+      "sfx": "tank_engine"
+    },
+    "tank_dash_r": {
+      "dash": {
+        "sprite": "tank_charge",
+        "fps": 12,
+        "scale": 0.55,
+        "speed": 820,
+        "margin": 70,
+        "width": 60,
+        "knockback": 56,
+        "hit": true,
+        "trailCue": "tank_trail",
+        "trailEveryPx": 60,
+        "lane": -70
+      },
+      "sfx": "tank_engine"
     }
   },
   "countries": [

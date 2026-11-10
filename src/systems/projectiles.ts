@@ -11,6 +11,8 @@ export interface ProjectileHooks {
   /** (dirX, dirY): 투사체 진행 방향(넉백·스파크 방향) */
   onHit(e: Enemy, damageMult: number, dirX: number, dirY: number, tag: string | undefined): void;
   onLand(x: number, y: number, radius: number, damageMult: number, fx: string | undefined, fxScale: number, impact: string | undefined, tag: string | undefined): void;
+  /** 직선 탄이 장애물에 닿음(발 기준 좌표) → true면 탄 소멸. 곡사는 묻지 않음 */
+  blocked?(x: number, feetY: number, damageMult: number): boolean;
 }
 
 interface Projectile {
@@ -173,6 +175,10 @@ export class ProjectileSystem {
       p.sprite.setPosition(p.x, p.y);
       // 적 위치는 발 기준이므로 투사체 높이를 발 기준으로 바꿔 질의
       const feetY = p.y + this.bodyOffsetY;
+      if (hooks.blocked?.(p.x, feetY, p.damageMult)) {
+        this.release(p);
+        continue;
+      }
       let done = false;
       grid.forEachNear(p.x, feetY, p.radius + MAX_ENEMY_RADIUS, (e, d2) => {
         if (!e.alive || p.hit.has(e)) return;

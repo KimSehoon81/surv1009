@@ -75,7 +75,7 @@ export class WeaponSystem {
   }
 
   /** prefer: 사거리 안에 있으면 먼저 노릴 적(자동 조준 '위협 우선', G6) */
-  update(dtMs: number, nowMs: number, player: Player, grid: SpatialHash<Enemy>, projectiles: ProjectileSystem, hooks: WeaponHooks = {}, prefer?: (e: Enemy) => boolean): void {
+  update(dtMs: number, nowMs: number, player: Player, grid: SpatialHash<Enemy>, projectiles: ProjectileSystem, hooks: WeaponHooks = {}, prefer?: (e: Enemy) => boolean, sight?: (e: Enemy) => boolean): void {
     if (dtMs <= 0) return;
     const stats = player.stats;
     for (const w of this.equipped) {
@@ -83,7 +83,14 @@ export class WeaponSystem {
       if (w.cooldownMs > 0) continue;
       const range = this.param(w, 'range', stats.range);
       // 은신 중인 적은 자동 조준 대상이 아님
-      const target = (prefer && grid.nearest(player.x, player.y, range, (e) => e.alive && !e.hidden && prefer(e))) || grid.nearest(player.x, player.y, range, (e) => e.alive && !e.hidden);
+      // 시야(장애물 뒤가 아닌 적)를 먼저, 없으면 아무나(곡사·범위 무기는 넘겨 맞힘)
+      const ok = (e: Enemy) => e.alive && !e.hidden;
+      const seen = (e: Enemy) => ok(e) && (!sight || sight(e));
+      const target =
+        (prefer && grid.nearest(player.x, player.y, range, (e) => seen(e) && prefer(e))) ||
+        grid.nearest(player.x, player.y, range, seen) ||
+        (prefer && grid.nearest(player.x, player.y, range, (e) => ok(e) && prefer(e))) ||
+        grid.nearest(player.x, player.y, range, ok);
       if (!target) {
         w.cooldownMs = 0; // 적이 없으면 장전 상태로 대기(여러 발이 쌓이지 않게)
         continue;

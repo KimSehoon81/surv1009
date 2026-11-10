@@ -111,7 +111,8 @@
       "tpCost": 45,
       "cooldownMs": 25000,
       "icon": "AS07",
-      "desc": "전차 3대가 병렬 직선 돌파"
+      "desc": "전차 3대가 병렬 직선 돌파",
+      "timeline": "AS07"
     },
     "AS10": {
       "name": "전선 사수",

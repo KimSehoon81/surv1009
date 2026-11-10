@@ -64,6 +64,8 @@ export interface CueDef {
     reach?: number;
     trailCue?: string;
     trailEveryPx?: number;
+    /** 진행 방향에 수직으로 옆 차선 px(+는 왼쪽): 여러 대 병렬 돌파 */
+    lane?: number;
   };
   fall?: { sheet: string; frames: readonly number[]; fps: number; height: number; scale: number };
   mine?: { armMs: number; lifeMs: number; triggerRadius: number; radius: number; scale: number };
@@ -526,10 +528,14 @@ export class TimelineSystem {
       const ty = dy > 0 ? (hh - cy) / dy : dy < 0 ? (-hh - cy) / dy : Infinity;
       return Math.max(0, Math.min(tx, ty));
     };
+    // 옆 차선: 진행 방향의 수직으로 평행 이동
+    const lane = c.lane ?? 0;
+    const ox = ev.x - uy * lane;
+    const oy = ev.y + ux * lane;
     const back = toEdge(-ux, -uy);
     const len = back + toEdge(ux, uy);
-    const sx = ev.x - ux * back;
-    const sy = ev.y - uy * back;
+    const sx = ox - ux * back;
+    const sy = oy - uy * back;
     const ms = (len / c.speed) * 1000;
     const [f0 = 0, f1 = 5] = c.frames ?? [];
     const s = this.sprite(c.sprite, f0).setScale(c.scale);

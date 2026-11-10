@@ -31,6 +31,7 @@ import { TIMELINES, TimelineSystem } from '../systems/timeline';
 import { MineSystem } from '../systems/mines';
 import { NpcSystem, type NpcId } from '../systems/npcs';
 import { HazardSystem } from '../systems/hazards';
+import { ObstacleSystem, type ObstacleConfig } from '../systems/obstacles';
 import { loadProfile, updateProfile } from '../systems/save';
 import { applyCapture, openSlots, runInit, type StartUpgradeDef, type Unlock, type UnlockEntry } from '../core/meta';
 import unlocksData from '../data/unlocks.json';
@@ -80,6 +81,7 @@ const DEBUG_SETS: [string, number][][] = [
   [['E11', 2], ['E12', 2], ['E13', 3], ['E14', 1]],
   [['E16', 4], ['E17', 2], ['E18', 2], ['E19', 1]],
   [['E21', 5], ['E22', 2], ['E23', 1], ['E24', 1]],
+  [['E26', 2], ['E27', 2], ['E28', 1], ['E06', 6], ['E29', 1]],
 ];
 const TP = skillsData.tp;
 /** 캐릭터 정의 중 능력치 밖 성질(카드 보정·강화·주기 지원·레벨업 보정) */
@@ -166,6 +168,7 @@ export class BattleScene extends Phaser.Scene {
   private hazards!: HazardSystem;
   /** 뒤집힌 카드 방해가 걸려 있는지(바뀌는 순간 손패를 뒤집거나 되돌림) */
   private flipOn = false;
+  obstacles!: ObstacleSystem;
   /** 설정(전투 시작 때 읽음) */
   pref!: Prefs;
   private debugNpcIndex = 0;
@@ -297,6 +300,14 @@ export class BattleScene extends Phaser.Scene {
     this.equipStartingWeapons();
     this.hooks = {
       onHit: (e, mult, dx, dy, tag) => this.damageEnemy(e, mult, dx, dy, false, tag),
+      // 직선 탄은 장애물에 막힘(바리케이드는 깎임), 곡사·항공은 통과
+      blocked: (x, feetY, mult) => {
+        const b = this.obstacles.at(x, feetY);
+        if (!b) return false;
+        this.fx.play('hit_spark', x, feetY - combat.bodyOffsetY, 0.6);
+        this.obstacles.damage(b, this.player.stats.attack * mult);
+        return true;
+      },
       onLand: (x, y, radius, mult, fxName, fxScale, impact, tag) => {
         // 연쇄 수류탄(A25): tag 'cluster:무기' → 둘레에 작은 폭발이 차례로
         const cl = tag?.startsWith('cluster:') ? (weaponData.weapons as Record<string, { cluster?: { count: number; spread: number; radius: number; damageMult: number; delayMs: number } }>)[tag.slice(8)]?.cluster : undefined;
@@ -378,6 +389,9 @@ export class BattleScene extends Phaser.Scene {
     });
     this.mines = new MineSystem(this, combat.mineCap);
     this.hazards = new HazardSystem(this);
+    // 장애물(서울 시가전 등 floor.json obstacles) + 적이 세우는 바리케이드
+    this.obstacles = new ObstacleSystem(this, (floorData[this.stage.floor as keyof typeof floorData] as { obstacles?: ObstacleConfig }).obstacles ?? null, params.seed);
+    this.enemies.blocker = this.obstacles;
     this.flipOn = false;
     this.nextPeriodicMs = 0;
     this.shopOpen = false;
@@ -391,6 +405,8 @@ export class BattleScene extends Phaser.Scene {
       player: () => this.player,
       placeMine: (x, y, mine, attack) => this.mines.place(x, y, { faction: 'enemy', ...mine, damage: attack }, this.clock.timeMs),
       aliveCount: (id) => this.enemies.pool.active.reduce((n, e) => n + (e.alive && e.id === id ? 1 : 0), 0),
+      blocks: (x0, y0, x1, y1) => this.obstacles.blocks(x0, y0, x1, y1),
+      placeBarricade: (x, y, w, h, lifeMs, hp) => this.obstacles.addBarricade(x, y, w, h, this.clock.timeMs + lifeMs, hp * this.enemies.scaleHp()),
       summon: (id, x, y) => {
         if (!isEnemyId(id)) return;
         this.enemies.spawn(id, x, y, this.clock.timeMs, true);
@@ -568,6 +584,10 @@ export class BattleScene extends Phaser.Scene {
 
     p.update(this.controls, dt, now, scale);
     const cam = this.cameras.main;
+    // 장애물: 화면 주변 청크 준비 → 플레이어 밀어내기(벽 따라 미끄러짐은 이동 입력이 이어지며 자연히)
+    this.obstacles.update(cam, now);
+    const pr = this.obstacles.resolve(p.x, p.y, combat.playerRadius);
+    if (pr.x !== p.x || pr.y !== p.y) p.sprite.setPosition(pr.x, pr.y);
     // 플레이어는 늘 적보다 앞(포위돼도 위치가 보이게, PRD §6.4 가독성). 적끼리는 y 순서
     p.sprite.setDepth(Depth.Player);
     const target = { x: p.x, y: p.y, radius: combat.playerRadius };
@@ -577,7 +597,8 @@ export class BattleScene extends Phaser.Scene {
     this.enemyAttacks.update(now, this.enemies.pool.active);
     this.perf.lap('enemies');
     if (!this.run.defeated && !this.run.captured) {
-      this.weapons.update(dt, now, p, this.enemies.grid, this.projectiles, this.weaponHooks, this.threatFirst ? (e) => (e.def as { targetPriority?: number }).targetPriority !== undefined : undefined);
+      const sight = this.obstacles.any ? (e: Enemy) => !this.obstacles.blocks(p.x, p.y, e.x, e.y) : undefined;
+      this.weapons.update(dt, now, p, this.enemies.grid, this.projectiles, this.weaponHooks, this.threatFirst ? (e) => (e.def as { targetPriority?: number }).targetPriority !== undefined : undefined, sight);
       this.projectiles.update(dt, this.enemies.grid, this.hooks);
       this.contactDamage(now);
       // 경험치 배율(전공 훈장 등)은 주울 때 곱한다
