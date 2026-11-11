@@ -63,7 +63,7 @@ public/assets/
   npcs/     N01_idle.png  N01_talk.png  N01_give.png
   tiles/    T01.png ~ T20.png
   props/    tree_leaf_L  tree_pine_L  tree_dead_L  tree_snow_L  burnt_truck_L
-            grass  reed  bush  flag  drum_fire  wire  sandbag  rock            (.png)
+            grass  reed  bush  flag  drum_fire  wire  sandbag  rock  smoke_col (.png, 앞 6칸 루프 — 풀·억새는 5·6번째 칸이 밟힘 프레임)
   cards/    frame_common  frame_rare  frame_legend  frame_minus  card_back       (120×168)
             P01 ~ P16  M01 ~ M08  M00(예비)                                      (104×104 일러스트)
   fx/       bomb_fall  explosion_s  explosion_l  bomber  bomber_shadow  timebomb  burst_shell

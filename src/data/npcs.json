@@ -1,5 +1,5 @@
 {
-  "$comment": "NPC(PRD §9.3). 진영 neutral: 적의 공격 대상이 아니고 피격 판정 없음. 접촉하면 대화(talkMs) → 지급 동작 + effects(systems/effects 레지스트리 재사용: giveCard ids 중 하나 지급, heal, purgeMinus 손패 마이너스 정화). lifeMs 안에 만나지 못하면 떠남. 등장 시각은 stages.json npcAt, 종류는 stages.json npcs에서 차례로. distance=플레이어에게서 등장 거리 px action: shop=전공 상점 창(shop.json, 전투 정지), hiddenSupply=숨은 보급품을 화면 밖 distance px에 두고 가장자리 초록 화살표로 안내(닿으면 hiddenSupply.effects). N05 소년 통신병 = 방해 하나 해제 + 손패 리롤.",
+  "$comment": "NPC(PRD §9.3). 진영 neutral: 적의 공격 대상이 아니고 피격 판정 없음. 접촉하면 대화(talkMs) → 지급 동작 + effects(systems/effects 레지스트리 재사용: giveCard ids 중 하나 지급, heal, purgeMinus 손패 마이너스 정화). lifeMs 안에 만나지 못하면 떠남. 등장 시각은 stages.json npcAt, 종류는 stages.json npcs에서 차례로. distance=플레이어에게서 등장 거리 px action: shop=전공 상점 창(shop.json, 전투 정지), hiddenSupply=숨은 보급품을 화면 밖 distance px에 두고 가장자리 초록 화살표로 안내(닿으면 hiddenSupply.effects). N05 소년 통신병 = 방해 하나 해제 + 손패 리롤. (D37) N06 통역관 = 고급 스킬 쿨 −40%·TP, N07 군종 장교 = 마이너스 정화·회복·사기(공격 +10%), N08 정비병 = 공격 +25%·공속 +30%(45초), N09 헌병 = action safeZone(반경 radius에 ms 동안 적 진입 차단, 보스·공중 제외), N10 군견 = 정찰(적 표시)·짧은 지원 사격.",
   "distance": 200,
   "contactRadius": 28,
   "talkMs": 900,
@@ -59,6 +59,95 @@
           "params": {}
         }
       ]
+    },
+    "N06": {
+      "name": "통역관",
+      "talk": "연합군 사령부와 연결됐습니다. 지원을 서두르겠답니다!",
+      "effects": [
+        {
+          "effect": "cooldownCut",
+          "params": {
+            "frac": 0.4
+          }
+        },
+        {
+          "effect": "tp",
+          "params": {
+            "amount": 15
+          }
+        }
+      ]
+    },
+    "N07": {
+      "name": "군종 장교",
+      "talk": "마음을 다잡으시오. 나쁜 기운은 내가 거두겠소.",
+      "effects": [
+        {
+          "effect": "purgeMinus",
+          "params": {}
+        },
+        {
+          "effect": "heal",
+          "params": {
+            "pct": 0.15
+          }
+        },
+        {
+          "effect": "buff",
+          "params": {
+            "id": "chaplain_morale",
+            "ms": 30000,
+            "stat": "attack",
+            "op": "mul",
+            "value": 0.1
+          }
+        }
+      ]
+    },
+    "N08": {
+      "name": "정비병",
+      "talk": "총기 손봐 드렸습니다. 한동안 잘 나갈 겁니다!",
+      "effects": [
+        {
+          "effect": "buff",
+          "params": {
+            "id": "mechanic_tune",
+            "ms": 45000,
+            "stat": "attack",
+            "op": "mul",
+            "value": 0.25,
+            "stat2": "attackSpeed",
+            "value2": 0.3
+          }
+        }
+      ]
+    },
+    "N09": {
+      "name": "헌병 교통수신호병",
+      "talk": "이 구역은 제가 통제합니다. 잠시 숨 돌리세요!",
+      "action": "safeZone",
+      "effects": []
+    },
+    "N10": {
+      "name": "군견과 훈련병",
+      "talk": "바둑아, 찾아! …저쪽에 적이 숨어 있습니다!",
+      "effects": [
+        {
+          "effect": "recon",
+          "params": {
+            "ms": 8000,
+            "label": "군견"
+          }
+        },
+        {
+          "effect": "support",
+          "params": {
+            "durationMs": 3000,
+            "intervalMs": 250,
+            "damage": 0.8
+          }
+        }
+      ]
     }
   },
   "hiddenSupply": {
@@ -87,5 +176,9 @@
         }
       }
     ]
+  },
+  "safeZone": {
+    "radius": 110,
+    "ms": 12000
   }
 }

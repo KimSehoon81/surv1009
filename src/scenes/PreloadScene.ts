@@ -4,6 +4,7 @@ import characters from '../data/characters.json';
 import stagesData from '../data/stages.json';
 import enemiesData from '../data/enemies.json';
 import npcData from '../data/npcs.json';
+import propsData from '../data/props.json';
 import sfxData from '../data/sfx.json';
 import { resetProfile } from '../systems/save';
 import feelData from '../data/feel.json';
@@ -56,7 +57,10 @@ function battleAssets(): AssetSpec[] {
   const fx = [...fxNames].filter((n): n is string => typeof n === 'string').map((n) => manifest.fx(n));
   const skillIcons = Object.values(skillsData.skills).map((sk) => manifest.image('skills', sk.icon, 32, 32));
   const cards = cardAssetSpecs(Object.keys(cardsData.cards), Object.keys(cardsData.tags));
-  return [...units, ...ui, ...fx, ...skillIcons, ...cards, ...floorTiles()];
+  // 배경 소품(props.json 전 스테이지)
+  const propNames = [...new Set(Object.values(propsData.stages as Record<string, { kinds: { sprite: string }[] }>).flatMap((s) => s.kinds.map((k) => k.sprite)))];
+  const props = propNames.map((n) => manifest.prop(n));
+  return [...units, ...ui, ...fx, ...skillIcons, ...cards, ...props, ...floorTiles()];
 }
 
 export class PreloadScene extends Phaser.Scene {

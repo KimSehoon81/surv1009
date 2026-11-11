@@ -140,6 +140,18 @@ export function createManifest(available: readonly string[]) {
     };
   };
 
+  /** 배경 소품 시트(D37): props/<이름>.png, 앞 6칸 루프, _L은 200px 프레임. 로더는 이펙트 시트와 같은 경로 */
+  const prop = (name: string): FxSpec => ({
+    kind: 'fx',
+    key: `prop_${name}`,
+    name,
+    path: resolve(`${spec.props.folder}/${name}.png`),
+    frameSize: name.endsWith('_L') ? spec.sheet.frameLarge : spec.sheet.frame,
+    frames: spec.props.frames,
+    cols: spec.sheet.cols,
+    rows: spec.sheet.rows,
+  });
+
   /**
    * 소리 파일(선택): audio/<이름>.ogg|mp3|wav, 없으면 변형 <이름>_1, _2 …. 하나도 없으면 빈 배열(합성음·무음).
    */
@@ -171,6 +183,7 @@ export function createManifest(available: readonly string[]) {
     card,
     image,
     fx,
+    prop,
     anchor: spec.anchor,
     /** 규격 원본(assets.json) */
     spec,

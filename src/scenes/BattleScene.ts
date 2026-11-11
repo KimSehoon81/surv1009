@@ -32,6 +32,9 @@ import { MineSystem } from '../systems/mines';
 import { NpcSystem, type NpcId } from '../systems/npcs';
 import { HazardSystem } from '../systems/hazards';
 import { ObstacleSystem, type ObstacleConfig } from '../systems/obstacles';
+import { PropSystem } from '../systems/props';
+import propsData from '../data/props.json';
+import type { PropLayout } from '../core/props';
 import { loadProfile, updateProfile } from '../systems/save';
 import { applyCapture, openSlots, runInit, type StartUpgradeDef, type Unlock, type UnlockEntry } from '../core/meta';
 import unlocksData from '../data/unlocks.json';
@@ -177,12 +180,15 @@ export class BattleScene extends Phaser.Scene {
   private hazards!: HazardSystem;
   /** 뒤집힌 카드 방해가 걸려 있는지(바뀌는 순간 손패를 뒤집거나 되돌림) */
   private flipOn = false;
+  /** 임시 안전지대(N09 헌병): 안으로 들어온 적을 밀어냄 */
+  private safeZone: { x: number; y: number; r: number; untilMs: number; gfx: Phaser.GameObjects.Graphics } | null = null;
   /** explode가 공중 유닛도 맞히는 중(타임라인 피해) */
   private airStrike = false;
   /** 방어 돔(AS10): 끝 시각·감소·반사·반경·색 */
   private dome: { untilMs: number; reduce: number; reflect: number; radius: number; color: number } | null = null;
   private domeGfx: Phaser.GameObjects.Graphics | null = null;
   obstacles!: ObstacleSystem;
+  props!: PropSystem;
   /** 설정(전투 시작 때 읽음) */
   pref!: Prefs;
   private debugNpcIndex = 0;
@@ -389,6 +395,7 @@ export class BattleScene extends Phaser.Scene {
       rng: rng.fork('effects'),
       explode: (x, y, r, m, f, fs, imp, tag) => this.explode(x, y, r, m, f, fs, imp, tag),
       damageEnemy: (e, m, dx, dy, aoe, tag) => this.damageEnemy(e, m, dx, dy, aoe, tag),
+      cutCooldowns: (frac) => this.skills.cutCooldowns(frac, this.clock.timeMs),
       clearStageDisruption: () => {
         const d = this.disruptions.clearOne();
         return d ? (DISRUPTION_NAMES[d.type] ?? d.type) : null;
@@ -408,10 +415,12 @@ export class BattleScene extends Phaser.Scene {
     // 장애물(서울 시가전 등 floor.json obstacles) + 적이 세우는 바리케이드
     this.obstacles = new ObstacleSystem(this, (floorData[this.stage.floor as keyof typeof floorData] as { obstacles?: ObstacleConfig }).obstacles ?? null, params.seed);
     this.enemies.blocker = this.obstacles;
+    this.props = new PropSystem(this, (propsData.stages as Record<string, PropLayout>)[this.payload.stage] ?? null, params.seed);
     // 상시 환경(혹한 등): 판 내내 걸린 수정자, 방해 수에 넣지 않음
     const envDef = this.stage.environment;
     if (envDef) this.player.addBuff(`env_${envDef.name}`, envDef.mods, 24 * 3600 * 1000, 0);
     this.flipOn = false;
+    this.safeZone = null;
     this.opsOpen = false;
     this.revealUntil = 0;
     this.dome = null;
@@ -620,6 +629,7 @@ export class BattleScene extends Phaser.Scene {
     const cam = this.cameras.main;
     // 장애물: 화면 주변 청크 준비 → 플레이어 밀어내기(벽 따라 미끄러짐은 이동 입력이 이어지며 자연히)
     this.obstacles.update(cam, now);
+    this.props.update(cam, now, p);
     const pr = this.obstacles.resolve(p.x, p.y, combat.playerRadius);
     if (pr.x !== p.x || pr.y !== p.y) p.sprite.setPosition(pr.x, pr.y);
     // 플레이어는 늘 적보다 앞(포위돼도 위치가 보이게, PRD §6.4 가독성). 적끼리는 y 순서
@@ -653,9 +663,10 @@ export class BattleScene extends Phaser.Scene {
       this.npcs.update(now, target, {
         onTalk: (id, text) => this.toast(`${npcData.npcs[id].name}: "${text}"`, '#e8dcc0'),
         onGive: (id) => {
-          const def = npcData.npcs[id] as { effects: { effect: string; params: unknown }[]; action?: string };
+          const def = npcData.npcs[id] as unknown as { effects: { effect: string; params: unknown }[]; action?: string };
           for (const fx of def.effects) runEffect(fx.effect, this.effects, fx.params as Params, 1);
           if (def.action === 'shop') this.openShop();
+          else if (def.action === 'safeZone') this.placeSafeZone();
           else if (def.action === 'hiddenSupply') {
             this.placeSupply();
             this.toast('숨은 보급품 위치 표시 — 초록 화살표를 따라가세요', '#6fd06f');
@@ -672,6 +683,7 @@ export class BattleScene extends Phaser.Scene {
       this.updateSupply();
       this.periodicSupport(now);
       this.drawDome(now);
+      this.updateSafeZone(now);
       this.mines.update(now, this.enemies.grid, target, {
         onExplode: (x, y, spec) => {
           this.timelines.cue('mine_blast', x, y);
@@ -1289,6 +1301,38 @@ export class BattleScene extends Phaser.Scene {
     this.shopOpen = false;
     this.modalClosedFrame = this.game.loop.frame;
     this.clock.resume('shop');
+  }
+
+  /** 임시 안전지대(N09): 플레이어 자리에 반경 r, ms 동안 */
+  private placeSafeZone(): void {
+    const cfg = npcData.safeZone;
+    this.safeZone?.gfx.destroy();
+    this.safeZone = { x: this.player.x, y: this.player.y, r: cfg.radius, untilMs: this.clock.timeMs + cfg.ms, gfx: this.add.graphics().setDepth(Depth.Decal + 3) };
+    this.toast(`안전지대 ${Math.round(cfg.ms / 1000)}초 — 노란 원 안으로 적이 못 들어옴`, '#ffe14d');
+  }
+
+  /** 안전지대: 안의 적(보스·공중 제외)을 가장자리 밖으로, 노란 점선 원 */
+  private updateSafeZone(now: number): void {
+    const z = this.safeZone;
+    if (!z) return;
+    if (now >= z.untilMs) {
+      z.gfx.destroy();
+      this.safeZone = null;
+      return;
+    }
+    this.enemies.grid.forEachNear(z.x, z.y, z.r + 30, (e) => {
+      if (!e.alive || e.air || e.tier === 'boss') return;
+      const dx = e.x - z.x;
+      const dy = e.y - z.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const r = z.r + e.radius;
+      if (d < r) e.setPosition(z.x + (dx / d) * r, z.y + (dy / d) * r);
+    });
+    const left = z.untilMs - now;
+    const g = z.gfx.clear();
+    if (left < 2000 && Math.floor(now / 150) % 2 === 0) return;
+    g.fillStyle(0xffe14d, 0.06).fillEllipse(z.x, z.y, z.r * 2, z.r * 1.5);
+    for (let i = 0; i < 24; i += 2) g.lineStyle(2, 0xffe14d, 0.7).beginPath().arc(z.x, z.y, z.r, (i / 24) * Math.PI * 2, ((i + 1) / 24) * Math.PI * 2).strokePath();
   }
 
   /** 숨은 보급품(N04): 화면 밖에 두고 HUD가 초록 화살표로 안내 */

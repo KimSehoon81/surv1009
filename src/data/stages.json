@@ -1238,8 +1238,8 @@
         600
       ],
       "npcs": [
-        "N03",
-        "N05"
+        "N09",
+        "N06"
       ],
       "bgm": "bgm_stage01",
       "bossBgm": "bgm_boss"
@@ -1461,8 +1461,8 @@
         640
       ],
       "npcs": [
-        "N04",
-        "N02"
+        "N10",
+        "N07"
       ],
       "bgm": "bgm_stage01",
       "bossBgm": "bgm_boss"
@@ -1682,8 +1682,8 @@
         600
       ],
       "npcs": [
-        "N03",
-        "N04"
+        "N08",
+        "N03"
       ],
       "bgm": "bgm_stage01",
       "bossBgm": "bgm_boss"
@@ -1891,8 +1891,8 @@
         600
       ],
       "npcs": [
-        "N05",
-        "N02"
+        "N09",
+        "N07"
       ],
       "bgm": "bgm_stage01",
       "bossBgm": "bgm_boss"
@@ -2119,8 +2119,8 @@
         600
       ],
       "npcs": [
-        "N02",
-        "N03"
+        "N06",
+        "N08"
       ],
       "bgm": "bgm_stage01",
       "bossBgm": "bgm_boss"

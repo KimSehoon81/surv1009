@@ -41,6 +41,7 @@ export interface RunnerDeps {
   damageEnemy(e: Enemy, mult: number, dirX: number, dirY: number, aoe: boolean, tag?: string): void;
   /** 스테이지 방해(포연 등) 하나 해제. 풀었으면 이름 */
   clearStageDisruption?(): string | null;
+  cutCooldowns?(frac: number): void;
   onPlayerHurt(amount: number): void;
   addTp(n: number): void;
   toast(msg: string, color?: string): void;
@@ -273,6 +274,10 @@ export class EffectRunner implements EffectContext {
 
   addTp(n: number): void {
     this.d.addTp(n);
+  }
+
+  cutCooldowns(frac: number): void {
+    this.d.cutCooldowns?.(frac);
   }
 
   /** 방해 하나 해제: 플레이어 디버프(가장 최근) → 카드 성공률 감소 순. 적 방해(재밍 등)는 해당 Day에 추가 */

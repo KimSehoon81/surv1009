@@ -41,6 +41,8 @@ export interface EffectContext {
   cards: { primeIntel(): void; penalty(value: number, submits: number): void; grantOp(n: number): void; shuffleHand(): void; give(id: string): void; purgeMinus(): void; reveal(): void; rerollHand(): void };
   progression: { bonus(b: { count?: number; rarePlusBonus?: number; valueMultiplier?: number }): void; addRerolls(n: number): void };
   addTp(n: number): void;
+  /** 고급 스킬 남은 쿨다운 단축(통역관 N06) */
+  cutCooldowns?(frac: number): void;
   /** 방해 하나 해제(없으면 false) */
   clearDisruption(): boolean;
 }
@@ -143,7 +145,7 @@ export const EFFECTS: Record<string, EffectHandler> = {
   recon(ctx, p) {
     const dur = num(p, 'ms', 20000);
     for (let t = 0; t < dur; t += 2000) ctx.schedule(t, () => ctx.flashEnemiesOnScreen(400));
-    ctx.toast(`정찰기: ${Math.round(dur / 1000)}초간 적 표시`);
+    ctx.toast(`${str(p, 'label', '정찰기')}: ${Math.round(dur / 1000)}초간 적 표시`);
   },
 
   clearDisruption(ctx) {
@@ -196,6 +198,12 @@ export const EFFECTS: Record<string, EffectHandler> = {
 
   opGain(ctx, p, power) {
     ctx.cards.grantOp(Math.round(num(p, 'amount', 1) * power));
+  },
+
+  /** 고급 스킬 남은 쿨다운 frac 단축(N06 통역관: 연합군 증원 요청) */
+  cooldownCut(ctx, p) {
+    ctx.cutCooldowns?.(num(p, 'frac', 0.3));
+    ctx.toast(`고급 스킬 쿨다운 −${Math.round(num(p, 'frac', 0.3) * 100)}%`);
   },
 
   tp(ctx, p, power) {
