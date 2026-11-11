@@ -82,6 +82,27 @@ export class HudScene extends Phaser.Scene {
     this.warnText.setColor(kind === 'boss' ? '#ff4030' : '#ff8060').setFontSize(kind === 'boss' ? 20 : 16);
   };
   /** 보스 등장 공통 연출: 이름 카드(모든 스테이지 같은 경로) */
+  /** 업적 달성 배너(오른쪽 위, 카드 알림 줄과 따로): 차례로 2.6초씩 */
+  private readonly achQueue: { name: string; reward: number }[] = [];
+  private achBusyUntil = 0;
+  private readonly onAchievement = (name: string, reward: number) => this.achQueue.push({ name, reward });
+
+  private drawAchievement(time: number): void {
+    if (time < this.achBusyUntil || this.achQueue.length === 0) return;
+    const a = this.achQueue.shift();
+    if (!a) return;
+    const w = 260;
+    const x = LOGICAL_WIDTH - w - 10;
+    const y = 112;
+    const box = this.add.container(LOGICAL_WIDTH + 10, y).setDepth(1050);
+    box.add(this.add.rectangle(0, 0, w, 40, 0x1a1410, 0.92).setOrigin(0).setStrokeStyle(1, 0xffe14d, 0.9));
+    box.add(this.add.text(10, 5, '업적 달성', textStyle(11, '#ffe14d')));
+    box.add(this.add.text(10, 20, `${a.name}${a.reward ? `   +${a.reward} 전공` : ''}`, textStyle(13, '#ffffff')));
+    this.tweens.add({ targets: box, x, duration: 260, ease: 'Cubic.Out' });
+    this.tweens.add({ targets: box, alpha: 0, delay: 2300, duration: 300, onComplete: () => box.destroy() });
+    this.achBusyUntil = time + 2600;
+  }
+
   /** 컷인(F 궁극기): 0.3초 동안 화면 가운데 띠 + 스킬 이름이 실시간으로 지나감 */
   private readonly onCutIn = (name: string) => {
     const ms = skillsData.cutInMs;
@@ -122,6 +143,8 @@ export class HudScene extends Phaser.Scene {
     this.levelUp = null;
     this.warn = null;
     this.shop = null;
+    this.achQueue.length = 0;
+    this.achBusyUntil = 0;
     this.guideQueue.length = 0;
     this.controls = new InputMap(this);
     ensurePixelFont(this);
@@ -175,6 +198,7 @@ export class HudScene extends Phaser.Scene {
     this.battle.events.on('warn', this.onWarn);
     this.battle.events.on('boss:spawn', this.onBossSpawn);
     this.battle.events.on('cutin', this.onCutIn);
+    this.battle.events.on('achievement', this.onAchievement);
     this.battle.events.on('shop:open', this.onShopOpen);
     this.battle.events.on('boss:judged', this.onBossJudged);
     this.battle.events.on('result', this.onResult);
@@ -191,6 +215,7 @@ export class HudScene extends Phaser.Scene {
       this.battle.events.off('warn', this.onWarn);
       this.battle.events.off('boss:spawn', this.onBossSpawn);
       this.battle.events.off('cutin', this.onCutIn);
+      this.battle.events.off('achievement', this.onAchievement);
       this.battle.events.off('shop:open', this.onShopOpen);
       this.battle.events.off('guide', this.onGuide);
       this.battle.events.off('boss:judged', this.onBossJudged);
@@ -231,6 +256,7 @@ export class HudScene extends Phaser.Scene {
     this.drawBoss(time);
     this.drawDisruptorArrows(time);
     this.drawBlizzard(time);
+    this.drawAchievement(time);
     if (this.resultPanel) {
       const enter = this.controls.justDown('redeploy');
       const toMap = this.controls.justDown('toMap');

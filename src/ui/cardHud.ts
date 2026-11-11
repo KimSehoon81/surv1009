@@ -16,7 +16,8 @@ const FLIP = cardUi.flipMs;
 import { prefs } from '../systems/prefs';
 const REJECT_TEXT: Record<string, string> = {
   cooldown: '재정비 중',
-  empty: '낼 카드가 없음',
+  empty: '손패가 비었음 — 곧 새 카드가 들어옴',
+  onlyMinus: '추천할 카드 없음 — 마이너스는 숫자키로 골라 Space(OP 3으로 폐기)',
   tooMany: '최대 3장',
   notInHand: '손패에 없음',
   blockedTag: '지금 낼 수 없는 카드 (통신 두절·악천후)',

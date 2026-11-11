@@ -203,7 +203,12 @@ export class CardSystem {
     if (this.selected.length === 0) {
       const a = this.advice();
       if (!a) {
-        this.reject('empty', nowReal);
+        // 왜 추천이 없는지: 손패가 비었나 / 마이너스만 남았나 / 지금 못 내는 태그뿐인가
+        const hand = this.state.hand;
+        const minusOnly = hand.length > 0 && hand.every((c) => !c.disguised && CARD_DATA.cards[c.id]?.tag === 'minus');
+        const blocked = this.env().blockedTags ?? [];
+        const allBlocked = hand.length > 0 && hand.every((c) => CARD_DATA.cards[c.id]?.tag === 'minus' || blocked.includes(CARD_DATA.cards[c.id]?.tag ?? ''));
+        this.reject(hand.length === 0 ? 'empty' : minusOnly ? 'onlyMinus' : allBlocked ? 'blockedTag' : 'empty', nowReal);
         return;
       }
       this.selected = [...a.uids];

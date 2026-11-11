@@ -9,7 +9,7 @@ import skillsData from '../src/data/skills.json';
 import timelinesData from '../src/data/timelines.json';
 import B from '../src/data/balance.json';
 import { enemyScale } from '../src/core/scaling';
-import { pacingAt, phaseAt, type StageDef } from '../src/core/stage';
+import { earlyMult, pacingAt, phaseAt, type StageDef } from '../src/core/stage';
 
 const STAGES = stagesData.stages as unknown as Record<string, StageDef>;
 const EN = enemiesData.enemies as Record<string, { hp: number }>;
@@ -55,7 +55,7 @@ function expected(n: number, t: number): number {
 
 function required(st: StageDef, n: number, t: number): number {
   const sc = enemyScale(n, levelAt(t));
-  const mult = pacingAt(st, t)?.mult ?? 1;
+  const mult = (pacingAt(st, t)?.mult ?? 1) * earlyMult(st, t);
   return phaseAt(st, t).spawns.reduce((s, sp) => s + sp.perSec * (EN[sp.enemy]?.hp ?? 0) * sc.hp, 0) * sc.density * mult * (st.spawnScale ?? 1);
 }
 
@@ -69,7 +69,7 @@ for (const [id, st] of Object.entries(STAGES)) {
   const boss = (EN[st.boss.enemy]?.hp ?? 0) * enemyScale(n, 10).hp;
   const clear = B.bossAt + boss / (expected(n, B.bossAt) * B.bossFocus);
   // 생존 근사: S1 정규화 비율 1 → 50%, 비율이 두 배면 약 80%, 절반이면 약 20%
-  const g = Math.exp(avg(norm.map((v) => Math.log(v))));
+  const g = Math.exp(avg(norm.slice(1).map((v) => Math.log(v))));
   const surv = 1 / (1 + Math.exp(-2 * Math.log(g) / Math.log(2) * 0.7));
   rows.push({ id, name: st.name, r, norm, clear, surv });
 }
@@ -78,7 +78,8 @@ const out = [
   '| 스테이지 | 3분 기대/필요 | 8분(대군집) | 12분 | S1 대비(3·8·12분) | 예상 점령 | 생존 근사 |',
   '| --- | --- | --- | --- | --- | --- | --- |',
   ...rows.map((x) => {
-    const inBand = x.norm.every((v) => v >= B.band[0]! && v <= B.band[1]!);
+    // 3분은 도입부(S1~S3 초반 밀도 가산이 있어 S1 대비는 의미가 약함): 절대 비율 ≥ 1만 보고, 띠는 8·12분
+    const inBand = (x.r[0] ?? 0) >= 1 && x.norm.slice(1).every((v) => v >= B.band[0]! && v <= B.band[1]!);
     return `| ${x.id} ${x.name} | ${fmt(x.r[0]!)} | ${fmt(x.r[1]!)} | ${fmt(x.r[2]!)} | ${x.norm.map(fmt).join(' · ')}${inBand ? '' : ' ⚠'} | ${Math.floor(x.clear / 60)}:${String(Math.round(x.clear % 60)).padStart(2, '0')} | ${Math.round(x.surv * 100)}% |`;
   }),
 ].join('\n');

@@ -149,6 +149,9 @@ describe('정산', () => {
     expect(defeatTip(rec({ level: 2 }), t)).toBe(t.early);
     expect(defeatTip(rec({ sealsHeld: 2 }), t)).toBe(t.seals);
     expect(defeatTip(rec(), t)).toBe(t.default);
+    // 일찍 쓰러졌는데 전공이 남아 있으면 스타팅 포인트부터(게임 테스트)
+    expect(defeatTip(rec({ timeSec: 94, unspentMerit: 1500, level: 2 }), t)).toBe(t.spendMerit.replace('{merit}', '1500'));
+    expect(defeatTip(rec({ timeSec: 600, unspentMerit: 1500, level: 2 }), t)).toBe(t.early);
   });
 });
 

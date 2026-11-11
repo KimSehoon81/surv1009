@@ -1265,6 +1265,7 @@ export class BattleScene extends Phaser.Scene {
       longestFailStreak: cs.stats.longestFailStreak,
       sealsUsed: cs.stats.sealsUsed,
       ...(this.pref.recruit ? { recruit: true } : {}),
+      unspentMerit: loadProfile().merit,
       sealsHeld: cs.seals,
       residueDamage: Math.round(this.run.residueDamage),
       comboSuccesses: this.run.comboSuccesses,
@@ -1383,7 +1384,7 @@ export class BattleScene extends Phaser.Scene {
     this.ach = r.state;
     for (const d of r.unlocked) {
       this.achMerit += d.reward ?? 0;
-      this.toast(`업적 달성: ${d.name}${d.reward ? ` (+${d.reward} 전공)` : ''}`, '#ffe14d');
+      this.events.emit('achievement', d.name, d.reward ?? 0);
       this.audio.play('levelup');
     }
   }

@@ -49,6 +49,8 @@ export interface StageDef {
   bossBgm?: string;
   /** npcAt 시각마다 차례로 나올 NPC */
   npcs?: readonly string[];
+  /** 초반 밀도(게임 테스트: 한산한 S1~S3 첫 몇 분) */
+  earlyDensity?: { untilSec: number; mult: number };
   /** 스폰 표 전체 배율(D39 밸런스: 스테이지마다 '기대 DPS ÷ 필요 DPS'를 S1에 맞춤) */
   spawnScale?: number;
   /** 상시 환경(D36 혹한): 방해 수에 넣지 않는 플레이어 수정자(지형 태그면 산악병이 무시) */
@@ -77,6 +79,12 @@ export type StageEvent =
   | { type: 'npc'; npc: string }
   | { type: 'burstWarn'; burst: BurstDef; inSec: number }
   | { type: 'burst'; burst: BurstDef };
+
+/** 초반 밀도 배율(스테이지 earlyDensity): 첫 untilSec초 동안 ×mult */
+export function earlyMult(stage: StageDef, t: number): number {
+  const e = stage.earlyDensity;
+  return e && t < e.untilSec ? e.mult : 1;
+}
 
 export function phaseAt(stage: StageDef, t: number): StagePhase {
   return stage.phases.find((p) => t >= p.from && (p.to === null || t < p.to)) ?? (stage.phases[stage.phases.length - 1] as StagePhase);
@@ -139,7 +147,7 @@ export class StageDirector {
   /** 지금 스폰 표와 밀도 배율(보스전이면 보스 배율까지) */
   spawnsAt(t: number): { spawns: readonly SpawnEntry[]; mult: number } {
     const pace = pacingAt(this.stage, t)?.mult ?? 1;
-    return { spawns: phaseAt(this.stage, t).spawns, mult: pace * (this.stage.spawnScale ?? 1) * (this.bossSpawned ? this.stage.boss.spawnMult : 1) };
+    return { spawns: phaseAt(this.stage, t).spawns, mult: pace * earlyMult(this.stage, t) * (this.stage.spawnScale ?? 1) * (this.bossSpawned ? this.stage.boss.spawnMult : 1) };
   }
 
   update(t: number, level: number, ctx: { enemiesOnScreen: number }): StageEvent[] {
