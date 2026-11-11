@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import scaling from '../src/data/scaling.json';
 import { enemyScale, globalStep } from '../src/core/scaling';
+
+// 계수는 data(D39 밸런스 1차에서 체력 0.4→0.3, 밀도 0.15→0.1, docs/BALANCE.md)
+const HP = scaling.hpPerStage;
+const DEN = scaling.densityPerStage;
 
 describe('scaling (PRD §7.3)', () => {
   it('스테이지 1 레벨 1은 모두 1배', () => {
@@ -8,9 +13,9 @@ describe('scaling (PRD §7.3)', () => {
 
   it('스테이지 10 레벨 10 경계값', () => {
     const s = enemyScale(10, 10);
-    expect(s.hp).toBeCloseTo((1 + 0.4 * 9) * (1 + 0.06 * 9));
+    expect(s.hp).toBeCloseTo((1 + HP * 9) * (1 + 0.06 * 9));
     expect(s.attack).toBeCloseTo(1 + 0.25 * 9);
-    expect(s.density).toBeCloseTo(1 + 0.15 * 9);
+    expect(s.density).toBeCloseTo(1 + DEN * 9);
     expect(s.speed).toBe(1.2);
   });
 
@@ -19,7 +24,7 @@ describe('scaling (PRD §7.3)', () => {
   });
 
   it('레벨당 +6%는 스테이지 배율에 곱해진다', () => {
-    expect(enemyScale(2, 5).hp).toBeCloseTo(1.4 * 1.24);
+    expect(enemyScale(2, 5).hp).toBeCloseTo((1 + HP) * 1.24);
   });
 
   it('범위 밖 입력은 1~10으로 고정, 위협 등급은 체력·공격에만 곱해짐', () => {

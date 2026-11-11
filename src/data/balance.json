@@ -1,0 +1,14 @@
+{
+  "$comment": "밸런스 해석 모델 가정(D39, tools/balance.ts). 전투를 돌리지 않고 시간 축으로 '기대 DPS ÷ 필요 DPS'를 계산. levelAt=[초, 그때 레벨](중간 플레이 테스트·봇 측정 근사), levelGrowth=레벨업당 화력 +(업그레이드 평균), metaPerStage=앞 지역을 점령할수록 오르는 화력(시작 강화·더 센 캐릭터·카드 해금), aoeMul=범위 무기·관통으로 한 번에 여러 적을 맞히는 평균 배수, skillUptime=고급 스킬을 쿨다운마다 쓰는 비율, skillTargets=연출 피해 한 번이 맞히는 평균 적 수, cardShare=카드·조합이 무기 화력에 더하는 몫, bossFocus=보스전에서 화력이 보스에 가는 비율. band=S1 비율 대비 허용 범위(S1 클리어율 40~60%를 S1 비율로 둠, PRD §13).",
+  "levelAt": [[180, 3], [480, 6], [720, 9]],
+  "levelGrowth": 0.08,
+  "metaPerStage": 0.12,
+  "aoeMul": 1.6,
+  "skillUptime": 0.6,
+  "skillTargets": 4,
+  "cardShare": 0.25,
+  "bossFocus": 0.5,
+  "bossAt": 780,
+  "band": [0.75, 1.25],
+  "slotOpenStage": { "Q": 1, "E": 3, "R": 5, "F": 8 }
+}

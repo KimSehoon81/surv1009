@@ -49,6 +49,8 @@ export interface StageDef {
   bossBgm?: string;
   /** npcAt 시각마다 차례로 나올 NPC */
   npcs?: readonly string[];
+  /** 스폰 표 전체 배율(D39 밸런스: 스테이지마다 '기대 DPS ÷ 필요 DPS'를 S1에 맞춤) */
+  spawnScale?: number;
   /** 상시 환경(D36 혹한): 방해 수에 넣지 않는 플레이어 수정자(지형 태그면 산악병이 무시) */
   environment?: { name: string; mods: readonly { stat: string; op: 'add' | 'mul'; value: number; tag?: string }[] };
   /** 대규모 군집(D33): at초에 count체를 원호(arcDeg)로 한꺼번에, warnSec초 전 예고 */
@@ -137,7 +139,7 @@ export class StageDirector {
   /** 지금 스폰 표와 밀도 배율(보스전이면 보스 배율까지) */
   spawnsAt(t: number): { spawns: readonly SpawnEntry[]; mult: number } {
     const pace = pacingAt(this.stage, t)?.mult ?? 1;
-    return { spawns: phaseAt(this.stage, t).spawns, mult: pace * (this.bossSpawned ? this.stage.boss.spawnMult : 1) };
+    return { spawns: phaseAt(this.stage, t).spawns, mult: pace * (this.stage.spawnScale ?? 1) * (this.bossSpawned ? this.stage.boss.spawnMult : 1) };
   }
 
   update(t: number, level: number, ctx: { enemiesOnScreen: number }): StageEvent[] {
