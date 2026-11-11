@@ -18,6 +18,10 @@ export interface SaveData {
   loadout?: Loadout;
   /** 덱 프리셋(1칸) */
   deckPreset?: string[];
+  /** 위협 등급(뉴게임+ 회차, 0 = 첫 회차, D38) */
+  threat?: number;
+  /** 도달한 가장 높은 전역 단계 N(1~100) */
+  bestStep?: number;
   merit: number;
   /** 스타팅 포인트 강화 단계(D19) */
   startUpgrades: Record<string, number>;
@@ -42,6 +46,8 @@ export interface SaveData {
     firstRunDone: boolean;
     /** 보스 진입 순간 런 상태(보스 재도전 1회 기반, D19) */
     bossCheckpoint?: unknown;
+    /** 엔딩을 봄(스테이지 10 점령) → 뉴게임+ 열림 */
+    endingSeen?: boolean;
   };
 }
 

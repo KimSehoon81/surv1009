@@ -40,6 +40,8 @@ export class EnemySystem {
   readonly pool: Pool<Enemy>;
   readonly grid = new SpatialHash<Enemy>(64);
   stage = 1;
+  /** 위협 등급(뉴게임+ 회차, D38): 체력·공격·밀도 배율 */
+  threat = 0;
   /** 포위망(D35): 스폰 밀도 배율, 1보다 크면 각도를 고르게(사방을 둘러쌈) */
   encircle = 1;
   private ringStep = 0;
@@ -94,7 +96,7 @@ export class EnemySystem {
   spawn(id: EnemyId, x: number, y: number, nowMs: number, force = false): Enemy | null {
     if (!force && this.pool.size >= this.maxAlive) return null;
     const e = this.pool.acquire();
-    e.spawn(id, this.animsFor(id), x, y, enemyScale(this.stage, this.level), this.rng, nowMs);
+    e.spawn(id, this.animsFor(id), x, y, enemyScale(this.stage, this.level, this.threat), this.rng, nowMs);
     return e;
   }
 
@@ -249,7 +251,7 @@ export class EnemySystem {
 
   /** 지금 적 체력 배율(스테이지·레벨, 바리케이드 체력 등에 씀) */
   scaleHp(): number {
-    return enemyScale(this.stage, this.level).hp;
+    return enemyScale(this.stage, this.level, this.threat).hp;
   }
 
   private applyAuras(list: readonly Enemy[]): void {
@@ -288,7 +290,7 @@ export class EnemySystem {
         if (isEnemyId(s.id)) this.spawn(s.id, p.x, p.y, nowMs);
       }
     }
-    const density = enemyScale(this.stage, this.level).density * this.spawnMult * this.encircle;
+    const density = enemyScale(this.stage, this.level, this.threat).density * this.spawnMult * this.encircle;
     for (const s of this.spawns) {
       const r = accumulate(this.acc.get(s.enemy) ?? 0, s.perSec * density, dtMs);
       this.acc.set(s.enemy, r.acc);

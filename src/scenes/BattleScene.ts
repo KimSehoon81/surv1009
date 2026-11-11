@@ -50,6 +50,8 @@ import { runEffect, type Params } from '../systems/effects';
 import { prefs, type Prefs } from '../systems/prefs';
 import settingsData from '../data/settings.json';
 import shopData from '../data/shop.json';
+import mapData from '../data/map.json';
+import { globalStep, threatReward } from '../core/scaling';
 import { buy, type BuyResult, type ShopItem, type ShopState } from '../core/shop';
 import { stageNumber, type CardEvent } from '../core/cards';
 import { Feel } from '../systems/feel';
@@ -91,6 +93,8 @@ const DEBUG_SETS: [string, number][][] = [
   [['E46', 6], ['E47', 2], ['E48', 2], ['E49', 1]],
 ];
 const TP = skillsData.tp;
+/** 마지막 지역(엔딩): 작전지도 순서의 끝 */
+const FINAL_STAGE = mapData.nodes[mapData.nodes.length - 1]?.id ?? 'S10';
 /** 위협 우선 조준(G6): 방해원(disrupt)·버프 오라(aura)·지정 우선(targetPriority) */
 const isPriorityTarget = (e: Enemy): boolean => {
   const d = e.def as { disrupt?: unknown; aura?: unknown; targetPriority?: number };
@@ -165,7 +169,7 @@ export class BattleScene extends Phaser.Scene {
   /** 살아 있는 보스(HUD 체력바·작전 카드) */
   boss: Enemy | null = null;
   /** 결과 화면에 넘긴 기록(점령·전사 뒤) */
-  result: { record: RunRecord; merit: number; tip: string; rate: number; unlocked: Unlock[] } | null = null;
+  result: { record: RunRecord; merit: number; tip: string; rate: number; unlocked: Unlock[]; step: number; threat: number; ending: boolean } | null = null;
   /** 고급 스킬 슬롯(Q·E·R·F)과 TP. HUD가 읽음 */
   skills!: SkillSlots;
   /** 적 공격 예고·포탄 */
@@ -263,6 +267,7 @@ export class BattleScene extends Phaser.Scene {
     this.enemies = new EnemySystem(this, spawnData.S1, rng.fork('enemies'));
     // 난이도 스케일링(PRD §7.3): 스테이지 번호
     this.enemies.stage = stageNumber(this.payload.stage);
+    this.enemies.threat = loadProfile().threat ?? 0;
     this.enemies.maxAliveNormal = this.stage.maxAlive;
     const first = this.director.spawnsAt(0);
     this.enemies.setSpawns(first.spawns, first.mult);
@@ -1210,15 +1215,22 @@ export class BattleScene extends Phaser.Scene {
       comboSuccesses: this.run.comboSuccesses,
       lastHitBy: this.run.lastHitBy,
     };
-    const merit = meritPoints(record, metaData.merit);
-    // 정산: 점령 기록·전공·첫 점령 해금(core/meta)
+    // 위협 등급(뉴게임+)은 전공 보상도 올림
+    const threat = this.enemies.threat;
+    const merit = Math.round(meritPoints(record, metaData.merit) * threatReward(threat));
+    const step = globalStep(stageNumber(this.payload.stage), record.level);
+    // 마지막 지역 점령 = 엔딩(뉴게임+ 열림)
+    const ending = victory && this.payload.stage === FINAL_STAGE;
+    // 정산: 점령 기록·전공·첫 점령 해금(core/meta), 최고 전역 단계
     let unlocked: Unlock[] = [];
     updateProfile((d) => {
       const r = applyCapture(d, this.payload.stage, { victory, timeSec: record.timeSec, merit }, unlocksData.stages as Record<string, UnlockEntry>);
       unlocked = r.unlocked;
-      return r.save;
+      const next = { ...r.save, bestStep: Math.max(r.save.bestStep ?? 0, step) };
+      if (ending) next.flags = { ...next.flags, endingSeen: true };
+      return next;
     });
-    this.result = { record, merit, tip: victory ? '' : defeatTip(record, metaData.tips), rate: actualRate(record), unlocked };
+    this.result = { record, merit, tip: victory ? '' : defeatTip(record, metaData.tips), rate: actualRate(record), unlocked, step, threat, ending };
     this.clock.pause('result');
     this.bannerMessage = null;
     this.events.emit('result', this.result);
@@ -1228,6 +1240,12 @@ export class BattleScene extends Phaser.Scene {
   /** 다시 출정(같은 구성) */
   redeploy(): void {
     this.scene.restart(this.payload);
+  }
+
+  /** 마지막 지역 점령 뒤 엔딩 화면 */
+  toEnding(): void {
+    this.scene.stop(SceneKey.Hud);
+    this.scene.start(SceneKey.Ending, { threat: this.enemies.threat });
   }
 
   /** 결과 뒤 작전지도로 */

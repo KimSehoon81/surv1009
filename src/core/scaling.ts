@@ -35,3 +35,9 @@ export function enemyScale(stage: number, level: number, threat = 0): EnemyScale
 export function globalStep(stage: number, level: number): number {
   return (clamp(Math.round(stage), 1, MAX_STAGE) - 1) * LEVELS_PER_STAGE + clamp(Math.round(level), 1, LEVELS_PER_STAGE);
 }
+
+/** 위협 등급 보상 배율(전공), 등급은 0~max로 자름 */
+export function threatReward(threat: number): number {
+  const t = Math.max(0, Math.min(rules.threat?.max ?? 0, Math.round(threat)));
+  return 1 + (rules.threat?.rewardPerLevel ?? 0) * t;
+}

@@ -83,6 +83,17 @@ export function applyCapture(
   return { save: next, unlocked };
 }
 
+/**
+ * 뉴게임+(D38): 엔딩을 본 뒤에만. 위협 등급 +1(최대 max), 점령 상태만 초기화(기록·해금·스타팅 포인트·전공은 유지)
+ */
+export function startNewGamePlus(save: SaveData, maxThreat: number): { ok: true; save: SaveData } | { ok: false; error: 'noEnding' | 'max' } {
+  if (!save.flags.endingSeen) return { ok: false, error: 'noEnding' };
+  const t = save.threat ?? 0;
+  if (t >= maxThreat) return { ok: false, error: 'max' };
+  const stages = Object.fromEntries(Object.entries(save.stages).map(([k, v]) => [k, { ...v, captured: false }]));
+  return { ok: true, save: { ...save, threat: t + 1, stages } };
+}
+
 export type BuyError = 'unknown' | 'max' | 'merit';
 
 /** 스타팅 포인트 구매: 다음 단계 비용만큼 전공 포인트를 쓰고 단계 +1 */

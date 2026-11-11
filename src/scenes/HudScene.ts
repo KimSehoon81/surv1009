@@ -19,6 +19,7 @@ import { SkillHud } from '../ui/skillHud';
 import type { CardEvent } from '../core/cards';
 import type { BattleScene } from './BattleScene';
 import { SceneKey } from './keys';
+import { globalStep } from '../core/scaling';
 import shopData from '../data/shop.json';
 import { canBuy, remaining, type ShopItem } from '../core/shop';
 import { panel, UI } from '../ui/widgets';
@@ -60,6 +61,7 @@ export class HudScene extends Phaser.Scene {
   private skillHud!: SkillHud;
   /** 예고(엘리트·방해·보스): 문구와 끝 시각(전투 시계) */
   private warnText!: Phaser.GameObjects.Text;
+  private stepText!: Phaser.GameObjects.Text;
   private warn: { msg: string; untilMs: number; boss: boolean } | null = null;
   private edgeGfx!: Phaser.GameObjects.Graphics;
   private bossTitle!: Phaser.GameObjects.Text;
@@ -152,6 +154,7 @@ export class HudScene extends Phaser.Scene {
       blizzard: () => this.battle.disruptions.has('blizzard'),
       selectDelayMs: () => this.battle.selectDelayMs,
     });
+    this.stepText = this.add.text(370, 10, '', textStyle(11, '#b0a890'));
     this.warnText = this.add.text(LOGICAL_WIDTH / 2, 66, '', { ...textStyle(16, '#ff8060'), stroke: '#1a1410', strokeThickness: 3 }).setOrigin(0.5).setVisible(false);
     this.bossGfx = this.add.graphics();
     this.edgeGfx = this.add.graphics();
@@ -229,8 +232,11 @@ export class HudScene extends Phaser.Scene {
     this.drawDisruptorArrows(time);
     this.drawBlizzard(time);
     if (this.resultPanel) {
-      if (this.controls.justDown('redeploy')) b.redeploy();
-      else if (this.controls.justDown('toMap')) b.toMap();
+      const enter = this.controls.justDown('redeploy');
+      const toMap = this.controls.justDown('toMap');
+      if (b.result?.ending && (enter || toMap)) b.toEnding();
+      else if (enter) b.redeploy();
+      else if (toMap) b.toMap();
     } else if (this.shop) this.updateShop();
     else if (this.levelUp) this.updateLevelUp(time);
     else this.cardHud.update(time);
@@ -465,7 +471,7 @@ export class HudScene extends Phaser.Scene {
     const mm = Math.floor(rec.timeSec / 60);
     const ss = String(Math.floor(rec.timeSec % 60)).padStart(2, '0');
     const lines = [
-      `시간 ${mm}:${ss}    레벨 ${rec.level}    처치 ${rec.kills}${rec.eliteKills > 0 ? ` (엘리트 ${rec.eliteKills})` : ''}${rec.recruit ? '    [신병 모드]' : ''}`,
+      `시간 ${mm}:${ss}    레벨 ${rec.level} (전역 단계 ${r.step}/100)    처치 ${rec.kills}${rec.eliteKills > 0 ? ` (엘리트 ${rec.eliteKills})` : ''}${rec.recruit ? '    [신병 모드]' : ''}${r.threat > 0 ? `    [위협 등급 ${r.threat}]` : ''}`,
       `전공 포인트 +${r.merit}${rec.victory ? '' : '  (전사: 50%)'}`,
       '',
       '작전 기록',
@@ -490,11 +496,18 @@ export class HudScene extends Phaser.Scene {
       const text = `새로 해금됨  ${[chars > 0 ? `캐릭터 ${chars}명` : '', ...names].filter(Boolean).join(' · ')}`;
       root.add(this.add.text(LOGICAL_WIDTH / 2, 320, text, { ...textStyle(14, '#ffe14d'), align: 'center', wordWrap: { width: 700 } }).setOrigin(0.5, 0));
     }
-    const again = this.add.text(LOGICAL_WIDTH / 2 - 120, 400, 'Enter  다시 출정', textStyle(16, '#ffffff')).setOrigin(0.5);
-    again.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.battle.redeploy());
-    const map = this.add.text(LOGICAL_WIDTH / 2 + 120, 400, 'M  작전지도', textStyle(16, '#ffffff')).setOrigin(0.5);
-    map.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.battle.toMap());
-    root.add([again, map]);
+    if (r.ending) {
+      // 마지막 지역 점령: 엔딩으로(Enter·M 모두)
+      const end = this.add.text(LOGICAL_WIDTH / 2, 400, 'Enter  엔딩 보기', textStyle(18, '#ffe14d')).setOrigin(0.5);
+      end.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.battle.toEnding());
+      root.add(end);
+    } else {
+      const again = this.add.text(LOGICAL_WIDTH / 2 - 120, 400, 'Enter  다시 출정', textStyle(16, '#ffffff')).setOrigin(0.5);
+      again.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.battle.redeploy());
+      const map = this.add.text(LOGICAL_WIDTH / 2 + 120, 400, 'M  작전지도', textStyle(16, '#ffffff')).setOrigin(0.5);
+      map.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.battle.toMap());
+      root.add([again, map]);
+    }
     root.setAlpha(0);
     this.tweens.add({ targets: root, alpha: 1, duration: 300 });
     this.resultPanel = root;
@@ -503,6 +516,7 @@ export class HudScene extends Phaser.Scene {
   private drawXp(): void {
     const p = this.battle.progression;
     this.lvText.setText(`LV ${p.level}`);
+    this.stepText.setText(`단계 ${globalStep(this.battle.enemies.stage, p.level)}/100`);
     const g = this.xpBar.clear();
     const x = 64;
     const y = 14;

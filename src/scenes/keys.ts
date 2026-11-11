@@ -9,6 +9,7 @@ export const SceneKey = {
   Map: 'Map',
   Prep: 'Prep',
   Settings: 'Settings',
+  Ending: 'Ending',
 } as const;
 
 export type SceneKey = (typeof SceneKey)[keyof typeof SceneKey];
