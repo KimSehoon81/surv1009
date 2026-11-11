@@ -27,6 +27,7 @@ export class MenuScene extends Phaser.Scene {
     this.sel = 0;
     this.items = [
       { label: '출정', run: () => this.go() },
+      { label: '도감·업적', run: () => this.scene.start(SceneKey.Codex) },
       { label: '설정', run: () => this.scene.start(SceneKey.Settings, { back: SceneKey.Menu }) },
       // 엔딩을 봤으면 뉴게임+(위협 등급 +1, 점령만 초기화)
       ...(prof.flags.endingSeen && (prof.threat ?? 0) < MAX_THREAT ? [{ label: `뉴게임+  위협 등급 ${(prof.threat ?? 0) + 1}`, run: () => this.newGamePlus() }] : []),

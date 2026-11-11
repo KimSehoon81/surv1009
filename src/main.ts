@@ -11,6 +11,7 @@ import { MapScene } from './scenes/MapScene';
 import { PrepScene } from './scenes/PrepScene';
 import { SettingsScene } from './scenes/SettingsScene';
 import { EndingScene } from './scenes/EndingScene';
+import { CodexScene } from './scenes/CodexScene';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -25,7 +26,7 @@ const game = new Phaser.Game({
     zoom: computeZoom(window.innerWidth, window.innerHeight),
   },
   input: { keyboard: true, mouse: true, gamepad: false },
-  scene: [BootScene, PreloadScene, MenuScene, MapScene, PrepScene, SettingsScene, EndingScene, BattleScene, HudScene, GalleryScene, AudioGalleryScene],
+  scene: [BootScene, PreloadScene, MenuScene, MapScene, PrepScene, SettingsScene, EndingScene, CodexScene, BattleScene, HudScene, GalleryScene, AudioGalleryScene],
 });
 
 window.addEventListener('resize', () => {

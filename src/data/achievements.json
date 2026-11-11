@@ -1,0 +1,192 @@
+{
+  "$comment": "업적(D41, 데이터 주도: core/achievements). event=세는 게임 이벤트(kill{tier,enemy}·capture{stage,timeSec,threat}·cardJudged{success,combo,seal,gamble,failStreak}·skill{id}·npc{id}·noHit{sec}), where=값이 같아야, min/max=수치 범위, distinct=서로 다른 값의 수, target=달성 수, reward=달성 전공 포인트(여유). 보상은 PRD 밖 값.",
+  "achievements": [
+    {
+      "id": "first_kill",
+      "name": "첫 교전",
+      "desc": "적을 처음으로 쓰러뜨림",
+      "event": "kill",
+      "target": 1,
+      "reward": 10
+    },
+    {
+      "id": "kill_1000",
+      "name": "백전노장",
+      "desc": "적 1,000명 처치(누적)",
+      "event": "kill",
+      "target": 1000,
+      "reward": 60
+    },
+    {
+      "id": "kill_10000",
+      "name": "전선의 기둥",
+      "desc": "적 10,000명 처치(누적)",
+      "event": "kill",
+      "target": 10000,
+      "reward": 200
+    },
+    {
+      "id": "elite_10",
+      "name": "전차 사냥꾼",
+      "desc": "엘리트 10기 처치",
+      "event": "kill",
+      "target": 10,
+      "reward": 60,
+      "where": {
+        "tier": "elite"
+      }
+    },
+    {
+      "id": "boss_1",
+      "name": "지휘부 격파",
+      "desc": "보스를 처음으로 처치",
+      "event": "kill",
+      "target": 1,
+      "reward": 50,
+      "where": {
+        "tier": "boss"
+      }
+    },
+    {
+      "id": "boss_all",
+      "name": "전 지휘관 격파",
+      "desc": "서로 다른 보스 10명 처치",
+      "event": "kill",
+      "target": 10,
+      "reward": 250,
+      "where": {
+        "tier": "boss"
+      },
+      "distinct": "enemy"
+    },
+    {
+      "id": "capture_1",
+      "name": "첫 점령",
+      "desc": "지역을 처음으로 점령",
+      "event": "capture",
+      "target": 1,
+      "reward": 30
+    },
+    {
+      "id": "capture_all",
+      "name": "압록강까지",
+      "desc": "10개 지역 모두 점령",
+      "event": "capture",
+      "target": 10,
+      "reward": 300,
+      "distinct": "stage"
+    },
+    {
+      "id": "fast_capture",
+      "name": "전격전",
+      "desc": "12분 안에 점령",
+      "event": "capture",
+      "target": 1,
+      "reward": 100,
+      "max": {
+        "timeSec": 720
+      }
+    },
+    {
+      "id": "threat_capture",
+      "name": "더 거센 전선",
+      "desc": "위협 등급 1 이상에서 점령",
+      "event": "capture",
+      "target": 1,
+      "reward": 100,
+      "min": {
+        "threat": 1
+      }
+    },
+    {
+      "id": "combo_1",
+      "name": "합동 작전",
+      "desc": "조합 스킬 첫 성공",
+      "event": "cardJudged",
+      "target": 1,
+      "reward": 10,
+      "where": {
+        "success": true,
+        "combo": true
+      }
+    },
+    {
+      "id": "combo_50",
+      "name": "작전 참모",
+      "desc": "조합 스킬 50번 성공(누적)",
+      "event": "cardJudged",
+      "target": 50,
+      "reward": 80,
+      "where": {
+        "success": true,
+        "combo": true
+      }
+    },
+    {
+      "id": "seal_1",
+      "name": "확정 명령",
+      "desc": "인장을 걸고 제출",
+      "event": "cardJudged",
+      "target": 1,
+      "reward": 10,
+      "where": {
+        "seal": true
+      }
+    },
+    {
+      "id": "gamble_win",
+      "name": "무리수의 대가",
+      "desc": "마이너스 카드를 끼운 무리수 성공",
+      "event": "cardJudged",
+      "target": 1,
+      "reward": 40,
+      "where": {
+        "success": true,
+        "gamble": true
+      }
+    },
+    {
+      "id": "streak_breaker",
+      "name": "포기하지 않는다",
+      "desc": "5번 연속 실패 뒤 성공",
+      "event": "cardJudged",
+      "target": 1,
+      "reward": 40,
+      "where": {
+        "success": true
+      },
+      "min": {
+        "failStreak": 5
+      }
+    },
+    {
+      "id": "skill_all",
+      "name": "모든 지원 요청",
+      "desc": "서로 다른 고급 스킬 12종 사용",
+      "event": "skill",
+      "target": 12,
+      "reward": 150,
+      "distinct": "id"
+    },
+    {
+      "id": "npc_all",
+      "name": "전장의 사람들",
+      "desc": "서로 다른 NPC 10명 만남",
+      "event": "npc",
+      "target": 10,
+      "reward": 80,
+      "distinct": "id"
+    },
+    {
+      "id": "untouched",
+      "name": "무사 귀환",
+      "desc": "5분 동안 피해 없이 버팀",
+      "event": "noHit",
+      "target": 1,
+      "reward": 80,
+      "min": {
+        "sec": 300
+      }
+    }
+  ]
+}

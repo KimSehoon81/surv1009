@@ -61,7 +61,7 @@ export interface CardHost {
   /** 방해가 막는 태그(악천후 → 공군 제출 불가) */
   blockedTags?(): readonly string[];
   /** 판정 결과 연출(금색 플래시 등) */
-  onResult(success: boolean): void;
+  onResult(success: boolean, judged?: Extract<CardEvent, { type: 'judged' }>): void;
   /** 카드 효과·조합 스킬·마이너스 발동·실패 소멸(잔효) */
   onEffect(ev: CardEvent): void;
 }
@@ -241,7 +241,7 @@ export class CardSystem {
     j.resolved = true;
     const success = j.judged.success;
     this.host.audio.play(success ? 'judge_success' : 'judge_fail');
-    this.host.onResult(success);
+    this.host.onResult(success, j.judged);
     for (const ev of j.events) {
       if (ev.type === 'comboSkill' || ev.type === 'cardEffect' || ev.type === 'minusTriggered' || ev.type === 'purified' || ev.type === 'lost') this.host.onEffect(ev);
     }

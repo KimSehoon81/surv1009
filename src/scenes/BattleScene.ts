@@ -47,6 +47,8 @@ import { EnemyAttackSystem } from '../systems/enemyAttacks';
 import { SkillSlots, type CastReject, type SkillDef } from '../core/skills';
 import { damageTakenMult } from '../core/enemyAttack';
 import { runEffect, type Params } from '../systems/effects';
+import achievementsData from '../data/achievements.json';
+import { addSeen, applyEvent, emptyAchievements, emptyCodex, type AchievementDef, type AchievementState, type Codex, type GameEvent } from '../core/achievements';
 import { prefs, qualityPreset, type Prefs } from '../systems/prefs';
 import settingsData from '../data/settings.json';
 import shopData from '../data/shop.json';
@@ -93,6 +95,7 @@ const DEBUG_SETS: [string, number][][] = [
   [['E46', 6], ['E47', 2], ['E48', 2], ['E49', 1]],
 ];
 const TP = skillsData.tp;
+const ACH = achievementsData.achievements as AchievementDef[];
 /** 마지막 지역(엔딩): 작전지도 순서의 끝 */
 const FINAL_STAGE = mapData.nodes[mapData.nodes.length - 1]?.id ?? 'S10';
 /** 위협 우선 조준(G6): 방해원(disrupt)·버프 오라(aura)·지정 우선(targetPriority) */
@@ -184,6 +187,13 @@ export class BattleScene extends Phaser.Scene {
   private hazards!: HazardSystem;
   /** 뒤집힌 카드 방해가 걸려 있는지(바뀌는 순간 손패를 뒤집거나 되돌림) */
   private flipOn = false;
+  /** 업적·도감(D41): 이번 판 메모리 상태, 정산 때 저장 */
+  private ach: AchievementState = emptyAchievements();
+  private codex: Codex = emptyCodex();
+  private achMerit = 0;
+  private failRun = 0;
+  private lastHurtMs = 0;
+  private noHitFired = false;
   /** 저사양 자동 하향(D40): FPS가 낮은 채 지난 시간, 이번 판에 이미 낮췄는지 */
   private lowFpsMs = 0;
   private autoLowered = false;
@@ -315,7 +325,8 @@ export class BattleScene extends Phaser.Scene {
         tagBonus: () => battle.charDef.cardBonus ?? {},
         drawMul: () => battle.drawMul(),
         blockedTags: () => battle.blockedTags(),
-        onResult: (success) => {
+        onResult: (success, judged) => {
+          battle.onJudged(success, judged);
           battle.feel.hit(success ? 'card_success' : 'card_fail', battle.player.x, battle.player.y - combat.bodyOffsetY);
           if (!success) battle.tip('firstFail');
         },
@@ -433,6 +444,15 @@ export class BattleScene extends Phaser.Scene {
     const envDef = this.stage.environment;
     if (envDef) this.player.addBuff(`env_${envDef.name}`, envDef.mods, 24 * 3600 * 1000, 0);
     this.flipOn = false;
+    {
+      const prof = loadProfile();
+      this.ach = prof.achievements ?? emptyAchievements();
+      this.codex = prof.codex ?? emptyCodex();
+    }
+    this.achMerit = 0;
+    this.failRun = 0;
+    this.lastHurtMs = 0;
+    this.noHitFired = false;
     this.lowFpsMs = 0;
     this.autoLowered = false;
     this.safeZone = null;
@@ -693,6 +713,7 @@ export class BattleScene extends Phaser.Scene {
         onGive: (id) => {
           const def = npcData.npcs[id] as unknown as { effects: { effect: string; params: unknown }[]; action?: string };
           for (const fx of def.effects) runEffect(fx.effect, this.effects, fx.params as Params, 1);
+          this.achEvent({ type: 'npc', id });
           if (def.action === 'shop') this.openShop();
           else if (def.action === 'safeZone') this.placeSafeZone();
           else if (def.action === 'hiddenSupply') {
@@ -712,6 +733,12 @@ export class BattleScene extends Phaser.Scene {
       this.periodicSupport(now);
       this.drawDome(now);
       this.updateSafeZone(now);
+      // 업적 '무사 귀환': 5분 동안 피해 없음(판당 한 번), 도감: 손에 들어온 카드
+      if (!this.noHitFired && now - this.lastHurtMs >= 300_000) {
+        this.noHitFired = true;
+        this.achEvent({ type: 'noHit', sec: Math.floor((now - this.lastHurtMs) / 1000) });
+      }
+      for (const c of this.cards.state.hand) if (!c.disguised && !c.faceDown) this.codex = addSeen(this.codex, 'cards', c.id);
       this.mines.update(now, this.enemies.grid, target, {
         onExplode: (x, y, spec) => {
           this.timelines.cue('mine_blast', x, y);
@@ -780,6 +807,9 @@ export class BattleScene extends Phaser.Scene {
     this.enemies.kill(e);
     this.run.kills++;
     this.fireTriggers('kill', e.x, e.y);
+    // 업적·도감: 처치한 적
+    this.achEvent({ type: 'kill', tier: e.def.tier, enemy: e.id });
+    this.codex = addSeen(this.codex, 'enemies', e.id);
     if (e.def.tier === 'elite') this.run.eliteKills++;
     if (e === this.boss) this.capture(e.x, e.y);
     // 방해원 처치: 그 적이 건 방해에서 빠지고, 원인이 모두 죽으면 해제
@@ -921,6 +951,7 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
     p.hp = Math.max(0, p.hp - res.damage);
+    this.lastHurtMs = now;
     // 반사: 받은 피해의 일부를 쏜 자리 가까운 적에게
     if (dome && dome.reflect > 0) {
       const src = this.enemies.grid.nearest(fromX, fromY, 40, (e) => e.alive);
@@ -965,6 +996,7 @@ export class BattleScene extends Phaser.Scene {
     }
     this.timelines.play(r.def.timeline as string, this.player.stats.allyPower);
     this.player.trigger('skill', now);
+    this.achEvent({ type: 'skill', id: this.skills.slots[i]?.skillId ?? '' });
     this.run.skillsUsed++;
     this.toast(`${r.def.name}!`, '#7fd8ff');
     return true;
@@ -1242,6 +1274,7 @@ export class BattleScene extends Phaser.Scene {
     const threat = this.enemies.threat;
     const merit = Math.round(meritPoints(record, metaData.merit) * threatReward(threat));
     const step = globalStep(stageNumber(this.payload.stage), record.level);
+    if (victory) this.achEvent({ type: 'capture', stage: this.payload.stage, timeSec: record.timeSec, threat });
     // 마지막 지역 점령 = 엔딩(뉴게임+ 열림)
     const ending = victory && this.payload.stage === FINAL_STAGE;
     // 정산: 점령 기록·전공·첫 점령 해금(core/meta), 최고 전역 단계
@@ -1249,7 +1282,7 @@ export class BattleScene extends Phaser.Scene {
     updateProfile((d) => {
       const r = applyCapture(d, this.payload.stage, { victory, timeSec: record.timeSec, merit }, unlocksData.stages as Record<string, UnlockEntry>);
       unlocked = r.unlocked;
-      const next = { ...r.save, bestStep: Math.max(r.save.bestStep ?? 0, step) };
+      const next = { ...r.save, bestStep: Math.max(r.save.bestStep ?? 0, step), achievements: this.ach, codex: this.codex, merit: r.save.merit + this.achMerit };
       if (ending) next.flags = { ...next.flags, endingSeen: true };
       return next;
     });
@@ -1342,6 +1375,24 @@ export class BattleScene extends Phaser.Scene {
     this.shopOpen = false;
     this.modalClosedFrame = this.game.loop.frame;
     this.clock.resume('shop');
+  }
+
+  /** 업적 이벤트: 메모리에서 판정, 달성하면 알림 + 보상 전공(정산 때 저장) */
+  achEvent(ev: GameEvent): void {
+    const r = applyEvent(this.ach, ev, ACH);
+    this.ach = r.state;
+    for (const d of r.unlocked) {
+      this.achMerit += d.reward ?? 0;
+      this.toast(`업적 달성: ${d.name}${d.reward ? ` (+${d.reward} 전공)` : ''}`, '#ffe14d');
+      this.audio.play('levelup');
+    }
+  }
+
+  /** 카드 판정 → 업적(조합·인장·무리수·연속 실패 뒤 성공)·도감 */
+  onJudged(success: boolean, j?: Extract<CardEvent, { type: 'judged' }>): void {
+    const gamble = (j?.cards ?? []).some((c) => CARD_DATA.cards[c.id]?.tag === 'minus');
+    this.achEvent({ type: 'cardJudged', success, combo: Boolean(j?.combo), seal: Boolean(j?.seal), gamble, failStreak: this.failRun });
+    this.failRun = success ? 0 : this.failRun + 1;
   }
 
   /** 저사양 자동 하향: 전투 중 FPS가 autoLow.sec초 넘게 autoLow.fps 미만이면 한 단계 낮추고 저장(한 판에 한 번) */

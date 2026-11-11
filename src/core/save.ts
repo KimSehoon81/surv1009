@@ -22,6 +22,10 @@ export interface SaveData {
   threat?: number;
   /** 도달한 가장 높은 전역 단계 N(1~100) */
   bestStep?: number;
+  /** 업적 진행(D41, core/achievements) */
+  achievements?: { done: string[]; counters: Record<string, number>; sets: Record<string, string[]> };
+  /** 도감: 처치한 적·손에 들어온 카드(캐릭터는 해금 목록) */
+  codex?: { chars: string[]; enemies: string[]; cards: string[] };
   merit: number;
   /** 스타팅 포인트 강화 단계(D19) */
   startUpgrades: Record<string, number>;
