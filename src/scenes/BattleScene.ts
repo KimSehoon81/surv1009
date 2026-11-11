@@ -47,7 +47,7 @@ import { EnemyAttackSystem } from '../systems/enemyAttacks';
 import { SkillSlots, type CastReject, type SkillDef } from '../core/skills';
 import { damageTakenMult } from '../core/enemyAttack';
 import { runEffect, type Params } from '../systems/effects';
-import { prefs, type Prefs } from '../systems/prefs';
+import { prefs, qualityPreset, type Prefs } from '../systems/prefs';
 import settingsData from '../data/settings.json';
 import shopData from '../data/shop.json';
 import mapData from '../data/map.json';
@@ -184,6 +184,9 @@ export class BattleScene extends Phaser.Scene {
   private hazards!: HazardSystem;
   /** 뒤집힌 카드 방해가 걸려 있는지(바뀌는 순간 손패를 뒤집거나 되돌림) */
   private flipOn = false;
+  /** 저사양 자동 하향(D40): FPS가 낮은 채 지난 시간, 이번 판에 이미 낮췄는지 */
+  private lowFpsMs = 0;
+  private autoLowered = false;
   /** 임시 안전지대(N09 헌병): 안으로 들어온 적을 밀어냄 */
   private safeZone: { x: number; y: number; r: number; untilMs: number; gfx: Phaser.GameObjects.Graphics } | null = null;
   /** explode가 공중 유닛도 맞히는 중(타임라인 피해) */
@@ -284,7 +287,11 @@ export class BattleScene extends Phaser.Scene {
     this.fx = new FxSystem(this, feelData.fxCap);
     this.feel = new Feel(this, this.clock, this.fx, rng.fork('feel'));
     // 흔들림·점멸 강도(설정 0~100%)
-    this.feel.intensity.shake = feelData.intensity.shake * this.pref.feel;
+    // 이펙트 품질(D40): 입자·숫자 상한, 흔들림 배율
+    const qp = qualityPreset(this.pref.quality);
+    this.feel.particles.setCap(qp.particles);
+    this.feel.numbers.setCap(qp.numbers);
+    this.feel.intensity.shake = feelData.intensity.shake * this.pref.feel * qp.shake;
     this.feel.intensity.flash = feelData.intensity.flash * this.pref.feel;
     this.audio = new AudioSystem(this, rng.fork('audio'));
     this.audio.mono = this.pref.mono;
@@ -420,11 +427,14 @@ export class BattleScene extends Phaser.Scene {
     // 장애물(서울 시가전 등 floor.json obstacles) + 적이 세우는 바리케이드
     this.obstacles = new ObstacleSystem(this, (floorData[this.stage.floor as keyof typeof floorData] as { obstacles?: ObstacleConfig }).obstacles ?? null, params.seed);
     this.enemies.blocker = this.obstacles;
-    this.props = new PropSystem(this, (propsData.stages as Record<string, PropLayout>)[this.payload.stage] ?? null, params.seed);
+    // 낮음 품질이면 배경 소품을 끈다
+    this.props = new PropSystem(this, qualityPreset(this.pref.quality).props ? ((propsData.stages as Record<string, PropLayout>)[this.payload.stage] ?? null) : null, params.seed);
     // 상시 환경(혹한 등): 판 내내 걸린 수정자, 방해 수에 넣지 않음
     const envDef = this.stage.environment;
     if (envDef) this.player.addBuff(`env_${envDef.name}`, envDef.mods, 24 * 3600 * 1000, 0);
     this.flipOn = false;
+    this.lowFpsMs = 0;
+    this.autoLowered = false;
     this.safeZone = null;
     this.opsOpen = false;
     this.revealUntil = 0;
@@ -540,6 +550,17 @@ export class BattleScene extends Phaser.Scene {
       if (!this.run.defeated && !this.result && !this.clock.hasScale('pause')) this.togglePause();
     };
     this.game.events.on(Phaser.Core.Events.BLUR, autoPause);
+    // 렌더 시간(성능 측정, D40): 게임 전체 그리기 앞뒤
+    this.perf.resetTotals();
+    let renderStart = 0;
+    const preRender = () => (renderStart = performance.now());
+    const postRender = () => this.perf.record('render', performance.now() - renderStart);
+    this.game.events.on(Phaser.Core.Events.PRE_RENDER, preRender);
+    this.game.events.on(Phaser.Core.Events.POST_RENDER, postRender);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.game.events.off(Phaser.Core.Events.PRE_RENDER, preRender);
+      this.game.events.off(Phaser.Core.Events.POST_RENDER, postRender);
+    });
     this.game.events.on(Phaser.Core.Events.HIDDEN, autoPause);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -629,6 +650,7 @@ export class BattleScene extends Phaser.Scene {
     const p = this.player;
     if (params.debug && !this.clock.hasScale('pause')) this.debugKeys(now);
     this.perf.start();
+    this.autoQuality(delta);
 
     p.update(this.controls, dt, now, scale);
     const cam = this.cameras.main;
@@ -637,6 +659,7 @@ export class BattleScene extends Phaser.Scene {
     this.props.update(cam, now, p);
     const pr = this.obstacles.resolve(p.x, p.y, combat.playerRadius);
     if (pr.x !== p.x || pr.y !== p.y) p.sprite.setPosition(pr.x, pr.y);
+    this.perf.lap('world');
     // 플레이어는 늘 적보다 앞(포위돼도 위치가 보이게, PRD §6.4 가독성). 적끼리는 y 순서
     p.sprite.setDepth(Depth.Player);
     const target = { x: p.x, y: p.y, radius: combat.playerRadius };
@@ -1319,6 +1342,27 @@ export class BattleScene extends Phaser.Scene {
     this.shopOpen = false;
     this.modalClosedFrame = this.game.loop.frame;
     this.clock.resume('shop');
+  }
+
+  /** 저사양 자동 하향: 전투 중 FPS가 autoLow.sec초 넘게 autoLow.fps 미만이면 한 단계 낮추고 저장(한 판에 한 번) */
+  private autoQuality(deltaMs: number): void {
+    const cfg = settingsData.quality.autoLow;
+    if (this.autoLowered || this.clock.hardPaused || this.result) return;
+    this.lowFpsMs = this.game.loop.actualFps < cfg.fps ? this.lowFpsMs + deltaMs : 0;
+    if (this.lowFpsMs < cfg.sec * 1000) return;
+    const order = settingsData.quality.order;
+    const next = order[order.indexOf(this.pref.quality) + 1];
+    this.autoLowered = true;
+    if (!next) return;
+    const qp = qualityPreset(next);
+    this.feel.particles.setCap(qp.particles);
+    this.feel.numbers.setCap(qp.numbers);
+    this.feel.intensity.shake = feelData.intensity.shake * this.pref.feel * qp.shake;
+    this.pref = { ...this.pref, quality: next };
+    updateProfile((d) => {
+      d.settings.quality = next;
+    });
+    this.toast(`화면이 느려 이펙트 품질을 '${(settingsData.quality.names as Record<string, string>)[next]}'(으)로 낮췄습니다 — 설정에서 바꿀 수 있음`, '#b0a890');
   }
 
   /** 임시 안전지대(N09): 플레이어 자리에 반경 r, ms 동안 */

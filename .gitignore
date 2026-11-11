@@ -5,5 +5,8 @@ dist-zip/
 .DS_Store
 # npm run assets가 매번 생성
 src/assets/available.json
+src/assets/atlases.json
+# npm run atlas 빌드 산출물(배포 빌드 때 생성)
+public/atlas/
 __pycache__/
 tools/audio/out/

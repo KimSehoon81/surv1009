@@ -210,6 +210,11 @@ export class ParticleSystem {
     return this.pool.size;
   }
 
+  /** 품질 옵션(D40): 상한 낮추기 */
+  setCap(n: number): void {
+    this.pool.cap = Math.max(1, Math.min(this.pool.cap, Math.round(n)));
+  }
+
   get cap(): number {
     return this.pool.cap;
   }

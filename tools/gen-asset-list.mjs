@@ -29,3 +29,23 @@ mkdirSync(dirname(outFile), { recursive: true });
 const prev = existsSync(outFile) ? readFileSync(outFile, 'utf8') : '';
 if (prev !== json) writeFileSync(outFile, json);
 console.log(`[assets] public/assets 파일 ${files.length}개`);
+
+// 아틀라스(D40, npm run atlas): index.json이 있으면 src/assets/atlases.json으로. 아틀라스보다 새로 바뀐 원본은 빼서 개별 로드
+const atlasDir = join(root, 'public', 'atlas');
+const atlasOut = join(root, 'src', 'assets', 'atlases.json');
+let pages = [];
+const idxPath = join(atlasDir, 'index.json');
+if (existsSync(idxPath)) {
+  const idx = JSON.parse(readFileSync(idxPath, 'utf8'));
+  const built = (idx.builtAt ?? 0) * 1000;
+  pages = (idx.pages ?? []).map((p) => ({
+    key: `atlas_${p.name}`,
+    png: `atlas/${p.name}.png`,
+    json: `atlas/${p.name}.json`,
+    files: p.files.filter((f) => existsSync(join(assetsDir, f)) && statSync(join(assetsDir, f)).mtimeMs <= built),
+  })).filter((p) => p.files.length > 0);
+}
+const atlasJson = JSON.stringify(pages, null, 1) + '\n';
+const prevAtlas = existsSync(atlasOut) ? readFileSync(atlasOut, 'utf8') : '';
+if (prevAtlas !== atlasJson) writeFileSync(atlasOut, atlasJson);
+if (pages.length > 0) console.log(`[assets] 아틀라스 ${pages.length}페이지(${pages.reduce((n, p) => n + p.files.length, 0)}장)`);

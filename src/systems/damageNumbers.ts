@@ -75,6 +75,11 @@ export class DamageNumbers {
     );
   }
 
+  /** 품질 옵션(D40): 동시 숫자 상한 낮추기 */
+  setCap(n: number): void {
+    this.pool.cap = Math.max(1, Math.min(this.pool.cap, Math.round(n)));
+  }
+
   /** (x, y): 숫자가 시작할 월드 좌표(보통 맞은 몸통 위). value가 없으면 스타일의 text(예: KILL) */
   show(styleName: string, x: number, y: number, value?: number | string, key?: object): void {
     const st = this.styles.get(styleName);

@@ -74,7 +74,8 @@ export class CappedPool<T> {
 
   constructor(
     factory: () => T,
-    readonly cap: number,
+    /** 동시 상한(품질 옵션이 낮출 수 있음, 미리 만든 수보다 작게만) */
+    public cap: number,
   ) {
     this.pool = new Pool(factory, cap);
   }

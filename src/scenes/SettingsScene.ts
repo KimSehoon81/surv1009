@@ -11,7 +11,8 @@ import { SceneKey } from './keys';
 
 type Tab = (typeof settingsData.tabs)[number];
 type Option = Tab['options'][number] & { hint?: string };
-const DEFAULTS = settingsData.defaults as Record<string, number | boolean>;
+const DEFAULTS = settingsData.defaults as unknown as Record<string, number | boolean | string>;
+const Q = settingsData.quality;
 const REMAP = settingsData.keys.remappable as Record<string, string>;
 const DEF_KEYS = controls.keys as Record<string, string[]>;
 const KEY_NAMES = Object.entries(Phaser.Input.Keyboard.KeyCodes).reduce<Record<number, string>>((m, [name, code]) => ((m[code as number] ??= name), m), {});
@@ -74,14 +75,14 @@ export class SettingsScene extends Phaser.Scene {
     this.list.setItems(t.id === 'keys' ? this.keyItems() : t.options.map((o) => this.optionItem(o as Option)));
   }
 
-  private read(key: string): number | boolean {
+  private read(key: string): number | boolean | string {
     const s = loadProfile().settings as unknown as Record<string, unknown>;
     if (key.startsWith('volume.')) return (s.volume as Record<string, number>)[key.slice(7)] ?? 1;
     const v = s[key];
-    return typeof v === 'number' || typeof v === 'boolean' ? v : (DEFAULTS[key] ?? true);
+    return typeof v === 'number' || typeof v === 'boolean' || typeof v === 'string' ? v : (DEFAULTS[key] ?? true);
   }
 
-  private write(key: string, v: number | boolean): void {
+  private write(key: string, v: number | boolean | string): void {
     updateProfile((d) => {
       const s = d.settings as unknown as Record<string, unknown>;
       if (key.startsWith('volume.')) (s.volume as Record<string, number>)[key.slice(7)] = v as number;
@@ -92,6 +93,13 @@ export class SettingsScene extends Phaser.Scene {
 
   private optionItem(o: Option): ListItem {
     const v = this.read(o.key);
+    if (o.kind === 'choice') {
+      // 이펙트 품질: 높음 → 보통 → 낮음 차례
+      const order = Q.order;
+      const i = Math.max(0, order.indexOf(String(v)));
+      const step = (d: number) => this.write(o.key, order[(i + d + order.length) % order.length] ?? 'high');
+      return { label: o.label, right: (Q.names as Record<string, string>)[String(v)] ?? String(v), hint: o.hint, onSelect: () => step(1), onAdjust: step };
+    }
     if (o.kind === 'percent') {
       const n = typeof v === 'number' ? v : 1;
       const step = (d: number) => this.write(o.key, Math.round(Math.max(0, Math.min(1, n + d * 0.1)) * 10) / 10);

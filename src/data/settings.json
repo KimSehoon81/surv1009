@@ -1,5 +1,5 @@
 {
-  "$comment": "설정 화면(PRD §11, D29). defaults=편의·접근성 기본값(저장에 없으면 이 값), options=탭별 항목(라벨·종류·저장 키), keys.remappable=키 재설정 가능한 액션(라벨), keys.conflictGroup=전투 중 함께 쓰이는 액션(이 안에서 같은 키는 거부, 레벨업 숫자키와 카드 숫자키처럼 화면이 다른 것은 기본 공유 허용). recruitDamageMul=신병 모드 받는 피해 배율(PRD §11: −30%), shortJudgeMul=판정 연출 짧게 배율.",
+  "$comment": "설정 화면(PRD §11, D29). defaults=편의·접근성 기본값(저장에 없으면 이 값), options=탭별 항목(라벨·종류·저장 키), keys.remappable=키 재설정 가능한 액션(라벨), keys.conflictGroup=전투 중 함께 쓰이는 액션(이 안에서 같은 키는 거부, 레벨업 숫자키와 카드 숫자키처럼 화면이 다른 것은 기본 공유 허용). recruitDamageMul=신병 모드 받는 피해 배율(PRD §11: −30%), shortJudgeMul=판정 연출 짧게 배율. quality(D40)=이펙트 품질 프리셋(입자·숫자 상한, 흔들림 배율, 소품 표시), autoLow=FPS가 sec초 동안 fps 미만이면 한 단계 자동 하향(한 판에 한 번).",
   "defaults": {
     "feel": 1,
     "mono": false,
@@ -8,7 +8,8 @@
     "shortJudge": false,
     "threatFirst": true,
     "autoDiscardMinus": false,
-    "recruit": false
+    "recruit": false,
+    "quality": "high"
   },
   "recruitDamageMul": 0.7,
   "shortJudgeMul": 0.5,
@@ -17,6 +18,12 @@
       "id": "basic",
       "name": "기본",
       "options": [
+        {
+          "key": "quality",
+          "label": "이펙트 품질",
+          "kind": "choice",
+          "hint": "입자·데미지 숫자 상한, 흔들림, 배경 소품을 단계별로 낮춤(낮음은 소품 끔). 전투 중 FPS가 10초 넘게 50 미만이면 한 번 자동으로 낮춤"
+        },
         {
           "key": "feel",
           "label": "화면 흔들림·점멸 강도",
@@ -147,5 +154,41 @@
       "levelPick3",
       "levelPick4"
     ]
+  },
+  "quality": {
+    "order": [
+      "high",
+      "normal",
+      "low"
+    ],
+    "names": {
+      "high": "높음",
+      "normal": "보통",
+      "low": "낮음"
+    },
+    "presets": {
+      "high": {
+        "particles": 300,
+        "numbers": 40,
+        "shake": 1,
+        "props": true
+      },
+      "normal": {
+        "particles": 180,
+        "numbers": 25,
+        "shake": 0.8,
+        "props": true
+      },
+      "low": {
+        "particles": 80,
+        "numbers": 12,
+        "shake": 0.5,
+        "props": false
+      }
+    },
+    "autoLow": {
+      "fps": 50,
+      "sec": 10
+    }
   }
 }

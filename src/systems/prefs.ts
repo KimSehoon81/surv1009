@@ -18,7 +18,14 @@ export function prefs(): Prefs {
     threatFirst: s.threatFirst ?? d.threatFirst,
     autoDiscardMinus: s.autoDiscardMinus ?? d.autoDiscardMinus,
     recruit: s.recruit ?? d.recruit,
+    quality: typeof s.quality === 'string' && s.quality in settings.quality.presets ? s.quality : d.quality,
   };
+}
+
+/** 품질 프리셋(D40) */
+export function qualityPreset(q: string): { particles: number; numbers: number; shake: number; props: boolean } {
+  const presets = settings.quality.presets as Record<string, { particles: number; numbers: number; shake: number; props: boolean }>;
+  return presets[q] ?? (presets.high as { particles: number; numbers: number; shake: number; props: boolean });
 }
 
 /** 지금 쓸 키 배치(키 재설정 반영) */

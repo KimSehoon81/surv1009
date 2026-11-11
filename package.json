@@ -9,6 +9,8 @@
   },
   "scripts": {
     "assets": "node tools/gen-asset-list.mjs",
+    "atlas": "python3 tools/art/atlas.py && node tools/gen-asset-list.mjs",
+    "build:release": "npm run atlas && vite build",
     "assets:check": "tsx tools/check-assets.ts",
     "audio:bake": "tsx tools/audio/bake.mjs",
     "sim": "tsx tools/sim.ts",

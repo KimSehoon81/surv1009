@@ -38,6 +38,8 @@ export interface SaveData {
     shortJudge?: boolean;
     autoDiscardMinus?: boolean;
     recruit?: boolean;
+    /** 이펙트 품질 high·normal·low(D40) */
+    quality?: string;
     /** 키 재설정: 액션 → 키(기본값 위에 덮어쓰기만) */
     keys?: Record<string, string[]>;
   };
