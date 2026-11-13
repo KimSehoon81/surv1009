@@ -71,7 +71,8 @@
       "blockedTag": "Card blocked now (comms down / bad weather)",
       "noSeal": "No seal",
       "notEnoughOp": "Not enough OP (minus discard 3)",
-      "judging": "Judging"
+      "judging": "Judging",
+      "onlyHeld": "Only cards worth saving (Comms Restore is for disruptions) — pick it yourself to play anyway"
     },
     "term": {
       "base": "Base",

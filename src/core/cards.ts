@@ -15,6 +15,8 @@ export interface CardDef {
 }
 
 export interface CardRules extends ChanceRules {
+  /** 걷어낼 것이 없을 때 추천이 단독으로 고르지 않는 카드 */
+  holdWithoutDisruption?: readonly string[];
   /** 후반(fromLevel 이상) 혼입 확률 배율 + 혼탁 카드 */
   minusLate?: { fromLevel: number; mult: number };
   initialHand: number;
@@ -93,6 +95,8 @@ export interface CardEnv {
   minusChance: number;
   /** 낼 수 없는 태그(통신 두절 M07 → intel) */
   blockedTags?: readonly string[];
+  /** 지금 단독으로 내면 효과가 없는 카드(걷어낼 방해가 없을 때 통신 복구): 추천이 단독·비조합으로는 고르지 않음, 조합 재료로는 그대로 */
+  holdCards?: readonly string[];
   /** 태그별 판정 감점(방공망 → air 0.15) */
   tagPenalty?: Readonly<Record<string, number>>;
   /** 섞여 드는 마이너스를 혼탁 카드로(Lv7 이후) */

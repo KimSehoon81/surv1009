@@ -60,6 +60,8 @@ export interface CardHost {
   drawMul?(): number;
   /** 방해가 막는 태그(악천후 → 공군 제출 불가) */
   blockedTags?(): readonly string[];
+  /** 지금 단독으로 내면 헛되는 카드(추천에서 뺌) */
+  holdCards?(): readonly string[];
   /** 판정 결과 연출(금색 플래시 등) */
   onResult(success: boolean, judged?: Extract<CardEvent, { type: 'judged' }>): void;
   /** 카드 효과·조합 스킬·마이너스 발동·실패 소멸(잔효) */
@@ -112,6 +114,7 @@ export class CardSystem {
       disguiseMinus: mix.disguise,
       blockedTags: [...(s.blockIntel > 0 ? ['intel'] : []), ...(this.host.blockedTags?.() ?? [])],
       tagPenalty: this.host.tagPenalty?.(),
+      holdCards: this.host.holdCards?.(),
       tagBonus: this.host.tagBonus?.(),
     };
   }
@@ -208,7 +211,9 @@ export class CardSystem {
         const minusOnly = hand.length > 0 && hand.every((c) => !c.disguised && CARD_DATA.cards[c.id]?.tag === 'minus');
         const blocked = this.env().blockedTags ?? [];
         const allBlocked = hand.length > 0 && hand.every((c) => CARD_DATA.cards[c.id]?.tag === 'minus' || blocked.includes(CARD_DATA.cards[c.id]?.tag ?? ''));
-        this.reject(hand.length === 0 ? 'empty' : minusOnly ? 'onlyMinus' : allBlocked ? 'blockedTag' : 'empty', nowReal);
+        const held = this.env().holdCards ?? [];
+        const onlyHeld = hand.length > 0 && hand.every((c) => CARD_DATA.cards[c.id]?.tag === 'minus' || held.includes(c.id));
+        this.reject(hand.length === 0 ? 'empty' : minusOnly ? 'onlyMinus' : allBlocked ? 'blockedTag' : onlyHeld ? 'onlyHeld' : 'empty', nowReal);
         return;
       }
       this.selected = [...a.uids];

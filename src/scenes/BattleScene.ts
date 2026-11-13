@@ -325,6 +325,8 @@ export class BattleScene extends Phaser.Scene {
         tagBonus: () => battle.charDef.cardBonus ?? {},
         drawMul: () => battle.drawMul(),
         blockedTags: () => battle.blockedTags(),
+        // 걷어낼 방해·디버프·오보가 없으면 통신 복구는 아껴 둠(Space 두 번이 헛카드를 내지 않게)
+        holdCards: () => (battle.effects?.canClearDisruption() ? [] : CARD_DATA.rules.holdWithoutDisruption ?? []),
         onResult: (success, judged) => {
           battle.onJudged(success, judged);
           battle.feel.hit(success ? 'card_success' : 'card_fail', battle.player.x, battle.player.y - combat.bodyOffsetY);
@@ -419,6 +421,7 @@ export class BattleScene extends Phaser.Scene {
       explode: (x, y, r, m, f, fs, imp, tag) => this.explode(x, y, r, m, f, fs, imp, tag),
       damageEnemy: (e, m, dx, dy, aoe, tag) => this.damageEnemy(e, m, dx, dy, aoe, tag),
       cutCooldowns: (frac) => this.skills.cutCooldowns(frac, this.clock.timeMs),
+      hasStageDisruption: () => this.disruptions.active.length > 0,
       clearStageDisruption: () => {
         const d = this.disruptions.clearOne();
         return d ? (DISRUPTION_NAMES[d.type] ?? d.type) : null;

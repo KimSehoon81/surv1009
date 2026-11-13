@@ -31,6 +31,9 @@ export function recommend(state: CardState, env: CardEnv, data: CardData): Advic
     const pv = previewSubmit(state, uids, false, { ...env, nowMs: Math.max(env.nowMs, state.cooldownUntilMs) }, data);
     if (!pv.ok || !pv.chance) return;
     const combo = pv.combo ?? null;
+    // 조합이 아니면 아껴 둘 카드(지금 헛되는 효과)는 빼고 추천
+    const hold = env.holdCards;
+    if (!combo && hold && hold.length > 0 && uids.some((u) => hold.includes(state.hand.find((c) => c.uid === u)?.id ?? ''))) return;
     const score = pv.chance.final * value(combo, data, uids.length);
     if (!best || score > best.score + 1e-9 || (Math.abs(score - best.score) <= 1e-9 && uids.length > best.uids.length)) {
       best = { uids, combo, chance: pv.chance.final, lose: pv.lose ?? null, score };

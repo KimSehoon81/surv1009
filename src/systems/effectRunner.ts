@@ -43,6 +43,8 @@ export interface RunnerDeps {
   damageEnemy(e: Enemy, mult: number, dirX: number, dirY: number, aoe: boolean, tag?: string): void;
   /** 스테이지 방해(포연 등) 하나 해제. 풀었으면 이름 */
   clearStageDisruption?(): string | null;
+  /** 걸린 스테이지 방해가 있는지(통신 복구 추천 판단) */
+  hasStageDisruption?(): boolean;
   cutCooldowns?(frac: number): void;
   onPlayerHurt(amount: number): void;
   addTp(n: number): void;
@@ -283,6 +285,13 @@ export class EffectRunner implements EffectContext {
   }
 
   /** 방해 하나 해제: 플레이어 디버프(가장 최근) → 카드 성공률 감소 순. 적 방해(재밍 등)는 해당 Day에 추가 */
+  /** 통신 복구가 지금 걷어낼 것이 있는지(바꾸지 않고 보기만) */
+  canClearDisruption(): boolean {
+    if (this.d.hasStageDisruption?.()) return true;
+    if (this.d.player.buffs.list.some((b) => this.d.debuffIds.has(b.id))) return true;
+    return this.d.cards.state.penalties.length > 0;
+  }
+
   clearDisruption(): boolean {
     const stage = this.d.clearStageDisruption?.();
     if (stage) {

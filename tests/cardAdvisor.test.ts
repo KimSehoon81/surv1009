@@ -45,4 +45,17 @@ describe('추천 조합', () => {
   it('쿨다운 중이어도 추천은 보여 준다', () => {
     expect(recommend(hand(['P04', 'P04'], { cooldownUntilMs: 3000 }), env({ nowMs: 1000 }), DATA)?.combo).toBe('bomber_wing');
   });
+
+  it('아껴 둘 카드(holdCards: 걷어낼 방해가 없을 때 통신 복구)는 단독 추천에서 빠지고, 조합 재료로는 쓴다', () => {
+    const hold = { holdCards: rulesData.holdWithoutDisruption };
+    const plain = recommend(hand(['P11', 'P01']), env(), DATA);
+    expect(plain?.uids).toContain(1);
+    const held = recommend(hand(['P11', 'P01']), env(hold), DATA);
+    expect(held?.uids).toEqual([2]);
+    expect(recommend(hand(['P11']), env(hold), DATA)).toBeNull();
+    // 정보 + 공군 = 조합이면 통신 복구도 재료로
+    const combo = recommend(hand(['P11', 'P04']), env(hold), DATA);
+    if (combo?.combo) expect(combo.uids).toContain(1);
+  });
 });
+
