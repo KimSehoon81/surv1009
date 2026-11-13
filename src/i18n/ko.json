@@ -54,6 +54,10 @@
       "noReroll": "다시 뽑기 없음",
       "pending": "레벨업 {n}번 남음 · ",
       "help": "숫자키 또는 클릭으로 선택"
+    },
+    "intro": "{n}/10  {region} · {name}\n보스를 격파하면 점령 — Lv {lv} 또는 {time}에 출현",
+    "obj": {
+      "survive": "목표: 버티며 성장 → 보스 격파 (Lv {lv} 또는 {time} 출현)"
     }
   },
   "card": {
@@ -194,7 +198,8 @@
       "notReady": "준비 중"
     },
     "info": "주요 적: {enemies}\n보스: {boss}\n환경 방해: {disruption}",
-    "status": "상태: {status}"
+    "status": "상태: {status}",
+    "goal": "낙동강에서 압록강까지,\n남에서 북으로 10개 지역을 차례로 점령하세요.\n\n한 판 = 버티며 성장 → 보스 격파 → 점령 (약 15분)\n\n점령하면 전공 포인트와 새 캐릭터·스킬이 열립니다. 전사해도 전공은 절반 남습니다."
   },
   "codex": {
     "tab": {

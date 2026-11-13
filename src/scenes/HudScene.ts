@@ -27,6 +27,7 @@ import { uiText } from '../ui/text';
 import { t } from '../i18n';
 
 const RARITY = upgradesData.rarity;
+const mmss = (sec: number): string => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
 const PICK_KEYS: InputAction[] = ['levelPick1', 'levelPick2', 'levelPick3', 'levelPick4'];
 const CARD_W = 200;
 const CARD_H = 150;
@@ -63,6 +64,9 @@ export class HudScene extends Phaser.Scene {
   /** 예고(엘리트·방해·보스): 문구와 끝 시각(전투 시계) */
   private warnText!: Phaser.GameObjects.Text;
   private stepText!: Phaser.GameObjects.Text;
+  /** 경과 시간(크게)과 이번 판 목표 한 줄(보스 출현 조건 → 보스 격파). 보스 예고가 뜨면 목표 줄은 경고·보스 이름표가 대신함 */
+  private timerText!: Phaser.GameObjects.Text;
+  private objText!: Phaser.GameObjects.Text;
   private warn: { msg: string; untilMs: number; boss: boolean } | null = null;
   private edgeGfx!: Phaser.GameObjects.Graphics;
   private bossTitle!: Phaser.GameObjects.Text;
@@ -178,7 +182,10 @@ export class HudScene extends Phaser.Scene {
       blizzard: () => this.battle.disruptions.has('blizzard'),
       selectDelayMs: () => this.battle.selectDelayMs,
     });
-    this.stepText = this.add.text(370, 10, '', textStyle(11, '#b0a890'));
+    this.timerText = this.add.text(372, 0, '', { ...textStyle(15, '#ffffff'), stroke: '#1a1410', strokeThickness: 3 });
+    this.stepText = this.add.text(428, 4, '', textStyle(11, '#b0a890'));
+    this.objText = this.add.text(372, 21, '', { ...textStyle(12, '#ffe8b0'), stroke: '#1a1410', strokeThickness: 3 });
+    this.showStageIntro();
     this.warnText = this.add.text(LOGICAL_WIDTH / 2, 66, '', { ...textStyle(16, '#ff8060'), stroke: '#1a1410', strokeThickness: 3 }).setOrigin(0.5).setVisible(false);
     this.bossGfx = this.add.graphics();
     this.edgeGfx = this.add.graphics();
@@ -543,7 +550,9 @@ export class HudScene extends Phaser.Scene {
   private drawXp(): void {
     const p = this.battle.progression;
     this.lvText.setText(`LV ${p.level}`);
+    this.timerText.setText(mmss(this.battle.clock.timeMs / 1000));
     this.stepText.setText(t('hud.step', { n: globalStep(this.battle.enemies.stage, p.level) }));
+    this.drawObjective();
     const g = this.xpBar.clear();
     const x = 64;
     const y = 14;
@@ -631,5 +640,31 @@ export class HudScene extends Phaser.Scene {
   private hideLevelUp(): void {
     this.levelUp?.destroy();
     this.levelUp = null;
+  }
+
+  /** 전투 시작 배너: 몇 번째 지역인지와 이번 판 목표(짧은 시간 안에 목적 전달) */
+  private showStageIntro(): void {
+    const st = this.battle.stage;
+    const n = Number(this.battle.payload.stage.replace(/\D/g, '')) || 1;
+    const tr = st.boss.trigger;
+    const intro = this.add
+      .text(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT * 0.3, t('hud.intro', { n, region: st.region, name: st.name, lv: tr.level, time: mmss(tr.time) }), {
+        ...textStyle(18, '#ffe14d'),
+        align: 'center',
+        stroke: '#1a1410',
+        strokeThickness: 4,
+        lineSpacing: 6,
+      })
+      .setOrigin(0.5);
+    this.tweens.add({ targets: intro, alpha: 0, delay: guideData.stageIntroMs - 600, duration: 600, onComplete: () => intro.destroy() });
+  }
+
+  private drawObjective(): void {
+    const b = this.battle;
+    const d = b.director;
+    const boss = b.stage.boss;
+    // 보스 예고 뒤에는 경고·보스 이름표·체력 막대가 목표를 보여 줌(위쪽 가운데가 겹치지 않게 숨김)
+    this.objText.setVisible(!b.result && d.bossAt === null);
+    if (this.objText.visible) this.objText.setText(t('hud.obj.survive', { lv: boss.trigger.level, time: mmss(boss.trigger.time) }));
   }
 }

@@ -50,7 +50,8 @@ export interface StageDef {
   /** npcAt 시각마다 차례로 나올 NPC */
   npcs?: readonly string[];
   /** 초반 밀도(게임 테스트: 한산한 S1~S3 첫 몇 분) */
-  earlyDensity?: { untilSec: number; mult: number };
+  /** 첫 untilSec초 스폰 ×mult. only가 있으면 그 적에게만(원거리 위협은 그대로) */
+  earlyDensity?: { untilSec: number; mult: number; only?: readonly string[] };
   /** 스폰 표 전체 배율(D39 밸런스: 스테이지마다 '기대 DPS ÷ 필요 DPS'를 S1에 맞춤) */
   spawnScale?: number;
   /** 상시 환경(D36 혹한): 방해 수에 넣지 않는 플레이어 수정자(지형 태그면 산악병이 무시) */
@@ -80,10 +81,11 @@ export type StageEvent =
   | { type: 'burstWarn'; burst: BurstDef; inSec: number }
   | { type: 'burst'; burst: BurstDef };
 
-/** 초반 밀도 배율(스테이지 earlyDensity): 첫 untilSec초 동안 ×mult */
-export function earlyMult(stage: StageDef, t: number): number {
+/** 초반 밀도(스테이지 earlyDensity)를 적용한 스폰 표. 초반이 아니면 같은 배열을 그대로 돌려줌 */
+export function earlySpawns(stage: StageDef, spawns: readonly SpawnEntry[], t: number): readonly SpawnEntry[] {
   const e = stage.earlyDensity;
-  return e && t < e.untilSec ? e.mult : 1;
+  if (!e || t >= e.untilSec) return spawns;
+  return spawns.map((s) => (!e.only || e.only.includes(s.enemy) ? { ...s, perSec: s.perSec * e.mult } : s));
 }
 
 export function phaseAt(stage: StageDef, t: number): StagePhase {
@@ -143,11 +145,19 @@ export class StageDirector {
 
   /** 군집 진행: 0 대기, 1 예고함, 2 나옴 */
   private burstStep: number[];
+  private readonly earlyCache = new Map<StagePhase, readonly SpawnEntry[]>();
 
   /** 지금 스폰 표와 밀도 배율(보스전이면 보스 배율까지) */
   spawnsAt(t: number): { spawns: readonly SpawnEntry[]; mult: number } {
     const pace = pacingAt(this.stage, t)?.mult ?? 1;
-    return { spawns: phaseAt(this.stage, t).spawns, mult: pace * earlyMult(this.stage, t) * (this.stage.spawnScale ?? 1) * (this.bossSpawned ? this.stage.boss.spawnMult : 1) };
+    const phase = phaseAt(this.stage, t);
+    let spawns = phase.spawns;
+    if (this.stage.earlyDensity && t < this.stage.earlyDensity.untilSec) {
+      // 단계별로 한 번만 만들어 같은 배열을 돌려줌(EnemySystem이 배열이 바뀔 때만 검사)
+      spawns = this.earlyCache.get(phase) ?? earlySpawns(this.stage, phase.spawns, t);
+      this.earlyCache.set(phase, spawns);
+    }
+    return { spawns, mult: pace * (this.stage.spawnScale ?? 1) * (this.bossSpawned ? this.stage.boss.spawnMult : 1) };
   }
 
   update(t: number, level: number, ctx: { enemiesOnScreen: number }): StageEvent[] {

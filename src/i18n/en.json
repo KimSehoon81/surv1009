@@ -54,6 +54,10 @@
       "noReroll": "No rerolls",
       "pending": "{n} level-ups left · ",
       "help": "Pick with number keys or click"
+    },
+    "intro": "{n}/10  {region} · {name}\nDefeat the boss to capture — it appears at Lv {lv} or {time}",
+    "obj": {
+      "survive": "Goal: grow, then beat the boss (Lv {lv} or {time})"
     }
   },
   "card": {
@@ -194,7 +198,8 @@
       "notReady": "In preparation"
     },
     "info": "Enemies: {enemies}\nBoss: {boss}\nDisruption: {disruption}",
-    "status": "Status: {status}"
+    "status": "Status: {status}",
+    "goal": "From the Nakdong to the Yalu —\ncapture 10 regions in order, south to north.\n\nOne run = survive and grow → defeat the boss → capture (about 15 min)\n\nCaptures give merit and unlock new characters and skills. Even if you fall, you keep half the merit."
   },
   "codex": {
     "tab": {

@@ -3,7 +3,7 @@ import stagesData from '../src/data/stages.json';
 import enemiesData from '../src/data/enemies.json';
 import floorData from '../src/data/floor.json';
 import metaData from '../src/data/meta.json';
-import { StageDirector, introductions, pacingAt, phaseAt, type StageDef } from '../src/core/stage';
+import { StageDirector, earlySpawns, introductions, pacingAt, phaseAt, type StageDef } from '../src/core/stage';
 import { Disruptions } from '../src/core/disruptions';
 import { actualRate, defeatTip, meritPoints, type RunRecord } from '../src/core/results';
 import { createAttackState, damageTakenMult, moveMode, stepAttack, type AttackSpec } from '../src/core/enemyAttack';
@@ -66,6 +66,30 @@ describe('스테이지 진행', () => {
     expect(phaseAt(S1, 9999).to).toBeNull();
     expect(pacingAt(S1, 500)?.mult).toBe(1.8);
     expect(pacingAt(S1, 100)).toBeNull();
+  });
+
+  it('종류별 동시 상한(maxAlive)은 거리를 두는 일반 적에만, 1 이상 정수', () => {
+    const all = enemiesData.enemies as Record<string, { tier: string; maxAlive?: number; behaviors?: { type: string }[] }>;
+    const capped = Object.entries(all).filter(([, e]) => e.maxAlive !== undefined);
+    expect(capped.length).toBeGreaterThan(0);
+    for (const [id, e] of capped) {
+      expect(Number.isInteger(e.maxAlive) && (e.maxAlive ?? 0) >= 1, id).toBe(true);
+      expect(e.tier, id).toBe('normal');
+      expect(e.behaviors?.some((b) => b.type === 'keepDistance'), id).toBe(true);
+    }
+  });
+
+  it('초반 밀도는 돌격형 졸개에만, 원거리 위협(박격포)은 그대로', () => {
+    const e = S1.earlyDensity!;
+    const base = phaseAt(S1, 200).spawns;
+    const early = earlySpawns(S1, base, 200);
+    const rate = (list: typeof base, id: string) => list.find((s) => s.enemy === id)?.perSec ?? 0;
+    expect(rate(early, 'E01')).toBeCloseTo(rate(base, 'E01') * e.mult);
+    expect(rate(early, 'E03')).toBe(rate(base, 'E03'));
+    expect(earlySpawns(S1, base, e.untilSec)).toBe(base);
+    // 감독은 같은 단계에서 같은 배열을 돌려줌(매 프레임 새 배열 없음)
+    const d = new StageDirector(S1);
+    expect(d.spawnsAt(200).spawns).toBe(d.spawnsAt(201).spawns);
   });
 
   it('엘리트는 3초 전 예고 후 등장, 보스는 13:00 15초 전 경고', () => {

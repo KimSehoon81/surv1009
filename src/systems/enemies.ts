@@ -11,6 +11,12 @@ import type { Rng } from '../core/rng';
 import { Depth } from '../config/depth';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { Enemy, MAX_ENEMY_RADIUS, isEnemyId, type EnemyId } from '../entities/Enemy';
+import enemyData from '../data/enemies.json';
+
+/** 종류별 동시 상한(enemies.json maxAlive): 거리를 두는 원거리 적이 판이 길수록 쌓이지 않게 */
+const TYPE_CAP: Partial<Record<string, number>> = Object.fromEntries(
+  Object.entries(enemyData.enemies).flatMap(([id, e]) => ('maxAlive' in e && typeof e.maxAlive === 'number' ? [[id, e.maxAlive]] : [])),
+);
 import { registerUnitAnims, type UnitAnims } from './anims';
 
 export interface SpawnConfig {
@@ -281,6 +287,12 @@ export class EnemySystem {
     return this.burstQueue.reduce((n, j) => n + j.left, 0);
   }
 
+  private countOf(id: string): number {
+    let n = 0;
+    for (const e of this.pool.active) if (e.alive && e.id === id) n++;
+    return n;
+  }
+
   private spawnTick(dtMs: number, target: Target, nowMs: number): void {
     if (this.burstQueue.length > 0) {
       const r = takeBurst(this.burstQueue, this.maxAlive - this.pool.size);
@@ -294,6 +306,11 @@ export class EnemySystem {
     for (const s of this.spawns) {
       const r = accumulate(this.acc.get(s.enemy) ?? 0, s.perSec * density, dtMs);
       this.acc.set(s.enemy, r.acc);
+      const cap = r.count > 0 ? TYPE_CAP[s.enemy] : undefined;
+      if (cap !== undefined && this.countOf(s.enemy) >= cap) {
+        this.acc.set(s.enemy, 0);
+        continue;
+      }
       for (let i = 0; i < r.count; i++) {
         if (!this.spawnAround(s.enemy as EnemyId, target, nowMs)) {
           this.acc.set(s.enemy, 0); // 상한이면 누적하지 않는다(상한이 풀릴 때 한꺼번에 쏟아지지 않게)

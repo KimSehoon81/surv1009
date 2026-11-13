@@ -9,7 +9,7 @@ import skillsData from '../src/data/skills.json';
 import timelinesData from '../src/data/timelines.json';
 import B from '../src/data/balance.json';
 import { enemyScale } from '../src/core/scaling';
-import { earlyMult, pacingAt, phaseAt, type StageDef } from '../src/core/stage';
+import { earlySpawns, pacingAt, phaseAt, type StageDef } from '../src/core/stage';
 
 const STAGES = stagesData.stages as unknown as Record<string, StageDef>;
 const EN = enemiesData.enemies as Record<string, { hp: number }>;
@@ -55,8 +55,8 @@ function expected(n: number, t: number): number {
 
 function required(st: StageDef, n: number, t: number): number {
   const sc = enemyScale(n, levelAt(t));
-  const mult = (pacingAt(st, t)?.mult ?? 1) * earlyMult(st, t);
-  return phaseAt(st, t).spawns.reduce((s, sp) => s + sp.perSec * (EN[sp.enemy]?.hp ?? 0) * sc.hp, 0) * sc.density * mult * (st.spawnScale ?? 1);
+  const mult = pacingAt(st, t)?.mult ?? 1;
+  return earlySpawns(st, phaseAt(st, t).spawns, t).reduce((s, sp) => s + sp.perSec * (EN[sp.enemy]?.hp ?? 0) * sc.hp, 0) * sc.density * mult * (st.spawnScale ?? 1);
 }
 
 const rows: { id: string; name: string; r: number[]; norm: number[]; clear: number; surv: number }[] = [];

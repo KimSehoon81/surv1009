@@ -48,6 +48,8 @@ export class MapScene extends Phaser.Scene {
     this.gfx = this.add.graphics();
     this.add.text(16, 12, t('map.title'), uiText(18, '#ffe14d'));
     this.add.text(16, 36, t('map.merit', { n: prof.merit }), uiText(12));
+    // 캠페인 목적 한눈에: 어디서 어디까지, 한 판의 흐름, 점령 보상
+    this.add.text(16, 72, t('map.goal'), { ...uiText(12, '#e8dcc0'), wordWrap: { width: 290 }, lineSpacing: 6 });
     this.add.text(16, LOGICAL_HEIGHT - 24, t('map.help'), uiText(12, '#b0a890'));
     this.info = this.add.text(650, 90, '', { ...uiText(13), lineSpacing: 6, wordWrap: { width: 290 } });
     this.notice = this.add.text(LOGICAL_WIDTH / 2, 70, '', { ...uiText(15, '#ffe14d'), backgroundColor: '#000000b0', padding: { x: 10, y: 5 } }).setOrigin(0.5).setVisible(false);
