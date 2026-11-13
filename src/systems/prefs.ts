@@ -18,6 +18,7 @@ export function prefs(): Prefs {
     threatFirst: s.threatFirst ?? d.threatFirst,
     autoDiscardMinus: s.autoDiscardMinus ?? d.autoDiscardMinus,
     recruit: s.recruit ?? d.recruit,
+    lang: typeof s.lang === 'string' ? s.lang : d.lang,
     quality: typeof s.quality === 'string' && s.quality in settings.quality.presets ? s.quality : d.quality,
   };
 }

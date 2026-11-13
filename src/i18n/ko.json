@@ -1,0 +1,302 @@
+{
+  "hud": {
+    "shop": {
+      "soldOut": "이번 방문 재고 소진",
+      "noMerit": "전공 포인트 부족",
+      "unknown": "없는 품목",
+      "title": "보급 트럭 — 전공 상점",
+      "help": "↑↓ 고르기 · Enter 구매 · Esc 닫기 (전투 정지 중)",
+      "left": "남은 {n}",
+      "out": "품절",
+      "bought": "{name} 구매 — 전공 −{n}"
+    },
+    "merit": "전공 {n}",
+    "meritPlus": "+{n} 전공",
+    "achievement": "업적 달성",
+    "bossAppear": "보스 출현\n{name}",
+    "boss": {
+      "opSuccess": "적 작전 성공 — 대형 포격 예고!",
+      "opCancel": "충전 취소 — 약점 노출!",
+      "opFail": "적 작전 실패 — 약점 노출!",
+      "opCharge": "적 작전 카드 충전 — 집중 사격으로 취소!"
+    },
+    "paused": "일시정지\nEsc로 계속",
+    "result": {
+      "victory": "{name} 점령",
+      "defeat": "전사",
+      "summary": "시간 {time}    레벨 {level} (전역 단계 {step}/100)    처치 {kills}",
+      "elite": " (엘리트 {n})",
+      "recruit": "[신병 모드]",
+      "threat": "[위협 등급 {n}]",
+      "merit": "전공 포인트 +{n}",
+      "meritHalf": "(전사: 50%)",
+      "opsLog": "작전 기록",
+      "opsLine": "제출 {submits}회 · 실제 성공률 {rate}% · 최장 연패 {streak} · 인장 사용 {seals} · 잔효 피해 {residue}",
+      "tip": "팁: {tip}",
+      "ending": "Enter  엔딩 보기",
+      "again": "Enter  다시 출정",
+      "map": "M  작전지도"
+    },
+    "unlock": {
+      "title": "새로 해금됨",
+      "skill": "고급 스킬 {name}",
+      "card": "카드 {name}",
+      "slot": "{id} 슬롯",
+      "ending": "엔딩·뉴게임+",
+      "chars": "캐릭터 {n}명"
+    },
+    "step": "단계 {n}/100",
+    "upgrades": "획득한 업그레이드\n{list}",
+    "levelUp": {
+      "title": "레벨 업!  Lv {n}",
+      "supply": "보급",
+      "reroll": "R  다시 뽑기 (남은 {n})",
+      "noReroll": "다시 뽑기 없음",
+      "pending": "레벨업 {n}번 남음 · ",
+      "help": "숫자키 또는 클릭으로 선택"
+    }
+  },
+  "card": {
+    "reject": {
+      "cooldown": "재정비 중",
+      "empty": "손패가 비었음 — 곧 새 카드가 들어옴",
+      "onlyMinus": "추천할 카드 없음 — 마이너스는 숫자키로 골라 Space(OP 3으로 폐기)",
+      "tooMany": "최대 3장",
+      "notInHand": "손패에 없음",
+      "blockedTag": "지금 낼 수 없는 카드 (통신 두절·악천후)",
+      "noSeal": "인장 없음",
+      "notEnoughOp": "OP 부족(마이너스 폐기 3)",
+      "judging": "판정 중"
+    },
+    "term": {
+      "base": "기본",
+      "count": "장수",
+      "intel": "정보",
+      "luck": "행운",
+      "extra": "숙련·업그레이드",
+      "char": "캐릭터 보정",
+      "gamble": "무리수",
+      "faceDown": "뒷면 카드",
+      "penalty": "오보",
+      "env": "환경 방해(방공망 등)"
+    },
+    "fired": "{name} 발동",
+    "purified": "{name} 정화",
+    "revealed": "정체 공개: {list}",
+    "tip": {
+      "disguised": "{name}?\n흐릿한 카드 — 고르면 정체가 드러남 (척후 보고로 식별)",
+      "faceDown": "뒷면 카드 — 제출하면 공개 (+5%p)",
+      "smoke": "포연으로 잘 보이지 않음"
+    },
+    "judgingDots": "판정 중…",
+    "minusDiscard": "마이너스 폐기 (OP {n})  Space",
+    "faceDown": "뒷면 카드",
+    "withHidden": "뒷면 포함 작전",
+    "single": "단일 효과",
+    "sealTag": "[인장]",
+    "submitHelp": "Space 제출 · X 해제",
+    "recommend": "Space: 추천 — {name} {pct}%",
+    "sealOp": "인장 작전",
+    "success": "작전 성공",
+    "failSeal": "실패 · 인장 획득!",
+    "failOp": "실패 · OP +1 ({n})",
+    "fail": "실패",
+    "board": {
+      "title": "작전판",
+      "recipes": "조합표\n{list}",
+      "final": "최종  {pct}% (상한 {cap}%)",
+      "pickHint": "카드를 고르면 성공률 내역이 보입니다",
+      "breakdown": "성공률 내역",
+      "op": "OP {op}/{opMax} · 인장 {seals}/{sealMax}",
+      "log": "작전 기록  제출 {submits} · 실제 성공률 {rate}% · 최장 연패 {streak}",
+      "close": "Tab 닫기"
+    }
+  },
+  "battle": {
+    "cast": {
+      "locked": "잠긴 슬롯",
+      "empty": "장착한 스킬 없음",
+      "cooldown": "재사용 대기 중",
+      "tp": "TP 부족",
+      "unimplemented": "준비 중인 스킬"
+    },
+    "dome": "방어 돔 {sec}초 — 받는 피해 −{pct}%·반사",
+    "antiAir": "대공포 요격 — 폭탄 일부 공중 폭발 (방공포병을 처치하세요)",
+    "hiddenSupplyShown": "숨은 보급품 위치 표시 — 초록 화살표를 따라가세요",
+    "hiddenSupplyGot": "숨은 보급품 확보!",
+    "disruptCleared": "{name} 해제 — 원인 처치",
+    "disruptEnded": "{name} 걷힘",
+    "disruptSource": "{name}: 방해원 위치 확인",
+    "tacticalSlot": "전술 선택지 확보 (다음 레벨업)",
+    "comboDrawCard": "{n} 콤보 보급: 카드 +1",
+    "comboDrawOp": "{n} 콤보 보급: OP +1",
+    "warn": {
+      "elite": "{name} 접근!",
+      "disrupt": "{name} 예보",
+      "boss": "보스 {name} 출현",
+      "burst": "{name} 대규모 군집 접근!"
+    },
+    "npcArrive": "{name} 등장 — 다가가서 만나기",
+    "captured": "{name} 점령!",
+    "autoQuality": "화면이 느려 이펙트 품질을 '{name}'(으)로 낮췄습니다 — 설정에서 바꿀 수 있음",
+    "safeZone": "안전지대 {sec}초 — 노란 원 안으로 적이 못 들어옴"
+  },
+  "prep": {
+    "deckErr": {
+      "size": "덱은 정확히 {n}장",
+      "copies": "같은 카드 장수 초과",
+      "locked": "잠긴 카드",
+      "minus": "마이너스 카드는 넣을 수 없음",
+      "unknown": "알 수 없는 카드"
+    },
+    "title": "출정 준비 — {region} {name}",
+    "chars": "캐릭터",
+    "skillSlots": "고급 스킬 슬롯",
+    "starting": "스타팅 포인트 (Enter 구매)",
+    "regionInfo": "지역 정보",
+    "regionBody": "주요 적: {enemies}\n보스: {boss}\n방해: {disruption}\n대응: {counter}",
+    "recDeck": "추천 덱",
+    "recDeckDone": "추천 덱을 채웠습니다",
+    "baseDeck": "기본 덱",
+    "presetSave": "프리셋 저장",
+    "presetLoad": "프리셋 불러오기",
+    "go": "▶ 출정 (Enter)",
+    "help": "←→ 칸 이동 · ↑↓ 고르기 · Enter 실행 · +/− 덱 장수 · Esc 작전지도",
+    "presetSaved": "덱 프리셋 저장",
+    "noPreset": "저장된 프리셋이 없습니다",
+    "presetLoaded": "프리셋을 불러왔습니다",
+    "charInfo": "{name} ({role})\n체력 {hp} · 공격 {atk} · 이동 {spd}",
+    "deck": "덱 {n}/{size}",
+    "max": "최대",
+    "upgraded": "{name} 강화! ({effect})",
+    "err": {
+      "merit": "전공 포인트가 모자랍니다",
+      "max": "이미 최대 단계",
+      "unknown": "알 수 없는 항목"
+    },
+    "locked": "잠김",
+    "emptySlot": "비어 있음",
+    "cannotGo": "출정 불가: {list}"
+  },
+  "map": {
+    "title": "한반도 작전지도",
+    "merit": "전공 포인트 {n}",
+    "help": "←→ 지역 선택 · Enter 출정 준비 · Esc 메뉴",
+    "returnWin": "{name} 점령! 전공 +{n}",
+    "returnLose": "{name} 철수 — 전공 +{n}",
+    "needPrev": "앞 지역을 먼저 점령해야 합니다",
+    "notReady": "{region} 작전은 준비 중입니다",
+    "st": {
+      "fog": "미해금(안개)",
+      "captured": "점령 {n}회",
+      "best": " · 최고 {time}",
+      "open": "출정 가능",
+      "notReady": "준비 중"
+    },
+    "info": "주요 적: {enemies}\n보스: {boss}\n환경 방해: {disruption}",
+    "status": "상태: {status}"
+  },
+  "codex": {
+    "tab": {
+      "chars": "캐릭터",
+      "enemies": "적",
+      "cards": "카드",
+      "ach": "업적"
+    },
+    "tier": {
+      "normal": "일반",
+      "elite": "엘리트",
+      "boss": "보스"
+    },
+    "title": "도감·업적",
+    "help": "←→ 칸 · ↑↓ 고르기 · Esc 돌아가기",
+    "charLocked": "아직 합류하지 않음\n해금: {stage} 점령",
+    "enemyLocked": "아직 쓰러뜨리지 않은 적",
+    "cardLocked": "아직 손에 들어온 적 없는 카드",
+    "done": "달성",
+    "progress": "진행 {n}/{target}",
+    "reward": "보상 전공 {n}"
+  },
+  "menu": {
+    "title": "압록강 서바이벌",
+    "subtitle": "가칭",
+    "start": "출정",
+    "ngPlus": "뉴게임+  위협 등급 {n}",
+    "summary": "점령 {captured}/10 · 전공 포인트 {merit}",
+    "threat": " · 위협 등급 {n}",
+    "bestStep": " · 최고 단계 {n}/100",
+    "saveCorrupt": "세이브가 손상되어 백업해 두고 새로 시작했습니다",
+    "saveMigrated": "이전 저장을 새 형식으로 옮겼습니다"
+  },
+  "settings": {
+    "title": "설정",
+    "help": "←→ 칸 · ↑↓ 고르기 · Enter·+/− 바꾸기 · Esc 돌아가기",
+    "percentHint": "+/− 또는 [−][+]로 10%씩",
+    "on": "켬",
+    "off": "끔",
+    "keyHint": "Enter를 누른 뒤 새 키(첫 키만 바뀌고 방향키 등 대체 키는 유지)",
+    "pressKey": "'{label}'에 쓸 키를 누르세요 (Esc 취소)",
+    "resetKeys": "기본값 복원",
+    "resetKeysHint": "모든 키를 처음 배치로",
+    "keysReset": "키 배치를 기본값으로 되돌렸습니다",
+    "cancelled": "취소",
+    "conflict": "{key}: 이미 '{who}'에 쓰는 키입니다",
+    "rebound": "'{label}' = {key} (다음 전투부터 적용)",
+    "keyClash": "⚠ 같은 키를 '{list}'도 씀 — Enter로 다른 키를 지정하거나 기본값 복원"
+  },
+  "fx": {
+    "scout": "척후 보고: 다음 작전 +10%p",
+    "recon": "{label}: {sec}초간 적 표시",
+    "reconPlane": "정찰기",
+    "noDisruption": "해제할 방해가 없음",
+    "nextLevelUp": "다음 레벨업 강화",
+    "reroll": "리롤 +{n}",
+    "handReroll": "손패 리롤",
+    "cooldownCut": "고급 스킬 쿨다운 −{pct}%",
+    "cleared": "{name} 해제",
+    "disruptCleared": "방해 해제",
+    "reportFixed": "오보 정정"
+  },
+  "ending": {
+    "help": "Enter  넘기기 · 끝나면 메뉴로"
+  },
+  "gallery": {
+    "help": "유닛 {n} · 방향키/휠 스크롤 · G 기준선"
+  },
+  "assets": {
+    "size": "{what} 크기는 {w}×{h}이어야 함 (현재 {cw}×{ch})",
+    "kind": {
+      "sheet": "시트",
+      "sheetL": "대형(_L) 시트",
+      "tile": "타일",
+      "cardFrame": "카드 프레임",
+      "cardArt": "카드 일러스트",
+      "overlay": "오버레이",
+      "icon": "아이콘",
+      "skillIcon": "스킬 아이콘",
+      "fxSheet": "이펙트 시트",
+      "propSheet": "소품 시트",
+      "map": "작전지도"
+    },
+    "noAlpha": "투명 채널이 없음(배경이 칠해져 보일 수 있음)",
+    "notAudio": "오디오 폴더에 오디오가 아닌 파일",
+    "notPng": "PNG가 아닌 파일(게임이 사용하지 않음)",
+    "badPng": "PNG 헤더를 읽을 수 없음(손상된 파일)",
+    "badUnitName": "파일명이 <ID>_<동작>.png 규칙에 맞지 않음 (예: A01_attack.png)",
+    "wrongFolder": "{id}는 {folder}/ 폴더가 아님({expected}/에 넣어야 함)",
+    "badAction": "알 수 없는 동작 \"{action}\" (가능: {list})",
+    "badTileName": "타일 파일명은 T01.png 형식",
+    "badCardName": "알 수 없는 카드 파일명",
+    "badSkillName": "스킬 아이콘 파일명은 AS01.png 형식",
+    "badMapName": "알 수 없는 지도 파일",
+    "badFolder": "알 수 없는 폴더 \"{folder}\"",
+    "root": "(루트)"
+  },
+  "audioGallery": {
+    "title": "소리 검수 — 클릭 재생 · Shift+클릭 10연타 (첫 클릭이 소리 잠금을 풉니다)",
+    "file": "[파일]",
+    "off": "끄기",
+    "stats": "재생 {played} · 버림 {dropped} · 동시 {voices} · BGM {bgm}",
+    "noBgm": "없음(파일 없음)"
+  }
+}

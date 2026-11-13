@@ -1,0 +1,302 @@
+{
+  "hud": {
+    "shop": {
+      "soldOut": "Sold out this visit",
+      "noMerit": "Not enough merit",
+      "unknown": "Unknown item",
+      "title": "Supply Truck — Merit Shop",
+      "help": "↑↓ choose · Enter buy · Esc close (battle paused)",
+      "left": "{n} left",
+      "out": "Sold out",
+      "bought": "Bought {name} — merit −{n}"
+    },
+    "merit": "Merit {n}",
+    "meritPlus": "+{n} merit",
+    "achievement": "Achievement",
+    "bossAppear": "BOSS\n{name}",
+    "boss": {
+      "opSuccess": "Enemy op succeeded — heavy barrage incoming!",
+      "opCancel": "Charge cancelled — weak point exposed!",
+      "opFail": "Enemy op failed — weak point exposed!",
+      "opCharge": "Enemy op card charging — focus fire to cancel!"
+    },
+    "paused": "Paused\nEsc to resume",
+    "result": {
+      "victory": "{name} captured",
+      "defeat": "Fallen",
+      "summary": "Time {time}    Level {level} (campaign step {step}/100)    Kills {kills}",
+      "elite": " (elite {n})",
+      "recruit": "[Recruit mode]",
+      "threat": "[Threat {n}]",
+      "merit": "Merit +{n}",
+      "meritHalf": "(fallen: 50%)",
+      "opsLog": "Operations log",
+      "opsLine": "Submits {submits} · actual success {rate}% · longest fail streak {streak} · seals used {seals} · residue damage {residue}",
+      "tip": "Tip: {tip}",
+      "ending": "Enter  View ending",
+      "again": "Enter  Deploy again",
+      "map": "M  Campaign map"
+    },
+    "unlock": {
+      "title": "Unlocked",
+      "skill": "Skill {name}",
+      "card": "Card {name}",
+      "slot": "{id} slot",
+      "ending": "Ending · New Game+",
+      "chars": "{n} characters"
+    },
+    "step": "Step {n}/100",
+    "upgrades": "Upgrades\n{list}",
+    "levelUp": {
+      "title": "LEVEL UP!  Lv {n}",
+      "supply": "Supply",
+      "reroll": "R  Reroll ({n} left)",
+      "noReroll": "No rerolls",
+      "pending": "{n} level-ups left · ",
+      "help": "Pick with number keys or click"
+    }
+  },
+  "card": {
+    "reject": {
+      "cooldown": "Regrouping",
+      "empty": "Hand empty — new cards incoming",
+      "onlyMinus": "Nothing to recommend — pick minus cards with number keys, Space discards (OP 3)",
+      "tooMany": "Max 3 cards",
+      "notInHand": "Not in hand",
+      "blockedTag": "Card blocked now (comms down / bad weather)",
+      "noSeal": "No seal",
+      "notEnoughOp": "Not enough OP (minus discard 3)",
+      "judging": "Judging"
+    },
+    "term": {
+      "base": "Base",
+      "count": "Card count",
+      "intel": "Intel",
+      "luck": "Luck",
+      "extra": "Skill/upgrades",
+      "char": "Character",
+      "gamble": "Gamble",
+      "faceDown": "Face-down card",
+      "penalty": "False report",
+      "env": "Disruption (air defense etc.)"
+    },
+    "fired": "{name} activated",
+    "purified": "{name} purified",
+    "revealed": "Revealed: {list}",
+    "tip": {
+      "disguised": "{name}?\nBlurred card — select it to reveal (scout report identifies)",
+      "faceDown": "Face-down card — revealed on submit (+5%p)",
+      "smoke": "Hard to see through the smoke"
+    },
+    "judgingDots": "Judging…",
+    "minusDiscard": "Discard minus (OP {n})  Space",
+    "faceDown": "Face-down",
+    "withHidden": "Op with hidden card",
+    "single": "Single effects",
+    "sealTag": "[Seal]",
+    "submitHelp": "Space submit · X clear",
+    "recommend": "Space: suggested — {name} {pct}%",
+    "sealOp": "Sealed op",
+    "success": "Op success",
+    "failSeal": "Failed · seal gained!",
+    "failOp": "Failed · OP +1 ({n})",
+    "fail": "Failed",
+    "board": {
+      "title": "Ops board",
+      "recipes": "Combos\n{list}",
+      "final": "Final  {pct}% (cap {cap}%)",
+      "pickHint": "Select cards to see the success breakdown",
+      "breakdown": "Success breakdown",
+      "op": "OP {op}/{opMax} · seals {seals}/{sealMax}",
+      "log": "Ops log  submits {submits} · actual {rate}% · longest fail streak {streak}",
+      "close": "Tab close"
+    }
+  },
+  "battle": {
+    "cast": {
+      "locked": "Slot locked",
+      "empty": "No skill equipped",
+      "cooldown": "On cooldown",
+      "tp": "Not enough TP",
+      "unimplemented": "Skill not ready"
+    },
+    "dome": "Defense dome {sec}s — damage taken −{pct}%, reflect",
+    "antiAir": "Flak intercept — some bombs burst midair (take out the AA gunners)",
+    "hiddenSupplyShown": "Hidden supply marked — follow the green arrow",
+    "hiddenSupplyGot": "Hidden supply secured!",
+    "disruptCleared": "{name} cleared — source eliminated",
+    "disruptEnded": "{name} lifted",
+    "disruptSource": "{name}: source located",
+    "tacticalSlot": "Extra tactical choice (next level-up)",
+    "comboDrawCard": "{n} combo supply: card +1",
+    "comboDrawOp": "{n} combo supply: OP +1",
+    "warn": {
+      "elite": "{name} approaching!",
+      "disrupt": "{name} forecast",
+      "boss": "Boss {name} incoming",
+      "burst": "Mass of {name} approaching!"
+    },
+    "npcArrive": "{name} arrived — walk over to meet",
+    "captured": "{name} captured!",
+    "autoQuality": "Low frame rate: effects lowered to '{name}' — change in Settings",
+    "safeZone": "Safe zone {sec}s — enemies can't enter the yellow circle"
+  },
+  "prep": {
+    "deckErr": {
+      "size": "Deck must be exactly {n} cards",
+      "copies": "Too many copies",
+      "locked": "Locked card",
+      "minus": "Minus cards not allowed",
+      "unknown": "Unknown card"
+    },
+    "title": "Deployment — {region} {name}",
+    "chars": "Character",
+    "skillSlots": "Skill slots",
+    "starting": "Starting upgrades (Enter to buy)",
+    "regionInfo": "Region intel",
+    "regionBody": "Enemies: {enemies}\nBoss: {boss}\nDisruption: {disruption}\nCounter: {counter}",
+    "recDeck": "Suggested",
+    "recDeckDone": "Suggested deck filled",
+    "baseDeck": "Starter deck",
+    "presetSave": "Save preset",
+    "presetLoad": "Load preset",
+    "go": "▶ Deploy (Enter)",
+    "help": "←→ column · ↑↓ choose · Enter select · +/− deck count · Esc map",
+    "presetSaved": "Deck preset saved",
+    "noPreset": "No saved preset",
+    "presetLoaded": "Preset loaded",
+    "charInfo": "{name} ({role})\nHP {hp} · ATK {atk} · SPD {spd}",
+    "deck": "Deck {n}/{size}",
+    "max": "MAX",
+    "upgraded": "{name} upgraded! ({effect})",
+    "err": {
+      "merit": "Not enough merit",
+      "max": "Already maxed",
+      "unknown": "Unknown item"
+    },
+    "locked": "Locked",
+    "emptySlot": "Empty",
+    "cannotGo": "Can't deploy: {list}"
+  },
+  "map": {
+    "title": "Korean Peninsula Campaign Map",
+    "merit": "Merit {n}",
+    "help": "←→ region · Enter prepare · Esc menu",
+    "returnWin": "{name} captured! merit +{n}",
+    "returnLose": "Withdrew from {name} — merit +{n}",
+    "needPrev": "Capture the previous region first",
+    "notReady": "{region} operation not ready yet",
+    "st": {
+      "fog": "Locked (fog)",
+      "captured": "Captured ×{n}",
+      "best": " · best {time}",
+      "open": "Ready to deploy",
+      "notReady": "In preparation"
+    },
+    "info": "Enemies: {enemies}\nBoss: {boss}\nDisruption: {disruption}",
+    "status": "Status: {status}"
+  },
+  "codex": {
+    "tab": {
+      "chars": "Characters",
+      "enemies": "Enemies",
+      "cards": "Cards",
+      "ach": "Achievements"
+    },
+    "tier": {
+      "normal": "Normal",
+      "elite": "Elite",
+      "boss": "Boss"
+    },
+    "title": "Codex & Achievements",
+    "help": "←→ tab · ↑↓ choose · Esc back",
+    "charLocked": "Not joined yet\nUnlock: capture {stage}",
+    "enemyLocked": "Not defeated yet",
+    "cardLocked": "Never drawn yet",
+    "done": "Done",
+    "progress": "Progress {n}/{target}",
+    "reward": "Reward: {n} merit"
+  },
+  "menu": {
+    "title": "Yalu River Survival",
+    "subtitle": "working title",
+    "start": "Deploy",
+    "ngPlus": "New Game+  Threat {n}",
+    "summary": "Captured {captured}/10 · Merit {merit}",
+    "threat": " · Threat {n}",
+    "bestStep": " · Best step {n}/100",
+    "saveCorrupt": "Save was corrupted — backed up and started fresh",
+    "saveMigrated": "Old save migrated to the new format"
+  },
+  "settings": {
+    "title": "Settings",
+    "help": "←→ tab · ↑↓ choose · Enter/+/− change · Esc back",
+    "percentHint": "+/− or [−][+] in 10% steps",
+    "on": "On",
+    "off": "Off",
+    "keyHint": "Press Enter, then the new key (only the first key changes; arrow keys etc. stay)",
+    "pressKey": "Press a key for '{label}' (Esc cancels)",
+    "resetKeys": "Restore defaults",
+    "resetKeysHint": "Reset all keys to the default layout",
+    "keysReset": "Key layout restored to defaults",
+    "cancelled": "Cancelled",
+    "conflict": "{key}: already used by '{who}'",
+    "rebound": "'{label}' = {key} (applies from next battle)",
+    "keyClash": "⚠ Same key as '{list}' — press Enter to set another key, or restore defaults"
+  },
+  "fx": {
+    "scout": "Scout report: next op +10%p",
+    "recon": "{label}: enemies shown for {sec}s",
+    "reconPlane": "Recon plane",
+    "noDisruption": "No disruption to clear",
+    "nextLevelUp": "Next level-up boosted",
+    "reroll": "Reroll +{n}",
+    "handReroll": "Hand rerolled",
+    "cooldownCut": "Skill cooldowns −{pct}%",
+    "cleared": "{name} cleared",
+    "disruptCleared": "Disruption cleared",
+    "reportFixed": "False report corrected"
+  },
+  "ending": {
+    "help": "Enter  skip · returns to menu at the end"
+  },
+  "gallery": {
+    "help": "Units {n} · arrows/wheel scroll · G guides"
+  },
+  "assets": {
+    "size": "{what} must be {w}×{h} (now {cw}×{ch})",
+    "kind": {
+      "sheet": "Sheet",
+      "sheetL": "Large (_L) sheet",
+      "tile": "Tile",
+      "cardFrame": "Card frame",
+      "cardArt": "Card art",
+      "overlay": "Overlay",
+      "icon": "Icon",
+      "skillIcon": "Skill icon",
+      "fxSheet": "Effect sheet",
+      "propSheet": "Prop sheet",
+      "map": "Campaign map"
+    },
+    "noAlpha": "No alpha channel (background may show)",
+    "notAudio": "Non-audio file in the audio folder",
+    "notPng": "Not a PNG (unused by the game)",
+    "badPng": "Unreadable PNG header (corrupt file)",
+    "badUnitName": "File name must be <ID>_<action>.png (e.g. A01_attack.png)",
+    "wrongFolder": "{id} does not belong in {folder}/ (put it in {expected}/)",
+    "badAction": "Unknown action \"{action}\" (allowed: {list})",
+    "badTileName": "Tile names look like T01.png",
+    "badCardName": "Unknown card file name",
+    "badSkillName": "Skill icon names look like AS01.png",
+    "badMapName": "Unknown map file",
+    "badFolder": "Unknown folder \"{folder}\"",
+    "root": "(root)"
+  },
+  "audioGallery": {
+    "title": "Sound check — click to play · Shift+click ×10 (first click unlocks audio)",
+    "file": "[file]",
+    "off": "Off",
+    "stats": "played {played} · dropped {dropped} · voices {voices} · BGM {bgm}",
+    "noBgm": "none (no file)"
+  }
+}

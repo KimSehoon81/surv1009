@@ -152,7 +152,7 @@ export const ATTACK_PARTS: Record<string, AttackPart> = {
 
 function part(spec: AttackSpec): AttackPart {
   const p = ATTACK_PARTS[spec.type];
-  if (!p) throw new Error(`알 수 없는 공격 부품: ${spec.type}`);
+  if (!p) throw new Error(`unknown attack part: ${spec.type}`);
   return p;
 }
 

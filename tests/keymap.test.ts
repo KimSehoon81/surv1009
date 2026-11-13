@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import controls from '../src/data/controls.json';
 import settings from '../src/data/settings.json';
-import { effectiveKeys, rebind } from '../src/core/keymap';
+import { conflicts, effectiveKeys, rebind } from '../src/core/keymap';
 
 const DEF = controls.keys as Record<string, string[]>;
 const GROUP = settings.keys.conflictGroup;
@@ -42,5 +42,22 @@ describe('키 재설정(PRD §11, D29)', () => {
         seen.set(k, a);
       }
     }
+  });
+
+  it('기본 키로 되돌려도 다른 액션이 이미 그 키를 쓰면 거부(D42), 기본 공유 키는 허용', () => {
+    let o = (rebind(DEF, undefined, 'skillQ', 'Z', GROUP) as { overrides: Record<string, readonly string[]> }).overrides;
+    const q = DEF.skillQ?.[0] ?? 'Q';
+    o = (rebind(DEF, o, 'cardClear', q, GROUP) as { overrides: Record<string, readonly string[]> }).overrides;
+    expect(rebind(DEF, o, 'skillQ', q, GROUP)).toEqual({ ok: false, conflict: 'cardClear' });
+    const r = DEF.levelReroll?.[0] ?? 'R';
+    if ((DEF.skillR ?? []).includes(r)) expect(rebind(DEF, undefined, 'skillR', r, GROUP).ok).toBe(true);
+  });
+
+  it('충돌 경고: 기본값은 충돌 없음, 억지로 겹친 저장은 양쪽 모두 표시', () => {
+    expect(conflicts(DEF, effectiveKeys(DEF, undefined), GROUP)).toEqual({});
+    const bad = effectiveKeys(DEF, { skillE: [DEF.skillQ?.[0] ?? 'Q'] });
+    const c = conflicts(DEF, bad, GROUP);
+    expect(c.skillE).toContain('skillQ');
+    expect(c.skillQ).toContain('skillE');
   });
 });

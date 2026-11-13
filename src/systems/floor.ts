@@ -112,7 +112,7 @@ export class Floor {
   private createChunk(size: number): Chunk {
     const key = `floor_chunk_${textureSeq++}`;
     const texture = this.scene.textures.createCanvas(key, size, size);
-    if (!texture) throw new Error('바닥 청크 텍스처 생성 실패');
+    if (!texture) throw new Error('floor chunk texture failed');
     const image = this.scene.add.image(0, 0, key).setOrigin(0).setDepth(Depth.Floor);
     return { image, texture };
   }

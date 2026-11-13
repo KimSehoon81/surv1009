@@ -101,7 +101,7 @@ export function steer(a: Agent, specs: readonly BehaviorSpec[], ctx: SteerCtx): 
   const out = { x: 0, y: 0 };
   for (const spec of specs) {
     const fn = BEHAVIORS[spec.type];
-    if (!fn) throw new Error(`알 수 없는 행동 부품: ${spec.type}`);
+    if (!fn) throw new Error(`unknown behavior part: ${spec.type}`);
     fn(a, spec, ctx, out);
   }
   const len = Math.hypot(out.x, out.y);

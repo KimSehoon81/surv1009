@@ -1,16 +1,17 @@
 import * as Phaser from 'phaser';
 import controls from '../data/controls.json';
 import settingsData from '../data/settings.json';
-import { effectiveKeys, rebind } from '../core/keymap';
+import { conflicts, effectiveKeys, rebind } from '../core/keymap';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { InputMap } from '../systems/input';
 import { loadProfile, updateProfile } from '../systems/save';
 import { FocusGroup, UI, UiList, panel, type ListItem } from '../ui/widgets';
 import { uiText } from '../ui/text';
 import { SceneKey } from './keys';
+import { setLocale, t } from '../i18n';
 
 type Tab = (typeof settingsData.tabs)[number];
-type Option = Tab['options'][number] & { hint?: string };
+type Option = Tab['options'][number] & { hint?: string; choices?: string[]; names?: Record<string, string> };
 const DEFAULTS = settingsData.defaults as unknown as Record<string, number | boolean | string>;
 const Q = settingsData.quality;
 const REMAP = settingsData.keys.remappable as Record<string, string>;
@@ -42,7 +43,7 @@ export class SettingsScene extends Phaser.Scene {
     this.capture = null;
     this.controls = new InputMap(this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.controls.destroy());
-    this.add.text(16, 12, '설정', uiText(20, UI.hi));
+    this.add.text(16, 12, t('settings.title'), uiText(20, UI.hi));
     panel(this, 16, 48, 190, 140);
     panel(this, 220, 48, LOGICAL_WIDTH - 236, LOGICAL_HEIGHT - 110);
     this.tabs = new UiList(this, 24, 60, 174, 4, 24);
@@ -50,7 +51,7 @@ export class SettingsScene extends Phaser.Scene {
       if (!this.capture) this.hint.setText(it?.hint ?? '').setColor(UI.text);
     });
     this.hint = this.add.text(228, LOGICAL_HEIGHT - 52, '', uiText(12, UI.text)).setWordWrapWidth(LOGICAL_WIDTH - 250);
-    this.add.text(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT - 18, '←→ 칸 · ↑↓ 고르기 · Enter·+/− 바꾸기 · Esc 돌아가기', uiText(11, UI.dim)).setOrigin(0.5);
+    this.add.text(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT - 18, t('settings.help'), uiText(11, UI.dim)).setOrigin(0.5);
     this.focus = new FocusGroup([this.tabs, this.list]);
     this.focus.focus(1);
     this.input.keyboard?.on('keydown', this.onKeyDown);
@@ -88,38 +89,43 @@ export class SettingsScene extends Phaser.Scene {
       if (key.startsWith('volume.')) (s.volume as Record<string, number>)[key.slice(7)] = v as number;
       else s[key] = v;
     });
+    // 언어는 모듈 수준에서 만든 이름표까지 바꿔야 해서 다시 불러옴
+    if (key === 'lang' && setLocale(String(v)) && typeof window !== 'undefined') window.location.reload();
     this.refresh();
   }
 
   private optionItem(o: Option): ListItem {
     const v = this.read(o.key);
     if (o.kind === 'choice') {
-      // 이펙트 품질: 높음 → 보통 → 낮음 차례
-      const order = Q.order;
+      // 목록 차례로 순환(이펙트 품질: 높음 → 보통 → 낮음, 언어: 한국어 → English)
+      const order = o.choices ?? Q.order;
+      const names = (o.names ?? Q.names) as Record<string, string>;
       const i = Math.max(0, order.indexOf(String(v)));
-      const step = (d: number) => this.write(o.key, order[(i + d + order.length) % order.length] ?? 'high');
-      return { label: o.label, right: (Q.names as Record<string, string>)[String(v)] ?? String(v), hint: o.hint, onSelect: () => step(1), onAdjust: step };
+      const step = (d: number) => this.write(o.key, order[(i + d + order.length) % order.length] ?? order[0] ?? '');
+      return { label: o.label, right: names[String(v)] ?? String(v), hint: o.hint, onSelect: () => step(1), onAdjust: step };
     }
     if (o.kind === 'percent') {
       const n = typeof v === 'number' ? v : 1;
       const step = (d: number) => this.write(o.key, Math.round(Math.max(0, Math.min(1, n + d * 0.1)) * 10) / 10);
-      return { label: o.label, right: `${Math.round(n * 100)}%`, hint: o.hint ?? '+/− 또는 [−][+]로 10%씩', onAdjust: step, onSelect: () => this.write(o.key, n >= 1 ? 0 : Math.round((n + 0.1) * 10) / 10) };
+      return { label: o.label, right: `${Math.round(n * 100)}%`, hint: o.hint ?? t('settings.percentHint'), onAdjust: step, onSelect: () => this.write(o.key, n >= 1 ? 0 : Math.round((n + 0.1) * 10) / 10) };
     }
-    return { label: o.label, right: v ? '켬' : '끔', color: v ? UI.text : UI.dim, hint: o.hint, onSelect: () => this.write(o.key, !v), onAdjust: () => this.write(o.key, !v) };
+    return { label: o.label, right: v ? t('settings.on') : t('settings.off'), color: v ? UI.text : UI.dim, hint: o.hint, onSelect: () => this.write(o.key, !v), onAdjust: () => this.write(o.key, !v) };
   }
 
   private keyItems(): ListItem[] {
     const keys = effectiveKeys(DEF_KEYS, loadProfile().settings.keys);
+    const clash = conflicts(DEF_KEYS, keys, settingsData.keys.conflictGroup);
     const items: ListItem[] = Object.entries(REMAP).map(([action, label]) => ({
-      label,
+      label: clash[action] ? `⚠ ${label}` : label,
       right: (keys[action] ?? []).map(pretty).join(' / '),
-      hint: 'Enter를 누른 뒤 새 키(첫 키만 바뀌고 방향키 등 대체 키는 유지)',
+      color: clash[action] ? UI.bad : undefined,
+      hint: clash[action] ? t('settings.keyClash', { list: clash[action].map((a) => REMAP[a] ?? a).join(', ') }) : t('settings.keyHint'),
       onSelect: () => {
         this.capture = action;
-        this.hint.setText(`'${label}'에 쓸 키를 누르세요 (Esc 취소)`).setColor(UI.hi);
+        this.hint.setText(t('settings.pressKey', { label })).setColor(UI.hi);
       },
     }));
-    items.push({ label: '기본값 복원', color: UI.bad, hint: '모든 키를 처음 배치로', onSelect: () => this.resetKeys() });
+    items.push({ label: t('settings.resetKeys'), color: UI.bad, hint: t('settings.resetKeysHint'), onSelect: () => this.resetKeys() });
     return items;
   }
 
@@ -128,7 +134,7 @@ export class SettingsScene extends Phaser.Scene {
       delete d.settings.keys;
     });
     this.refresh();
-    this.hint.setText('키 배치를 기본값으로 되돌렸습니다').setColor(UI.good);
+    this.hint.setText(t('settings.keysReset')).setColor(UI.good);
   }
 
   private readonly onKeyDown = (ev: KeyboardEvent): void => {
@@ -138,20 +144,20 @@ export class SettingsScene extends Phaser.Scene {
     this.capture = null;
     this.captureEndedAt = this.game.loop.frame;
     if (!name || name === 'ESC') {
-      this.hint.setText('취소').setColor(UI.dim);
+      this.hint.setText(t('settings.cancelled')).setColor(UI.dim);
       return;
     }
     const r = rebind(DEF_KEYS, loadProfile().settings.keys, action, name, settingsData.keys.conflictGroup);
     if (!r.ok) {
       const who = REMAP[r.conflict] ?? r.conflict;
-      this.hint.setText(`${pretty(name)}: 이미 '${who}'에 쓰는 키입니다`).setColor(UI.bad);
+      this.hint.setText(t('settings.conflict', { key: pretty(name), who })).setColor(UI.bad);
       return;
     }
     updateProfile((d) => {
       d.settings.keys = r.overrides as Record<string, string[]>;
     });
     this.refresh();
-    this.hint.setText(`'${REMAP[action]}' = ${pretty(name)} (다음 전투부터 적용)`).setColor(UI.good);
+    this.hint.setText(t('settings.rebound', { label: REMAP[action] ?? action, key: pretty(name) })).setColor(UI.good);
   };
 
   override update(): void {

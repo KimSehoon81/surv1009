@@ -38,7 +38,7 @@ export class GameClock {
 
   /** 이름 붙은 배율 적용. 여러 개가 동시에 있으면 가장 느린 값(최솟값)이 이긴다 */
   setScale(key: string, scale: number, durationMs = Infinity): void {
-    if (!(scale >= 0)) throw new Error(`clock.setScale: 잘못된 배율 ${scale}`);
+    if (!(scale >= 0)) throw new Error(`clock.setScale: bad scale ${scale}`);
     if (durationMs <= 0) {
       this.modifiers.delete(key);
       return;

@@ -86,7 +86,7 @@ export class PreloadScene extends Phaser.Scene {
       bar.width = barW * p;
     });
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: Phaser.Loader.File) => {
-      console.warn(`[assets] 로드 오류: ${file.src}`);
+      console.warn(`[assets] load error: ${file.src}`);
     });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       frame.destroy();
@@ -98,7 +98,7 @@ export class PreloadScene extends Phaser.Scene {
 
   create(): void {
     const result = ensureTextures(this, this.specs);
-    console.info(`[assets] 파일 ${result.fromFile}개, 자리표시자 ${result.placeholders}개`);
+    console.info(`[assets] files ${result.fromFile}, placeholders ${result.placeholders}`);
     if (params.reset) resetProfile();
     this.scene.start(params.audioGallery ? SceneKey.AudioGallery : params.gallery ? SceneKey.Gallery : params.quickBattle ? SceneKey.Battle : SceneKey.Menu);
   }

@@ -18,12 +18,13 @@ import { uiText } from '../ui/text';
 import { FocusGroup, UI, UiButton, UiList, panel } from '../ui/widgets';
 import type { BattlePayload, MapPayload, PrepPayload } from '../types/scenes';
 import { SceneKey } from './keys';
+import { t } from '../i18n';
 
 const CARDS = cardsData.cards as Record<string, DeckCard>;
 const RULES = cardsData.deckRules as DeckRules;
 const TAG_NAMES = cardsData.tags as Record<string, string>;
 const SKILLS = skillsData.skills as Record<string, { name: string; slot: string; tpCost: number; unlock: string; timeline?: string }>;
-const DECK_ERR: Record<DeckError, string> = { size: `덱은 정확히 ${RULES.size}장`, copies: '같은 카드 장수 초과', locked: '잠긴 카드', minus: '마이너스 카드는 넣을 수 없음', unknown: '알 수 없는 카드' };
+const deckErr = (e: DeckError): string => t(`prep.deckErr.${e}`, { n: RULES.size });
 
 /**
  * 출정 준비(PRD §3): 좌 캐릭터 · 중 덱 20장 · 우 고급 스킬 슬롯·스타팅 포인트·지역 정보.
@@ -68,10 +69,10 @@ export class PrepScene extends Phaser.Scene {
 
     const st = (stagesData.stages as Record<string, { name: string; region: string }>)[this.payload.stage];
     this.add.rectangle(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT, 0x14100c).setOrigin(0);
-    this.add.text(12, 10, `출정 준비 — ${st?.region ?? ''} ${st?.name ?? this.payload.stage}`, uiText(18, UI.hi));
+    this.add.text(12, 10, t('prep.title', { region: st?.region ?? '', name: st?.name ?? this.payload.stage }), uiText(18, UI.hi));
 
     // 좌: 캐릭터
-    panel(this, 12, 40, 220, 400, '캐릭터');
+    panel(this, 12, 40, 220, 400, t('prep.chars'));
     this.charList = new UiList(this, 16, 64, 212, 6);
     this.charImg = this.add.image(122, 300, manifest.sheetKey(this.loadout.char as CharacterId, 'move_slow'), 0).setScale(1.2);
     this.charInfo = this.add.text(20, 360, '', { ...uiText(12), lineSpacing: 4 });
@@ -82,24 +83,24 @@ export class PrepScene extends Phaser.Scene {
     this.deckList = new UiList(this, 248, 68, 332, 18);
 
     // 우: 스킬 슬롯·스타팅 포인트·지역 정보
-    panel(this, 596, 40, 352, 400, '고급 스킬 슬롯');
+    panel(this, 596, 40, 352, 400, t('prep.skillSlots'));
     this.skillList = new UiList(this, 600, 64, 344, 4);
-    this.add.text(604, 146, '스타팅 포인트 (Enter 구매)', uiText(13, UI.hi));
+    this.add.text(604, 146, t('prep.starting'), uiText(13, UI.hi));
     this.meritText = this.add.text(940, 146, '', uiText(12, UI.hi)).setOrigin(1, 0);
     const hint = this.add.text(604, 270, '', uiText(11, UI.dim));
     this.shopList = new UiList(this, 600, 166, 344, 6, 17, (it) => hint.setText(it?.hint ?? ''));
     const node = mapData.nodes.find((n) => n.id === this.payload.stage);
-    this.add.text(604, 290, '지역 정보', uiText(13, UI.hi));
-    this.add.text(604, 310, node ? `주요 적: ${node.enemies}\n보스: ${node.boss}\n방해: ${node.disruption}\n대응: ${node.counter}` : '', { ...uiText(11), wordWrap: { width: 336 }, lineSpacing: 3 });
+    this.add.text(604, 290, t('prep.regionInfo'), uiText(13, UI.hi));
+    this.add.text(604, 310, node ? t('prep.regionBody', { enemies: node.enemies, boss: node.boss, disruption: node.disruption, counter: node.counter }) : '', { ...uiText(11), wordWrap: { width: 336 }, lineSpacing: 3 });
 
     // 아래: 덱 버튼 + 출정
     const by = 470;
-    const btnRec = new UiButton(this, 296, by, '추천 덱', () => this.setDeck(recommendedDeck(CARDS, combosData.combos, RULES, this.unlockedCards), '추천 덱을 채웠습니다'));
-    const btnDef = new UiButton(this, 384, by, '기본 덱', () => this.setDeck([...cardsData.starterDeck], '기본 덱'));
-    const btnSave = new UiButton(this, 486, by, '프리셋 저장', () => this.savePreset());
-    const btnLoad = new UiButton(this, 626, by, '프리셋 불러오기', () => this.loadPreset());
-    const btnGo = new UiButton(this, 840, by, '▶ 출정 (Enter)', () => this.sortie());
-    this.add.text(12, LOGICAL_HEIGHT - 22, '←→ 칸 이동 · ↑↓ 고르기 · Enter 실행 · +/− 덱 장수 · Esc 작전지도', uiText(11, UI.dim));
+    const btnRec = new UiButton(this, 296, by, t('prep.recDeck'), () => this.setDeck(recommendedDeck(CARDS, combosData.combos, RULES, this.unlockedCards), t('prep.recDeckDone')));
+    const btnDef = new UiButton(this, 384, by, t('prep.baseDeck'), () => this.setDeck([...cardsData.starterDeck], t('prep.baseDeck')));
+    const btnSave = new UiButton(this, 486, by, t('prep.presetSave'), () => this.savePreset());
+    const btnLoad = new UiButton(this, 626, by, t('prep.presetLoad'), () => this.loadPreset());
+    const btnGo = new UiButton(this, 840, by, t('prep.go'), () => this.sortie());
+    this.add.text(12, LOGICAL_HEIGHT - 22, t('prep.help'), uiText(11, UI.dim));
     this.message = this.add.text(LOGICAL_WIDTH / 2, by + 34, '', uiText(12, UI.hi)).setOrigin(0.5);
 
     this.focus = new FocusGroup([this.charList, this.deckList, this.skillList, this.shopList, btnRec, btnDef, btnSave, btnLoad, btnGo]);
@@ -123,13 +124,13 @@ export class PrepScene extends Phaser.Scene {
     updateProfile((d) => {
       d.deckPreset = deck;
     });
-    this.say('덱 프리셋 저장');
+    this.say(t('prep.presetSaved'));
   }
 
   private loadPreset(): void {
     const p = loadProfile().deckPreset;
-    if (!p) this.say('저장된 프리셋이 없습니다', UI.bad);
-    else this.setDeck([...p], '프리셋을 불러왔습니다');
+    if (!p) this.say(t('prep.noPreset'), UI.bad);
+    else this.setDeck([...p], t('prep.presetLoaded'));
   }
 
   private refresh(): void {
@@ -153,13 +154,13 @@ export class PrepScene extends Phaser.Scene {
     if (isCharacterId(l.char)) {
       const c = characters.characters[l.char];
       this.charImg.setTexture(manifest.sheetKey(l.char, 'move_slow'), 0);
-      this.charInfo.setText(`${c.name} (${c.role})\n체력 ${c.stats.hp} · 공격 ${c.stats.attack} · 이동 ${c.stats.moveSpeed}`);
+      this.charInfo.setText(t('prep.charInfo', { name: c.name, role: c.role, hp: c.stats.hp, atk: c.stats.attack, spd: c.stats.moveSpeed }));
     }
     // 덱
     const counts = countBy(l.deck);
     const avail = available(CARDS, RULES, this.unlockedCards);
     const errs = validateDeck(l.deck, CARDS, RULES, this.unlockedCards);
-    this.deckTitle.setText(`덱 ${l.deck.length}/${RULES.size}${errs.length > 0 ? `  ⚠ ${errs.map((e) => DECK_ERR[e]).join(', ')}` : ''}`).setColor(errs.length > 0 ? UI.bad : UI.hi);
+    this.deckTitle.setText(`${t('prep.deck', { n: l.deck.length, size: RULES.size })}${errs.length > 0 ? `  ⚠ ${errs.map(deckErr).join(', ')}` : ''}`).setColor(errs.length > 0 ? UI.bad : UI.hi);
     this.deckList.setItems(
       avail.map((id) => {
         const c = CARDS[id];
@@ -175,22 +176,22 @@ export class PrepScene extends Phaser.Scene {
     );
     // 스타팅 포인트 상점(§8.2)
     const defs = metaData.startUpgrades as Record<string, StartUpgradeDef>;
-    this.meritText.setText(`전공 ${prof.merit}`);
+    this.meritText.setText(t('hud.merit', { n: prof.merit }));
     this.shopList.setItems(
       Object.entries(defs).map(([id, d]) => {
         const lv = prof.startUpgrades[id] ?? 0;
         const cost = nextCost(prof, id, defs);
         return {
           label: `${d.name} ${lv}/${d.maxLevel}`,
-          right: cost === null ? '최대' : `${cost}`,
+          right: cost === null ? t('prep.max') : `${cost}`,
           color: cost !== null && prof.merit >= cost ? UI.text : UI.dim,
           hint: d.effect,
           onSelect: () => {
             const r = buyStartUpgrade(loadProfile(), id, defs);
             if (r.ok) {
               updateProfile(() => r.save);
-              this.say(`${d.name} 강화! (${d.effect})`, UI.good);
-            } else this.say(r.error === 'merit' ? '전공 포인트가 모자랍니다' : r.error === 'max' ? '이미 최대 단계' : '알 수 없는 항목', UI.bad);
+              this.say(t('prep.upgraded', { name: d.name, effect: d.effect }), UI.good);
+            } else this.say(t(r.error === 'merit' ? 'prep.err.merit' : r.error === 'max' ? 'prep.err.max' : 'prep.err.unknown'), UI.bad);
             this.refresh();
           },
         };
@@ -205,10 +206,10 @@ export class PrepScene extends Phaser.Scene {
         const def = cur ? SKILLS[cur] : undefined;
         if (!open.includes(slot.key)) {
           const next = Object.values(SKILLS).find((s) => s.slot === slot.key);
-          return { label: `${slot.key}  잠김`, right: next ? `${next.unlock}` : '', disabled: true };
+          return { label: `${slot.key}  ${t('prep.locked')}`, right: next ? `${next.unlock}` : '', disabled: true };
         }
         return {
-          label: `${slot.key}  ${def?.name ?? '비어 있음'}`,
+          label: `${slot.key}  ${def?.name ?? t('prep.emptySlot')}`,
           right: def ? `TP ${def.tpCost}` : '',
           onSelect: () => {
             if (choices.length === 0) return;
@@ -225,7 +226,7 @@ export class PrepScene extends Phaser.Scene {
     const l = this.loadout;
     const errs = validateDeck(l.deck, CARDS, RULES, this.unlockedCards);
     if (errs.length > 0) {
-      this.say(`출정 불가: ${errs.map((e) => DECK_ERR[e]).join(', ')}`, UI.bad);
+      this.say(t('prep.cannotGo', { list: errs.map(deckErr).join(', ') }), UI.bad);
       return;
     }
     const loadout: Loadout = { char: l.char, deck: [...l.deck], skills: { ...l.skills } };

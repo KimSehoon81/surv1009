@@ -58,7 +58,7 @@ export function loadProfile(): SaveData {
   lastStatus = r.status;
   if (r.status === 'corrupt' && text !== null) {
     write(`${BACKUP_PREFIX}${Date.now()}`, text);
-    console.warn('[save] 세이브가 손상되어 백업 후 새로 시작합니다');
+    console.warn('[save] save corrupted — backed up, starting fresh');
   }
   cached = r.data;
   if (r.status !== 'ok') {

@@ -360,7 +360,7 @@ function ensureVignetteTexture(scene: Phaser.Scene, color: string): void {
   const w = LOGICAL_WIDTH / 4;
   const h = LOGICAL_HEIGHT / 4;
   const tex = scene.textures.createCanvas(VIGNETTE_KEY, LOGICAL_WIDTH, LOGICAL_HEIGHT);
-  if (!tex) throw new Error('비네팅 텍스처 생성 실패');
+  if (!tex) throw new Error('vignette texture failed');
   const ctx = tex.getContext();
   const rgb = parseColor(color);
   const r = (rgb >> 16) & 255;

@@ -7,6 +7,7 @@ import { Depth } from '../config/depth';
 import type { Enemy } from '../entities/Enemy';
 import type { AudioSink } from './audio';
 import type { Feel } from './feel';
+import { enemyMark } from '../ui/factionMark';
 
 const TM = feelData.threatMarker;
 const RED = parseColor(TM.color);
@@ -333,6 +334,7 @@ export class EnemyAttackSystem {
     const s = t.shape;
     if (s.kind === 'circle') {
       g.fillCircle(s.x, s.y, s.r * scale).strokeCircle(s.x, s.y, s.r * scale);
+      enemyMark(g, s.x, s.y, RED, TM.lineAlpha * pulse, Math.min(s.r * scale * 0.4, 10));
     } else if (s.kind === 'line') {
       const hw = (s.width / 2) * scale;
       const nx = -s.dirY * hw;
@@ -346,10 +348,12 @@ export class EnemyAttackSystem {
         { x: s.x - nx, y: s.y - ny },
       ];
       g.fillPoints(pts, true).strokePoints(pts, true);
+      enemyMark(g, ex - s.dirX * Math.min(12, s.length / 4), ey - s.dirY * Math.min(12, s.length / 4), RED, TM.lineAlpha * pulse);
     } else {
       const a = Math.atan2(s.dirY, s.dirX);
       const h = ((s.angleDeg / 2) * Math.PI) / 180;
       g.beginPath().moveTo(s.x, s.y).arc(s.x, s.y, s.range * scale, a - h, a + h).closePath().fillPath().strokePath();
+      enemyMark(g, s.x + Math.cos(a) * s.range * scale * 0.6, s.y + Math.sin(a) * s.range * scale * 0.6, RED, TM.lineAlpha * pulse);
     }
   }
 }

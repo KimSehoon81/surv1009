@@ -4,6 +4,7 @@ import { Pool } from '../core/pool';
 import type { SpatialHash } from '../core/spatialHash';
 import { Depth } from '../config/depth';
 import { MAX_ENEMY_RADIUS, type Enemy } from '../entities/Enemy';
+import { ENEMY_COLOR, enemyMark } from '../ui/factionMark';
 
 /** 진영: ally 지뢰는 적이 밟으면, enemy 지뢰(D23)는 플레이어가 밟으면 터진다 */
 export type Faction = 'ally' | 'enemy';
@@ -43,11 +44,14 @@ const BLINK_MS = 400;
 /** 지뢰 엔티티(풀). 조합 '지뢰 살포'와 적 지뢰가 진영만 바꿔 같이 쓴다 */
 export class MineSystem {
   private readonly pool: Pool<Mine>;
+  /** 적 지뢰 마름모 표시(색약 대응, D42) */
+  private readonly marks: Phaser.GameObjects.Graphics;
 
   constructor(
     scene: Phaser.Scene,
     private readonly cap: number,
   ) {
+    this.marks = scene.add.graphics().setDepth(Depth.Decal + 3);
     this.pool = new Pool<Mine>(
       () => ({
         sprite: scene.add.sprite(0, 0, '__DEFAULT').setActive(false).setVisible(false),
@@ -89,6 +93,7 @@ export class MineSystem {
 
   update(nowMs: number, grid: SpatialHash<Enemy>, player: { x: number; y: number; radius: number }, hooks: MineHooks): void {
     const list = this.pool.active;
+    this.marks.clear();
     for (let i = list.length - 1; i >= 0; i--) {
       const m = list[i] as Mine;
       const age = nowMs - m.bornMs;
@@ -96,6 +101,7 @@ export class MineSystem {
         this.release(m);
         continue;
       }
+      if (m.spec.faction === 'enemy' && age >= m.spec.armMs) enemyMark(this.marks, m.x, m.y - 2, ENEMY_COLOR, 0.85);
       // 낙하 프레임 → 설치 점멸(남은 수명 2초부터 빠르게)
       const blink = m.spec.lifeMs - age < 2000 ? BLINK_MS / 3 : BLINK_MS;
       m.sprite.setFrame(age < m.spec.armMs ? 0 : 1 + (Math.floor(age / blink) % 2));

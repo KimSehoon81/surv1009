@@ -103,7 +103,7 @@ export class Combo {
 /** "#rrggbb" → 0xrrggbb */
 export function parseColor(hex: string): number {
   const v = Number.parseInt(hex.replace('#', ''), 16);
-  if (!Number.isFinite(v)) throw new Error(`잘못된 색: ${hex}`);
+  if (!Number.isFinite(v)) throw new Error(`bad color: ${hex}`);
   return v;
 }
 

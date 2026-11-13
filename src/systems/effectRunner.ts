@@ -14,8 +14,10 @@ import type { GameClock } from './clock';
 import type { EffectContext, Point } from './effects';
 import type { EnemySystem } from './enemies';
 import type { Feel } from './feel';
+import { allyMark } from '../ui/factionMark';
 import type { BulletSpec, LobSpec, ProjectileSystem } from './projectiles';
 import type { AudioSink } from './audio';
+import { t } from '../i18n';
 
 const RIFLE = weaponsData.weapons.rifle;
 const GRENADE = weaponsData.weapons.grenade;
@@ -285,7 +287,7 @@ export class EffectRunner implements EffectContext {
     const stage = this.d.clearStageDisruption?.();
     if (stage) {
       this.d.audio.play('buff_up');
-      this.toast(`${stage} 해제`);
+      this.toast(t('fx.cleared', { name: stage }));
       return true;
     }
     const p = this.d.player;
@@ -294,13 +296,13 @@ export class EffectRunner implements EffectContext {
       if (b && this.d.debuffIds.has(b.id)) {
         p.removeBuff(b.id);
         this.d.audio.play('buff_up');
-        this.toast('방해 해제');
+        this.toast(t('fx.disruptCleared'));
         return true;
       }
     }
     if (this.d.cards.state.penalties.length > 0) {
       this.d.cards.act({ type: 'clearPenalty' });
-      this.toast('오보 정정');
+      this.toast(t('fx.reportFixed'));
       return true;
     }
     return false;
@@ -337,6 +339,7 @@ export class EffectRunner implements EffectContext {
       g.fillStyle(color, MARK.fillAlpha).fillCircle(m.x, m.y, m.r);
       g.lineStyle(1, color, MARK.lineAlpha * pulse).strokeCircle(m.x, m.y, m.r);
       g.lineStyle(1, color, MARK.lineAlpha).strokeCircle(m.x, m.y, m.r * k);
+      allyMark(g, m.x, m.y, m.r, color, MARK.lineAlpha * pulse);
     }
   }
 

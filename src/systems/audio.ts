@@ -198,7 +198,7 @@ export class AudioSystem implements AudioSink {
     if (!c) {
       if (!this.warned.has(cue)) {
         this.warned.add(cue);
-        console.warn(`[audio] 알 수 없는 소리: ${cue}`);
+        console.warn(`[audio] unknown sound: ${cue}`);
       }
       return;
     }

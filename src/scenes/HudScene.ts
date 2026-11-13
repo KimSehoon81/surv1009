@@ -24,6 +24,7 @@ import shopData from '../data/shop.json';
 import { canBuy, remaining, type ShopItem } from '../core/shop';
 import { panel, UI } from '../ui/widgets';
 import { uiText } from '../ui/text';
+import { t } from '../i18n';
 
 const RARITY = upgradesData.rarity;
 const PICK_KEYS: InputAction[] = ['levelPick1', 'levelPick2', 'levelPick3', 'levelPick4'];
@@ -32,7 +33,7 @@ const CARD_H = 150;
 const CARD_GAP = 16;
 const BOSS_INTRO = feelData.bossIntro;
 const SHOP_ITEMS = shopData.items as ShopItem[];
-const SHOP_REJECT: Record<string, string> = { soldOut: '이번 방문 재고 소진', merit: '전공 포인트 부족', unknown: '없는 품목' };
+const SHOP_REJECT: Record<string, string> = { soldOut: 'hud.shop.soldOut', merit: 'hud.shop.noMerit', unknown: 'hud.shop.unknown' };
 
 const textStyle = (size: number, color = '#ffffff'): Phaser.Types.GameObjects.Text.TextStyle => ({
   fontFamily: 'monospace',
@@ -96,8 +97,8 @@ export class HudScene extends Phaser.Scene {
     const y = 112;
     const box = this.add.container(LOGICAL_WIDTH + 10, y).setDepth(1050);
     box.add(this.add.rectangle(0, 0, w, 40, 0x1a1410, 0.92).setOrigin(0).setStrokeStyle(1, 0xffe14d, 0.9));
-    box.add(this.add.text(10, 5, '업적 달성', textStyle(11, '#ffe14d')));
-    box.add(this.add.text(10, 20, `${a.name}${a.reward ? `   +${a.reward} 전공` : ''}`, textStyle(13, '#ffffff')));
+    box.add(this.add.text(10, 5, t('hud.achievement'), textStyle(11, '#ffe14d')));
+    box.add(this.add.text(10, 20, `${a.name}${a.reward ? `   ${t('hud.meritPlus', { n: a.reward })}` : ''}`, textStyle(13, '#ffffff')));
     this.tweens.add({ targets: box, x, duration: 260, ease: 'Cubic.Out' });
     this.tweens.add({ targets: box, alpha: 0, delay: 2300, duration: 300, onComplete: () => box.destroy() });
     this.achBusyUntil = time + 2600;
@@ -114,14 +115,14 @@ export class HudScene extends Phaser.Scene {
   };
   private readonly onBossSpawn = (e: Enemy) => {
     const name = (enemiesData.enemies as Record<string, { name: string }>)[e.id]?.name ?? e.id;
-    this.bossTitle.setText(`보스 출현\n${name}`).setVisible(true).setAlpha(0).setScale(1.3);
+    this.bossTitle.setText(t('hud.bossAppear', { name })).setVisible(true).setAlpha(0).setScale(1.3);
     this.tweens.add({ targets: this.bossTitle, alpha: 1, scale: 1, duration: 250, ease: 'Back.Out' });
     this.tweens.add({ targets: this.bossTitle, alpha: 0, delay: BOSS_INTRO.titleMs - 400, duration: 400, onComplete: () => this.bossTitle.setVisible(false) });
   };
   private readonly onBossJudged = (result: string) => {
-    const t = this.time.now + 1600;
-    if (result === 'success') this.bossJudge = { msg: '적 작전 성공 — 대형 포격 예고!', color: '#ff6050', untilReal: t };
-    else this.bossJudge = { msg: result === 'cancel' ? '충전 취소 — 약점 노출!' : '적 작전 실패 — 약점 노출!', color: '#ffe14d', untilReal: t };
+    const until = this.time.now + 1600;
+    if (result === 'success') this.bossJudge = { msg: t('hud.boss.opSuccess'), color: '#ff6050', untilReal: until };
+    else this.bossJudge = { msg: t(result === 'cancel' ? 'hud.boss.opCancel' : 'hud.boss.opFail'), color: '#ffe14d', untilReal: until };
   };
   private readonly onResult = () => this.showResult();
   private readonly onCardEffect = (ev: CardEvent) => this.cardHud.showEffect(ev);
@@ -161,7 +162,7 @@ export class HudScene extends Phaser.Scene {
       .setVisible(false);
 
     const panel = { ...textStyle(16), align: 'center', backgroundColor: '#000000b0', padding: { x: 12, y: 8 } };
-    this.pauseText = this.add.text(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT / 2 - 40, '일시정지\nEsc로 계속', panel).setOrigin(0.5).setVisible(false);
+    this.pauseText = this.add.text(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT / 2 - 40, t('hud.paused'), panel).setOrigin(0.5).setVisible(false);
     this.ownedText = this.add
       .text(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT / 2 + 20, '', { ...textStyle(12, '#e8dcc0'), align: 'center', wordWrap: { width: 560 } })
       .setOrigin(0.5, 0)
@@ -299,7 +300,7 @@ export class HudScene extends Phaser.Scene {
     const y = Math.round((LOGICAL_HEIGHT - h) / 2) - 20;
     const root = this.add.container(0, 0).setDepth(1000);
     root.add(this.add.rectangle(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT, 0x000000, 0.55).setOrigin(0));
-    root.add(panel(this, x, y, w, h, '보급 트럭 — 전공 상점'));
+    root.add(panel(this, x, y, w, h, t('hud.shop.title')));
     const merit = this.add.text(x + w - 10, y + 6, '', uiText(13, UI.hi)).setOrigin(1, 0);
     const rows = SHOP_ITEMS.map((_, i) => {
       const t = this.add.text(x + 14, y + 32 + i * 22, '', uiText(13)).setInteractive({ useHandCursor: true });
@@ -311,7 +312,7 @@ export class HudScene extends Phaser.Scene {
       return t;
     });
     const info = this.add.text(x + 14, y + h - 54, '', uiText(12, UI.text)).setWordWrapWidth(w - 28);
-    const help = this.add.text(x + w / 2, y + h - 16, '↑↓ 고르기 · Enter 구매 · Esc 닫기 (전투 정지 중)', uiText(11, UI.dim)).setOrigin(0.5);
+    const help = this.add.text(x + w / 2, y + h - 16, t('hud.shop.help'), uiText(11, UI.dim)).setOrigin(0.5);
     root.add([merit, ...rows, info, help]);
     this.shop = { root, rows, info, merit, index: 0, note: '' };
     this.renderShop();
@@ -321,13 +322,13 @@ export class HudScene extends Phaser.Scene {
     const sh = this.shop;
     const st = this.battle.shopState;
     if (!sh || !st) return;
-    sh.merit.setText(`전공 ${st.merit}`);
+    sh.merit.setText(t('hud.merit', { n: st.merit }));
     SHOP_ITEMS.forEach((it, i) => {
       const left = remaining(st, it);
       const why = canBuy(st, it);
       const row = sh.rows[i];
       if (!row) return;
-      row.setText(`${i === sh.index ? '▶' : '　'} ${it.name.padEnd(8, '　')}  ${String(it.cost).padStart(3, ' ')} 전공  ${left > 0 ? `남은 ${left}` : '품절'}`);
+      row.setText(`${i === sh.index ? '▶' : '　'} ${it.name.padEnd(8, '　')}  ${t('hud.merit', { n: String(it.cost).padStart(3, ' ') })}  ${left > 0 ? t('hud.shop.left', { n: left }) : t('hud.shop.out')}`);
       row.setColor(i === sh.index ? UI.hi : why ? UI.dim : UI.text);
     });
     const cur = SHOP_ITEMS[sh.index];
@@ -340,7 +341,7 @@ export class HudScene extends Phaser.Scene {
     const it = sh ? SHOP_ITEMS[sh.index] : undefined;
     if (!sh || !it) return;
     const r = this.battle.buyShop(it.id);
-    sh.note = r.ok ? `${it.name} 구매 — 전공 −${it.cost}` : SHOP_REJECT[r.reason] ?? '';
+    sh.note = r.ok ? t('hud.shop.bought', { name: it.name, n: it.cost }) : t(SHOP_REJECT[r.reason] ?? 'hud.shop.unknown');
     this.renderShop();
   }
 
@@ -478,7 +479,7 @@ export class HudScene extends Phaser.Scene {
       g.fillStyle(0xff5040, 1).fillRect(LOGICAL_WIDTH / 2 - 31, 129, Math.round(62 * k), 3);
       g.fillStyle(0xffd040, 1).fillRect(LOGICAL_WIDTH / 2 - 31, 134, Math.round(62 * cancel), 3);
       this.bossCard.setAlpha(0.7 + 0.3 * Math.abs(Math.sin(time / 120)));
-      this.bossInfo.setText('적 작전 카드 충전 — 집중 사격으로 취소!').setColor('#ffe14d').setPosition(LOGICAL_WIDTH / 2, 150).setVisible(true);
+      this.bossInfo.setText(t('hud.boss.opCharge')).setColor('#ffe14d').setPosition(LOGICAL_WIDTH / 2, 150).setVisible(true);
     } else if (this.bossJudge && time < this.bossJudge.untilReal) {
       this.bossInfo.setText(this.bossJudge.msg).setColor(this.bossJudge.color).setPosition(LOGICAL_WIDTH / 2, 62).setVisible(true);
     } else this.bossInfo.setVisible(false);
@@ -492,19 +493,19 @@ export class HudScene extends Phaser.Scene {
     const rec = r.record;
     const root = this.add.container(0, 0);
     root.add(this.add.rectangle(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT, 0x000000, 0.7).setOrigin(0));
-    const title = rec.victory ? `${this.battle.stage.name} 점령` : '전사';
+    const title = rec.victory ? t('hud.result.victory', { name: this.battle.stage.name }) : t('hud.result.defeat');
     root.add(this.add.text(LOGICAL_WIDTH / 2, 86, title, textStyle(26, rec.victory ? '#ffe14d' : '#ff8060')).setOrigin(0.5));
     const mm = Math.floor(rec.timeSec / 60);
     const ss = String(Math.floor(rec.timeSec % 60)).padStart(2, '0');
     const lines = [
-      `시간 ${mm}:${ss}    레벨 ${rec.level} (전역 단계 ${r.step}/100)    처치 ${rec.kills}${rec.eliteKills > 0 ? ` (엘리트 ${rec.eliteKills})` : ''}${rec.recruit ? '    [신병 모드]' : ''}${r.threat > 0 ? `    [위협 등급 ${r.threat}]` : ''}`,
-      `전공 포인트 +${r.merit}${rec.victory ? '' : '  (전사: 50%)'}`,
+      `${t('hud.result.summary', { time: `${mm}:${ss}`, level: rec.level, step: r.step, kills: rec.kills })}${rec.eliteKills > 0 ? t('hud.result.elite', { n: rec.eliteKills }) : ''}${rec.recruit ? `    ${t('hud.result.recruit')}` : ''}${r.threat > 0 ? `    ${t('hud.result.threat', { n: r.threat })}` : ''}`,
+      `${t('hud.result.merit', { n: r.merit })}${rec.victory ? '' : `  ${t('hud.result.meritHalf')}`}`,
       '',
-      '작전 기록',
-      `제출 ${rec.submits}회 · 실제 성공률 ${r.rate}% · 최장 연패 ${rec.longestFailStreak} · 인장 사용 ${rec.sealsUsed} · 잔효 피해 ${rec.residueDamage}`,
+      t('hud.result.opsLog'),
+      t('hud.result.opsLine', { submits: rec.submits, rate: r.rate, streak: rec.longestFailStreak, seals: rec.sealsUsed, residue: rec.residueDamage }),
     ];
     root.add(this.add.text(LOGICAL_WIDTH / 2, 140, lines.join('\n'), { ...textStyle(14, '#e8dcc0'), align: 'center', lineSpacing: 6 }).setOrigin(0.5, 0));
-    if (r.tip) root.add(this.add.text(LOGICAL_WIDTH / 2, 320, `팁: ${r.tip}`, { ...textStyle(13, '#7fd8ff'), align: 'center', wordWrap: { width: 640 } }).setOrigin(0.5, 0));
+    if (r.tip) root.add(this.add.text(LOGICAL_WIDTH / 2, 320, t('hud.result.tip', { tip: r.tip }), { ...textStyle(13, '#7fd8ff'), align: 'center', wordWrap: { width: 640 } }).setOrigin(0.5, 0));
     // 새로 해금됨(첫 점령)
     if (r.unlocked.length > 0) {
       const chars = r.unlocked.filter((u) => u.kind === 'char').length;
@@ -512,25 +513,25 @@ export class HudScene extends Phaser.Scene {
         .filter((u) => u.kind !== 'char')
         .map((u) =>
           u.kind === 'skill'
-            ? `고급 스킬 ${(skillsData.skills as Record<string, { name: string }>)[u.id]?.name ?? u.id}`
+            ? t('hud.unlock.skill', { name: (skillsData.skills as Record<string, { name: string }>)[u.id]?.name ?? u.id })
             : u.kind === 'card'
-              ? `카드 ${(cardsData.cards as Record<string, { name: string }>)[u.id]?.name ?? u.id}`
+              ? t('hud.unlock.card', { name: (cardsData.cards as Record<string, { name: string }>)[u.id]?.name ?? u.id })
               : u.kind === 'slot'
-                ? `${u.id} 슬롯`
-                : '엔딩·뉴게임+',
+                ? t('hud.unlock.slot', { id: u.id })
+                : t('hud.unlock.ending'),
         );
-      const text = `새로 해금됨  ${[chars > 0 ? `캐릭터 ${chars}명` : '', ...names].filter(Boolean).join(' · ')}`;
+      const text = `${t('hud.unlock.title')}  ${[chars > 0 ? t('hud.unlock.chars', { n: chars }) : '', ...names].filter(Boolean).join(' · ')}`;
       root.add(this.add.text(LOGICAL_WIDTH / 2, 320, text, { ...textStyle(14, '#ffe14d'), align: 'center', wordWrap: { width: 700 } }).setOrigin(0.5, 0));
     }
     if (r.ending) {
       // 마지막 지역 점령: 엔딩으로(Enter·M 모두)
-      const end = this.add.text(LOGICAL_WIDTH / 2, 400, 'Enter  엔딩 보기', textStyle(18, '#ffe14d')).setOrigin(0.5);
+      const end = this.add.text(LOGICAL_WIDTH / 2, 400, t('hud.result.ending'), textStyle(18, '#ffe14d')).setOrigin(0.5);
       end.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.battle.toEnding());
       root.add(end);
     } else {
-      const again = this.add.text(LOGICAL_WIDTH / 2 - 120, 400, 'Enter  다시 출정', textStyle(16, '#ffffff')).setOrigin(0.5);
+      const again = this.add.text(LOGICAL_WIDTH / 2 - 120, 400, t('hud.result.again'), textStyle(16, '#ffffff')).setOrigin(0.5);
       again.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.battle.redeploy());
-      const map = this.add.text(LOGICAL_WIDTH / 2 + 120, 400, 'M  작전지도', textStyle(16, '#ffffff')).setOrigin(0.5);
+      const map = this.add.text(LOGICAL_WIDTH / 2 + 120, 400, t('hud.result.map'), textStyle(16, '#ffffff')).setOrigin(0.5);
       map.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.battle.toMap());
       root.add([again, map]);
     }
@@ -542,7 +543,7 @@ export class HudScene extends Phaser.Scene {
   private drawXp(): void {
     const p = this.battle.progression;
     this.lvText.setText(`LV ${p.level}`);
-    this.stepText.setText(`단계 ${globalStep(this.battle.enemies.stage, p.level)}/100`);
+    this.stepText.setText(t('hud.step', { n: globalStep(this.battle.enemies.stage, p.level) }));
     const g = this.xpBar.clear();
     const x = 64;
     const y = 14;
@@ -561,7 +562,7 @@ export class HudScene extends Phaser.Scene {
         const def = upgradesData.upgrades.find((u) => u.id === id);
         return def ? (def.maxLevel > 1 ? `${def.name} ${lv}` : def.name) : id;
       });
-    return names.length > 0 ? `획득한 업그레이드\n${names.join(' · ')}` : '';
+    return names.length > 0 ? t('hud.upgrades', { list: names.join(' · ') }) : '';
   }
 
   private showLevelUp(choices: Choice[]): void {
@@ -569,7 +570,7 @@ export class HudScene extends Phaser.Scene {
     const p = this.battle.progression;
     const root = this.add.container(0, 0);
     root.add(this.add.rectangle(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT, 0x000000, 0.55).setOrigin(0));
-    root.add(this.add.text(LOGICAL_WIDTH / 2, 120, `레벨 업!  Lv ${p.level - p.pending + 1}`, textStyle(22, '#ffe14d')).setOrigin(0.5));
+    root.add(this.add.text(LOGICAL_WIDTH / 2, 120, t('hud.levelUp.title', { n: p.level - p.pending + 1 }), textStyle(22, '#ffe14d')).setOrigin(0.5));
     const total = choices.length * CARD_W + (choices.length - 1) * CARD_GAP;
     const x0 = (LOGICAL_WIDTH - total) / 2;
     const y0 = 190;
@@ -580,7 +581,7 @@ export class HudScene extends Phaser.Scene {
       const bg = this.add.rectangle(0, 0, CARD_W, CARD_H, 0x1a1610, 0.94).setOrigin(0).setStrokeStyle(2, color);
       const icon = this.add.image(40, 44, manifest.image('ui', c.def.icon, 32, 32).key).setScale(2);
       const name = this.add.text(76, 22, c.def.name, textStyle(16));
-      const rarity = this.add.text(76, 44, c.fallback ? '보급' : RARITY.names[c.rarity as keyof typeof RARITY.names], textStyle(12, RARITY.colors[c.rarity as keyof typeof RARITY.colors]));
+      const rarity = this.add.text(76, 44, c.fallback ? t('hud.levelUp.supply') : RARITY.names[c.rarity as keyof typeof RARITY.names], textStyle(12, RARITY.colors[c.rarity as keyof typeof RARITY.colors]));
       const desc = this.add.text(12, 84, describeUpgrade(c.def, c.mods), { ...textStyle(12, '#e8dcc0'), wordWrap: { width: CARD_W - 24 } });
       const key = this.add.text(8, 6, String(i + 1), textStyle(12, '#ffe14d')).setName('key');
       card.add([bg, icon, name, rarity, desc, key]);
@@ -591,10 +592,10 @@ export class HudScene extends Phaser.Scene {
       .text(LOGICAL_WIDTH / 2, y0 + CARD_H + 30, '', textStyle(13, p.rerolls > 0 ? '#ffffff' : '#807868'))
       .setOrigin(0.5)
       .setName('reroll');
-    rr.setText(p.rerolls > 0 ? `R  다시 뽑기 (남은 ${p.rerolls})` : '다시 뽑기 없음');
+    rr.setText(p.rerolls > 0 ? t('hud.levelUp.reroll', { n: p.rerolls }) : t('hud.levelUp.noReroll'));
     if (p.rerolls > 0) rr.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.reroll());
     root.add(rr);
-    root.add(this.add.text(LOGICAL_WIDTH / 2, y0 + CARD_H + 56, `${p.pending > 1 ? `레벨업 ${p.pending}번 남음 · ` : ''}숫자키 또는 클릭으로 선택`, textStyle(11, '#b0a890')).setOrigin(0.5));
+    root.add(this.add.text(LOGICAL_WIDTH / 2, y0 + CARD_H + 56, `${p.pending > 1 ? t('hud.levelUp.pending', { n: p.pending }) : ''}${t('hud.levelUp.help')}`, textStyle(11, '#b0a890')).setOrigin(0.5));
     this.levelUp = root;
     this.levelUpOpenedAt = this.time.now;
     root.setAlpha(0.4);

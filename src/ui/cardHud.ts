@@ -14,17 +14,9 @@ const TAG_NAMES = cardsData.tags as Record<string, string>;
 const COL = Object.fromEntries(Object.entries(cardUi.colors).map(([k, v]) => [k, parseColor(v)])) as Record<keyof typeof cardUi.colors, number>;
 const FLIP = cardUi.flipMs;
 import { prefs } from '../systems/prefs';
-const REJECT_TEXT: Record<string, string> = {
-  cooldown: '재정비 중',
-  empty: '손패가 비었음 — 곧 새 카드가 들어옴',
-  onlyMinus: '추천할 카드 없음 — 마이너스는 숫자키로 골라 Space(OP 3으로 폐기)',
-  tooMany: '최대 3장',
-  notInHand: '손패에 없음',
-  blockedTag: '지금 낼 수 없는 카드 (통신 두절·악천후)',
-  noSeal: '인장 없음',
-  notEnoughOp: 'OP 부족(마이너스 폐기 3)',
-  judging: '판정 중',
-};
+import { t } from '../i18n';
+/** 거부 사유 → i18n card.reject.* (없으면 사유 그대로) */
+const rejectText = (reason: string): string => (reason ? t(`card.reject.${reason}`) : '');
 
 const text = (scene: Phaser.Scene, size: number, color = '#ffffff') =>
   scene.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: `${size}px`, color, resolution: 2 });
@@ -98,10 +90,10 @@ export class CardHud {
     else if (ev.type === 'cardEffect') msg = cardName(ev.card.id);
     else if (ev.type === 'minusTriggered') {
       const desc = (CARD_DATA.cards[ev.card.id] as { desc?: string } | undefined)?.desc;
-      msg = `${cardName(ev.card.id)} 발동${ev.mult > 1 ? ' ×2' : ''}${desc ? ` — ${desc}` : ''}`;
+      msg = `${t('card.fired', { name: cardName(ev.card.id) })}${ev.mult > 1 ? ' ×2' : ''}${desc ? ` — ${desc}` : ''}`;
     }
-    else if (ev.type === 'purified') msg = `${cardName(ev.card.id)} 정화`;
-    else if (ev.type === 'revealed') msg = `정체 공개: ${ev.cards.map((c) => cardName(c.id)).join(', ')}`;
+    else if (ev.type === 'purified') msg = t('card.purified', { name: cardName(ev.card.id) });
+    else if (ev.type === 'revealed') msg = t('card.revealed', { list: ev.cards.map((c) => cardName(c.id)).join(', ') });
     if (!msg) return;
     const bad = ev.type === 'minusTriggered' || (ev.type === 'revealed' && ev.cards.some((c) => CARD_DATA.cards[c.id]?.tag === 'minus'));
     this.showText(msg, bad ? cardUi.colors.minus : cardUi.colors.success);
@@ -250,11 +242,11 @@ export class CardHud {
     const hover = this.hoverUid !== null ? hand.find((c) => c.uid === this.hoverUid) : undefined;
     const hoverImg = hover ? this.images.get(hover.uid) : undefined;
     if (hover && hoverImg && hover.disguised && !hover.faceDown) {
-      this.tip.setText(`${cardName(hover.disguiseAs ?? hover.id)}?\n흐릿한 카드 — 고르면 정체가 드러남 (척후 보고로 식별)`).setPosition(hoverImg.x, hoverImg.y - FACE_H / 2 - 20).setVisible(true);
+      this.tip.setText(t('card.tip.disguised', { name: cardName(hover.disguiseAs ?? hover.id) })).setPosition(hoverImg.x, hoverImg.y - FACE_H / 2 - 20).setVisible(true);
     } else if (hover && hoverImg && hover.faceDown) {
-      this.tip.setText('뒷면 카드 — 제출하면 공개 (+5%p)').setPosition(hoverImg.x, hoverImg.y - FACE_H / 2 - 20).setVisible(true);
+      this.tip.setText(t('card.tip.faceDown')).setPosition(hoverImg.x, hoverImg.y - FACE_H / 2 - 20).setVisible(true);
     } else if (hover && hoverImg && smoke > 0) {
-      this.tip.setText('포연으로 잘 보이지 않음').setPosition(hoverImg.x, hoverImg.y - FACE_H / 2 - 20).setVisible(true);
+      this.tip.setText(t('card.tip.smoke')).setPosition(hoverImg.x, hoverImg.y - FACE_H / 2 - 20).setVisible(true);
     } else if (hover && hoverImg) {
       const d = CARD_DATA.cards[hover.id] as { name: string; tag: string; desc?: string } | undefined;
       this.tip.setText(`${d?.name ?? hover.id} · ${TAG_NAMES[d?.tag ?? ''] ?? ''}\n${d?.desc ?? ''}`).setPosition(hoverImg.x, hoverImg.y - FACE_H / 2 - 20).setVisible(true);
@@ -271,25 +263,25 @@ export class CardHud {
     this.info.setPosition(H.centerX, top).setColor('#ffffff');
     const rej = this.cards.lastReject;
     if (rej && time - rej.atReal < 1000) {
-      this.info.setText(REJECT_TEXT[rej.reason] ?? rej.reason).setColor(cardUi.colors.minus);
+      this.info.setText(rejectText(rej.reason)).setColor(cardUi.colors.minus);
     } else if (this.cards.judging) {
-      this.info.setText('판정 중…');
+      this.info.setText(t('card.judgingDots'));
     } else if (pv) {
-      if (pv.discardOnly) this.info.setText(`마이너스 폐기 (OP ${CARD_DATA.rules.minusDiscardOp})  Space`);
+      if (pv.discardOnly) this.info.setText(t('card.minusDiscard', { n: CARD_DATA.rules.minusDiscardOp }));
       else if (pv.chance) {
         const names = this.cards.selected.map((uid) => {
           const c = hand.find((h) => h.uid === uid);
-          return c?.faceDown ? '뒷면 카드' : cardName(c?.id ?? '');
+          return c?.faceDown ? t('card.faceDown') : cardName(c?.id ?? '');
         });
         // 뒷면 카드가 섞이면 조합 이름도 숨김(제출하면 공개)
         const hiddenSel = this.cards.selected.some((uid) => hand.find((h) => h.uid === uid)?.faceDown);
-        const what = hiddenSel ? '뒷면 포함 작전' : pv.combo ? comboName(pv.combo) : names.length > 1 ? '단일 효과' : (names[0] ?? '');
-        const seal = this.shiftDown() ? ' [인장]' : '';
-        this.info.setText(`${what} ${Math.round(pv.chance.final * 100)}%${seal}   Space 제출 · X 해제`);
-      } else this.info.setText(REJECT_TEXT[pv.reason ?? ''] ?? '');
+        const what = hiddenSel ? t('card.withHidden') : pv.combo ? comboName(pv.combo) : names.length > 1 ? t('card.single') : (names[0] ?? '');
+        const seal = this.shiftDown() ? ` ${t('card.sealTag')}` : '';
+        this.info.setText(`${what} ${Math.round(pv.chance.final * 100)}%${seal}   ${t('card.submitHelp')}`);
+      } else this.info.setText(rejectText(pv.reason ?? ''));
     } else if (n > 0) {
       const a = this.cards.advice();
-      this.info.setText(a && this.recommendHint ? `Space: 추천 — ${a.combo ? comboName(a.combo) : cardName(hand.find((c) => c.uid === a.uids[0])?.id ?? '')} ${Math.round(a.chance * 100)}%` : '');
+      this.info.setText(a && this.recommendHint ? t('card.recommend', { name: a.combo ? comboName(a.combo) : cardName(hand.find((c) => c.uid === a.uids[0])?.id ?? ''), pct: Math.round(a.chance * 100) }) : '');
     } else this.info.setText('');
     // 포연: 수치 흐림
     if (smoke > 0) this.info.setText(this.info.text.replace(/\d+%/g, '??%'));
@@ -339,7 +331,7 @@ export class CardHud {
       view.add(title);
       this.judgeView = view;
     }
-    const t = (time - j.startReal) / this.cards.judgeMul;
+    const el = (time - j.startReal) / this.cards.judgeMul;
     const view = this.judgeView;
     const title = view.getByName('title') as Phaser.GameObjects.Text;
     const cards = view.list.filter((o): o is Phaser.GameObjects.Image => o instanceof Phaser.GameObjects.Image);
@@ -353,13 +345,13 @@ export class CardHud {
       const card = j2.judged.cards.find((c) => c.uid === uid);
       const def = card ? CARD_DATA.cards[card.id] : undefined;
       let sx = 1;
-      if (t < t1) sx = 1 - t / t1;
-      else if (t < t2) {
+      if (el < t1) sx = 1 - el / t1;
+      else if (el < t2) {
         img.setTexture(cardBackKey(this.scene));
-        sx = (t - t1) / FLIP.back;
-      } else if (t < t3) sx = 1;
-      else if (t < t4) {
-        const k = (t - t3) / FLIP.reveal;
+        sx = (el - t1) / FLIP.back;
+      } else if (el < t3) sx = 1;
+      else if (el < t4) {
+        const k = (el - t3) / FLIP.reveal;
         if (k < 0.5) sx = 1 - k * 2;
         else {
           if (card && def) img.setTexture(cardFaceKey(this.scene, card.id, def));
@@ -367,22 +359,22 @@ export class CardHud {
         }
       }
       img.setScale(Math.max(0.02, sx), 1);
-      if (t >= t4) {
+      if (el >= t4) {
         const lost = !j2.judged.success && j2.events.some((e) => e.type === 'lost' && e.card.uid === uid);
-        if (j2.judged.success) img.setTintFill(t - t4 < 80 ? 0xffffff : COL.success).setAlpha(Math.max(0, 1 - (t - t4) / cardUi.resultMs));
-        else if (lost) img.setTint(0x806050).setAlpha(Math.max(0, 1 - (t - t4) / cardUi.resultMs));
-        else img.setAlpha(Math.max(0, 1 - (t - t4) / (cardUi.resultMs * 0.6)));
-      } else if (t2 <= t && t < t3) {
+        if (j2.judged.success) img.setTintFill(el - t4 < 80 ? 0xffffff : COL.success).setAlpha(Math.max(0, 1 - (el - t4) / cardUi.resultMs));
+        else if (lost) img.setTint(0x806050).setAlpha(Math.max(0, 1 - (el - t4) / cardUi.resultMs));
+        else img.setAlpha(Math.max(0, 1 - (el - t4) / (cardUi.resultMs * 0.6)));
+      } else if (t2 <= el && el < t3) {
         // 긴장: 살짝 떨림
-        img.y = Math.round(Math.sin(t * 0.08) * 1.5);
+        img.y = Math.round(Math.sin(el * 0.08) * 1.5);
       } else img.y = 0;
     });
-    if (t < t4) title.setText(j.judged.seal ? '인장 작전' : `${Math.round(j.judged.chance.final * 100)}%`).setColor('#ffffff');
-    else if (j.judged.success) title.setText(j.judged.combo ? `${comboName(j.judged.combo)}!` : '작전 성공').setColor(cardUi.colors.success);
+    if (el < t4) title.setText(j.judged.seal ? t('card.sealOp') : `${Math.round(j.judged.chance.final * 100)}%`).setColor('#ffffff');
+    else if (j.judged.success) title.setText(j.judged.combo ? `${comboName(j.judged.combo)}!` : t('card.success')).setColor(cardUi.colors.success);
     else {
       const op = j.events.find((e) => e.type === 'opGained');
       const seal = j.events.some((e) => e.type === 'sealGained');
-      title.setText(seal ? '실패 · 인장 획득!' : op ? `실패 · OP +1 (${op.type === 'opGained' ? op.op : ''})` : '실패').setColor('#e8dcc0');
+      title.setText(seal ? t('card.failSeal') : op ? t('card.failOp', { n: op.type === 'opGained' ? op.op : '' }) : t('card.fail')).setColor('#e8dcc0');
     }
   }
 
@@ -397,14 +389,13 @@ export class CardHud {
     this.host.pauseForBoard(true);
     const root = this.scene.add.container(0, 0);
     root.add(this.scene.add.rectangle(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT, 0x000000, 0.7).setOrigin(0));
-    root.add(text(this.scene, 18, cardUi.colors.success).setText('작전판').setPosition(80, 40));
+    root.add(text(this.scene, 18, cardUi.colors.success).setText(t('card.board.title')).setPosition(80, 40));
     const recipes = CARD_DATA.combos.map((c) => `${c.name.padEnd(8, ' ')} ${c.tags.map((t) => TAG_NAMES[t] ?? t).join(' + ')}`).join('\n');
-    root.add(text(this.scene, 12, '#e8dcc0').setText(`조합표\n${recipes}`).setPosition(80, 76).setLineSpacing(4));
+    root.add(text(this.scene, 12, '#e8dcc0').setText(t('card.board.recipes', { list: recipes })).setPosition(80, 76).setLineSpacing(4));
     const pv = this.cards.preview(false);
-    const labels: Record<string, string> = { base: '기본', count: '장수', intel: '정보', luck: '행운', extra: '숙련·업그레이드', char: '캐릭터 보정', gamble: '무리수', faceDown: '뒷면 카드', penalty: '오보', env: '환경 방해(방공망 등)' };
     const lines = pv?.chance
-      ? [...pv.chance.terms.map((t) => `${labels[t.key] ?? t.key}  ${t.value >= 0 ? '+' : ''}${Math.round(t.value * 100)}%p`), `최종  ${Math.round(pv.chance.final * 100)}% (상한 ${Math.round(CARD_DATA.rules.cap * 100)}%)`]
-      : ['카드를 고르면 성공률 내역이 보입니다'];
+      ? [...pv.chance.terms.map((x) => `${t(`card.term.${x.key}`)}  ${x.value >= 0 ? '+' : ''}${Math.round(x.value * 100)}%p`), t('card.board.final', { pct: Math.round(pv.chance.final * 100), cap: Math.round(CARD_DATA.rules.cap * 100) })]
+      : [t('card.board.pickHint')];
     const st = this.cards.state;
     const stats = st.stats;
     const rate = stats.submits > 0 ? Math.round((stats.successes / stats.submits) * 100) : 0;
@@ -412,13 +403,13 @@ export class CardHud {
       text(this.scene, 12, '#ffffff')
         .setText(
           [
-            '성공률 내역',
+            t('card.board.breakdown'),
             ...lines,
             '',
-            `OP ${st.op}/${this.cards.opForSeal} · 인장 ${st.seals}/${CARD_DATA.rules.maxSeals}`,
-            `작전 기록  제출 ${stats.submits} · 실제 성공률 ${rate}% · 최장 연패 ${stats.longestFailStreak}`,
+            t('card.board.op', { op: st.op, opMax: this.cards.opForSeal, seals: st.seals, sealMax: CARD_DATA.rules.maxSeals }),
+            t('card.board.log', { submits: stats.submits, rate, streak: stats.longestFailStreak }),
             '',
-            'Tab 닫기',
+            t('card.board.close'),
           ].join('\n'),
         )
         .setPosition(540, 76)

@@ -58,7 +58,7 @@ export function ensureTextures(scene: Phaser.Scene, specs: readonly AssetSpec[])
       result.fromFile++;
       continue;
     }
-    if (spec.path) console.warn(`[assets] 로드 실패 → 자리표시자 사용: ${spec.path}`);
+    if (spec.path) console.warn(`[assets] load failed → placeholder: ${spec.path}`);
     if (spec.kind === 'sheet') createSheetPlaceholder(scene, spec);
     else if (spec.kind === 'fx') createFxPlaceholder(scene, spec);
     else createImagePlaceholder(scene, spec);

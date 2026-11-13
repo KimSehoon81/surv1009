@@ -80,7 +80,7 @@ export class ParticleSystem {
   ) {
     for (const [name, data] of Object.entries(kinds)) {
       const depth = (Depth as Record<string, number>)[data.depth];
-      if (depth === undefined) throw new Error(`입자 ${name}: 알 수 없는 depth ${data.depth}`);
+      if (depth === undefined) throw new Error(`particle ${name}: unknown depth ${data.depth}`);
       const sheet = data.sheet ? manifest.fx(data.sheet) : null;
       this.kinds.set(name, {
         texture: sheet ? sheet.key : PARTICLE_TEXTURE_PREFIX + data.texture,
@@ -226,7 +226,7 @@ export function ensureParticleTextures(scene: Phaser.Scene): void {
     const key = PARTICLE_TEXTURE_PREFIX + name;
     if (scene.textures.exists(key)) return;
     const tex = scene.textures.createCanvas(key, w, h);
-    if (!tex) throw new Error(`입자 텍스처 생성 실패: ${key}`);
+    if (!tex) throw new Error(`particle texture failed: ${key}`);
     draw(tex.getContext());
     tex.refresh();
   };
@@ -260,7 +260,7 @@ export function ensureParticleTextures(scene: Phaser.Scene): void {
     const key = PARTICLE_TEXTURE_PREFIX + name;
     if (scene.textures.exists(key)) return;
     const tex = scene.textures.createCanvas(key, fw * n, fh);
-    if (!tex) throw new Error(`입자 텍스처 생성 실패: ${key}`);
+    if (!tex) throw new Error(`particle texture failed: ${key}`);
     for (let i = 0; i < n; i++) {
       draw(tex.getContext(), i, i * fw);
       tex.add(i, 0, i * fw, 0, fw, fh);

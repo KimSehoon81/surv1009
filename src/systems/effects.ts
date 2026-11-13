@@ -3,6 +3,7 @@
 // Phaser를 직접 쓰지 않는다(전투 쪽은 EffectContext로만 접근) → 등록 여부를 테스트할 수 있다.
 
 import type { StatMod } from '../core/stats';
+import { t } from '../i18n';
 
 export interface Point {
   x: number;
@@ -138,18 +139,18 @@ export const EFFECTS: Record<string, EffectHandler> = {
     ctx.flashEnemiesOnScreen(num(p, 'flashMs', 400));
     ctx.cards.primeIntel();
     ctx.cards.reveal(); // 혼탁 카드 식별(PRD §5.4 a)
-    ctx.toast('척후 보고: 다음 작전 +10%p');
+    ctx.toast(t('fx.scout'));
   },
 
   /** 정찰기(공군 실패 잔효): ms 동안 2초마다 화면 안 적 표시 */
   recon(ctx, p) {
     const dur = num(p, 'ms', 20000);
     for (let t = 0; t < dur; t += 2000) ctx.schedule(t, () => ctx.flashEnemiesOnScreen(400));
-    ctx.toast(`${str(p, 'label', '정찰기')}: ${Math.round(dur / 1000)}초간 적 표시`);
+    ctx.toast(t('fx.recon', { label: str(p, 'label', t('fx.reconPlane')), sec: Math.round(dur / 1000) }));
   },
 
   clearDisruption(ctx) {
-    if (!ctx.clearDisruption()) ctx.toast('해제할 방해가 없음');
+    if (!ctx.clearDisruption()) ctx.toast(t('fx.noDisruption'));
   },
 
   /** 다음 레벨업 보정(작전계획서·정찰 보고서·참모 회의) */
@@ -159,12 +160,12 @@ export const EFFECTS: Record<string, EffectHandler> = {
     if (p.rarePlusBonus !== undefined) b.rarePlusBonus = num(p, 'rarePlusBonus');
     if (p.valueMultiplier !== undefined) b.valueMultiplier = num(p, 'valueMultiplier');
     ctx.progression.bonus(b);
-    ctx.toast('다음 레벨업 강화');
+    ctx.toast(t('fx.nextLevelUp'));
   },
 
   rerolls(ctx, p) {
     ctx.progression.addRerolls(num(p, 'amount', 1));
-    ctx.toast(`리롤 +${num(p, 'amount', 1)}`);
+    ctx.toast(t('fx.reroll', { n: num(p, 'amount', 1) }));
   },
 
   /** 시간제 버프·디버프(stat2·value2로 두 번째 수정자) */
@@ -193,7 +194,7 @@ export const EFFECTS: Record<string, EffectHandler> = {
   /** 손패 리롤(소년 통신병): 마이너스가 아닌 카드를 새로 */
   rerollHand(ctx) {
     ctx.cards.rerollHand();
-    ctx.toast('손패 리롤');
+    ctx.toast(t('fx.handReroll'));
   },
 
   opGain(ctx, p, power) {
@@ -203,7 +204,7 @@ export const EFFECTS: Record<string, EffectHandler> = {
   /** 고급 스킬 남은 쿨다운 frac 단축(N06 통역관: 연합군 증원 요청) */
   cooldownCut(ctx, p) {
     ctx.cutCooldowns?.(num(p, 'frac', 0.3));
-    ctx.toast(`고급 스킬 쿨다운 −${Math.round(num(p, 'frac', 0.3) * 100)}%`);
+    ctx.toast(t('fx.cooldownCut', { pct: Math.round(num(p, 'frac', 0.3) * 100) }));
   },
 
   tp(ctx, p, power) {

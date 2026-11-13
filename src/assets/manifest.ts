@@ -57,7 +57,7 @@ export function createManifest(available: readonly string[]) {
     files.has(relPath) ? ASSET_ROOT + relPath : null;
 
   const factionOf = (id: string): Faction => {
-    if (!UNIT_ID.test(id)) throw new Error(`manifest: 잘못된 유닛 ID "${id}" (예: A01, E05, N02)`);
+    if (!UNIT_ID.test(id)) throw new Error(`manifest: bad unit ID "${id}" (e.g. A01, E05, N02)`);
     return spec.idPrefix[id[0] as keyof typeof spec.idPrefix] as Faction;
   };
 

@@ -108,7 +108,7 @@ export class CappedPool<T> {
       this.head++;
       if (this.pool.isActive(item) && this.born.get(item) === serial) return item;
     }
-    throw new Error('CappedPool: 활성 항목이 없는데 상한에 닿음');
+    throw new Error('CappedPool: cap reached with no active items');
   }
 
   release(item: T): boolean {

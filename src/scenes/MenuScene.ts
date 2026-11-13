@@ -8,6 +8,7 @@ import scalingData from '../data/scaling.json';
 const MAX_THREAT = scalingData.threat.max;
 import { uiText } from '../ui/text';
 import { SceneKey } from './keys';
+import { t } from '../i18n';
 
 /** 메인 메뉴(임시, 정식 화면은 목업 수령 후 — docs/mockup/main.png 대기): 출정 → 작전지도 / 설정 */
 export class MenuScene extends Phaser.Scene {
@@ -22,15 +23,15 @@ export class MenuScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.controls.destroy());
     const prof = loadProfile();
     const cx = LOGICAL_WIDTH / 2;
-    this.add.text(cx, 150, '압록강 서바이벌', uiText(40, '#ffe14d')).setOrigin(0.5);
-    this.add.text(cx, 200, '가칭', uiText(13, '#b0a890')).setOrigin(0.5);
+    this.add.text(cx, 150, t('menu.title'), uiText(40, '#ffe14d')).setOrigin(0.5);
+    this.add.text(cx, 200, t('menu.subtitle'), uiText(13, '#b0a890')).setOrigin(0.5);
     this.sel = 0;
     this.items = [
-      { label: '출정', run: () => this.go() },
-      { label: '도감·업적', run: () => this.scene.start(SceneKey.Codex) },
-      { label: '설정', run: () => this.scene.start(SceneKey.Settings, { back: SceneKey.Menu }) },
+      { label: t('menu.start'), run: () => this.go() },
+      { label: t('codex.title'), run: () => this.scene.start(SceneKey.Codex) },
+      { label: t('settings.title'), run: () => this.scene.start(SceneKey.Settings, { back: SceneKey.Menu }) },
       // 엔딩을 봤으면 뉴게임+(위협 등급 +1, 점령만 초기화)
-      ...(prof.flags.endingSeen && (prof.threat ?? 0) < MAX_THREAT ? [{ label: `뉴게임+  위협 등급 ${(prof.threat ?? 0) + 1}`, run: () => this.newGamePlus() }] : []),
+      ...(prof.flags.endingSeen && (prof.threat ?? 0) < MAX_THREAT ? [{ label: t('menu.ngPlus', { n: (prof.threat ?? 0) + 1 }), run: () => this.newGamePlus() }] : []),
     ].map((it, i) => {
       const t = this.add.text(cx, 290 + i * 30, '', uiText(20, '#ffffff')).setOrigin(0.5).setInteractive({ useHandCursor: true });
       t.on('pointerdown', () => it.run());
@@ -38,11 +39,11 @@ export class MenuScene extends Phaser.Scene {
     });
     this.renderItems();
     const captured = Object.values(prof.stages).filter((s) => s.captured).length;
-    const t = prof.threat ?? 0;
-    this.add.text(cx, 290 + this.items.length * 30 + 20, `점령 ${captured}/10 · 전공 포인트 ${prof.merit}${t > 0 ? ` · 위협 등급 ${t}` : ''}${prof.bestStep ? ` · 최고 단계 ${prof.bestStep}/100` : ''}`, uiText(13)).setOrigin(0.5);
+    const threat = prof.threat ?? 0;
+    this.add.text(cx, 290 + this.items.length * 30 + 20, `${t('menu.summary', { captured, merit: prof.merit })}${threat > 0 ? t('menu.threat', { n: threat }) : ''}${prof.bestStep ? t('menu.bestStep', { n: prof.bestStep }) : ''}`, uiText(13)).setOrigin(0.5);
     const status = loadStatus();
-    if (status === 'corrupt') this.add.text(cx, LOGICAL_HEIGHT - 40, '세이브가 손상되어 백업해 두고 새로 시작했습니다', uiText(12, '#ff8060')).setOrigin(0.5);
-    else if (status === 'migrated') this.add.text(cx, LOGICAL_HEIGHT - 40, '이전 저장을 새 형식으로 옮겼습니다', uiText(12, '#7fd8ff')).setOrigin(0.5);
+    if (status === 'corrupt') this.add.text(cx, LOGICAL_HEIGHT - 40, t('menu.saveCorrupt'), uiText(12, '#ff8060')).setOrigin(0.5);
+    else if (status === 'migrated') this.add.text(cx, LOGICAL_HEIGHT - 40, t('menu.saveMigrated'), uiText(12, '#7fd8ff')).setOrigin(0.5);
   }
 
   private items: { label: string; run: () => void; text: Phaser.GameObjects.Text }[] = [];

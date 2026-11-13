@@ -1,3 +1,4 @@
+import './i18n/boot';
 import * as Phaser from 'phaser';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH, computeZoom } from './config/display';
 import { BootScene } from './scenes/BootScene';

@@ -48,7 +48,7 @@ export function ensurePixelFont(scene: Phaser.Scene): void {
   if (scene.cache.bitmapFont.exists(PIXEL_FONT)) return;
   const chars = Object.keys(GLYPHS);
   const tex = scene.textures.createCanvas(PIXEL_FONT, CELL_W * chars.length, CELL_H);
-  if (!tex) throw new Error('pixelFont: 텍스처 생성 실패');
+  if (!tex) throw new Error('pixelFont: texture failed');
   const ctx = tex.getContext();
   chars.forEach((ch, i) => {
     const bits = GLYPHS[ch] ?? '';

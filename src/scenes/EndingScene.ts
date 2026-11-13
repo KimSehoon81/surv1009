@@ -5,6 +5,7 @@ import { InputMap } from '../systems/input';
 import { uiText } from '../ui/text';
 import { UI } from '../ui/widgets';
 import { SceneKey } from './keys';
+import { t } from '../i18n';
 
 /** 엔딩(D38): 문장이 차례로 → 참전국 크레딧 → 뉴게임+ 안내. Enter·클릭이면 다음 문장을 바로, 끝나면 메뉴로 */
 export class EndingScene extends Phaser.Scene {
@@ -36,7 +37,7 @@ export class EndingScene extends Phaser.Scene {
       y += Math.max(18, o.height + 10);
       return o;
     });
-    this.add.text(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT - 24, 'Enter  넘기기 · 끝나면 메뉴로', uiText(11, UI.dim)).setOrigin(0.5);
+    this.add.text(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT - 24, t('ending.help'), uiText(11, UI.dim)).setOrigin(0.5);
     this.input.on('pointerdown', () => this.advance());
     this.nextAt = this.time.now + 600;
   }

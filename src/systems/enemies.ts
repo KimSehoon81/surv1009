@@ -70,7 +70,7 @@ export class EnemySystem {
   }
 
   setSpawns(spawns: ReadonlyArray<{ enemy: string; perSec: number }>, mult: number): void {
-    if (spawns !== this.spawns) for (const s of spawns) if (!isEnemyId(s.enemy)) throw new Error(`스폰 표의 알 수 없는 적: ${s.enemy}`);
+    if (spawns !== this.spawns) for (const s of spawns) if (!isEnemyId(s.enemy)) throw new Error(`unknown enemy in spawn table: ${s.enemy}`);
     this.spawns = spawns;
     this.spawnMult = mult;
   }

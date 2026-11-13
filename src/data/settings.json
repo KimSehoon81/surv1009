@@ -1,5 +1,5 @@
 {
-  "$comment": "설정 화면(PRD §11, D29). defaults=편의·접근성 기본값(저장에 없으면 이 값), options=탭별 항목(라벨·종류·저장 키), keys.remappable=키 재설정 가능한 액션(라벨), keys.conflictGroup=전투 중 함께 쓰이는 액션(이 안에서 같은 키는 거부, 레벨업 숫자키와 카드 숫자키처럼 화면이 다른 것은 기본 공유 허용). recruitDamageMul=신병 모드 받는 피해 배율(PRD §11: −30%), shortJudgeMul=판정 연출 짧게 배율. quality(D40)=이펙트 품질 프리셋(입자·숫자 상한, 흔들림 배율, 소품 표시), autoLow=FPS가 sec초 동안 fps 미만이면 한 단계 자동 하향(한 판에 한 번).",
+  "$comment": "설정 화면(PRD §11, D29). defaults=편의·접근성 기본값(저장에 없으면 이 값), options=탭별 항목(라벨·종류·저장 키), keys.remappable=키 재설정 가능한 액션(라벨), keys.conflictGroup=전투 중 함께 쓰이는 액션(이 안에서 같은 키는 거부, 레벨업 숫자키와 카드 숫자키처럼 화면이 다른 것은 기본 공유 허용). recruitDamageMul=신병 모드 받는 피해 배율(PRD §11: −30%), shortJudgeMul=판정 연출 짧게 배율. quality(D40)=이펙트 품질 프리셋(입자·숫자 상한, 흔들림 배율, 소품 표시), autoLow=FPS가 sec초 동안 fps 미만이면 한 단계 자동 하향(한 판에 한 번). lang(D42)=언어 선택(choices·names가 있는 choice는 그 목록을 씀, 바꾸면 페이지를 다시 불러와 모든 문자열 갱신).",
   "defaults": {
     "feel": 1,
     "mono": false,
@@ -9,7 +9,8 @@
     "threatFirst": true,
     "autoDiscardMinus": false,
     "recruit": false,
-    "quality": "high"
+    "quality": "high",
+    "lang": "ko"
   },
   "recruitDamageMul": 0.7,
   "shortJudgeMul": 0.5,
@@ -18,6 +19,20 @@
       "id": "basic",
       "name": "기본",
       "options": [
+        {
+          "key": "lang",
+          "label": "언어 / Language",
+          "kind": "choice",
+          "choices": [
+            "ko",
+            "en"
+          ],
+          "names": {
+            "ko": "한국어",
+            "en": "English"
+          },
+          "hint": "바꾸면 화면을 다시 불러옵니다 / Reloads the page"
+        },
         {
           "key": "quality",
           "label": "이펙트 품질",

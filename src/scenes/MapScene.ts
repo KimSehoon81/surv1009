@@ -9,6 +9,7 @@ import { loadProfile } from '../systems/save';
 import { uiText } from '../ui/text';
 import type { MapPayload, PrepPayload } from '../types/scenes';
 import { SceneKey } from './keys';
+import { t } from '../i18n';
 
 const NODES = mapData.nodes;
 const ORDER = NODES.map((n) => n.id);
@@ -45,9 +46,9 @@ export class MapScene extends Phaser.Scene {
     const pts = mapData.outline.map(([x = 0, y = 0]) => new Phaser.Math.Vector2(x, y));
     land.fillStyle(0x6b5a3e, 1).fillPoints(pts, true).lineStyle(2, 0x2a2016, 1).strokePoints(pts, true);
     this.gfx = this.add.graphics();
-    this.add.text(16, 12, '한반도 작전지도', uiText(18, '#ffe14d'));
-    this.add.text(16, 36, `전공 포인트 ${prof.merit}`, uiText(12));
-    this.add.text(16, LOGICAL_HEIGHT - 24, '←→ 지역 선택 · Enter 출정 준비 · Esc 메뉴', uiText(12, '#b0a890'));
+    this.add.text(16, 12, t('map.title'), uiText(18, '#ffe14d'));
+    this.add.text(16, 36, t('map.merit', { n: prof.merit }), uiText(12));
+    this.add.text(16, LOGICAL_HEIGHT - 24, t('map.help'), uiText(12, '#b0a890'));
     this.info = this.add.text(650, 90, '', { ...uiText(13), lineSpacing: 6, wordWrap: { width: 290 } });
     this.notice = this.add.text(LOGICAL_WIDTH / 2, 70, '', { ...uiText(15, '#ffe14d'), backgroundColor: '#000000b0', padding: { x: 10, y: 5 } }).setOrigin(0.5).setVisible(false);
 
@@ -65,7 +66,7 @@ export class MapScene extends Phaser.Scene {
     const r = this.payload.lastResult;
     if (r) {
       const name = (stagesData.stages as Record<string, { name: string }>)[r.stage]?.name ?? r.stage;
-      this.say(r.victory ? `${name} 점령! 전공 +${r.merit}` : `${name} 철수 — 전공 +${r.merit}`);
+      this.say(t(r.victory ? 'map.returnWin' : 'map.returnLose', { name, n: r.merit }));
     }
   }
 
@@ -79,11 +80,11 @@ export class MapScene extends Phaser.Scene {
     const n = NODES[this.sel];
     if (!n) return;
     if (!isUnlocked(prof, ORDER, n.id)) {
-      this.say('앞 지역을 먼저 점령해야 합니다');
+      this.say(t('map.needPrev'));
       return;
     }
     if (!(n.id in stagesData.stages)) {
-      this.say(`${n.region} 작전은 준비 중입니다`);
+      this.say(t('map.notReady', { region: n.region }));
       return;
     }
     const payload: PrepPayload = { stage: n.id };
@@ -126,9 +127,9 @@ export class MapScene extends Phaser.Scene {
     const rec = prof.stages[n.id];
     const open = isUnlocked(prof, ORDER, n.id);
     const ready = n.id in stagesData.stages;
-    const status = !open ? '미해금(안개)' : rec?.captured ? `점령 ${rec.clears}회${rec.bestTimeSec ? ` · 최고 ${Math.floor(rec.bestTimeSec / 60)}:${String(rec.bestTimeSec % 60).padStart(2, '0')}` : ''}` : ready ? '출정 가능' : '준비 중';
+    const status = !open ? t('map.st.fog') : rec?.captured ? `${t('map.st.captured', { n: rec.clears })}${rec.bestTimeSec ? t('map.st.best', { time: `${Math.floor(rec.bestTimeSec / 60)}:${String(rec.bestTimeSec % 60).padStart(2, '0')}` }) : ''}` : ready ? t('map.st.open') : t('map.st.notReady');
     this.info.setText(
-      [`${ORDER.indexOf(n.id) + 1}. ${n.region} — ${n.name}`, '', `주요 적: ${n.enemies}`, `보스: ${n.boss}`, `환경 방해: ${n.disruption}`, '', `상태: ${status}`].join('\n'),
+      [`${ORDER.indexOf(n.id) + 1}. ${n.region} — ${n.name}`, '', t('map.info', { enemies: n.enemies, boss: n.boss, disruption: n.disruption }), '', t('map.status', { status })].join('\n'),
     );
   }
 }

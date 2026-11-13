@@ -98,13 +98,13 @@ export function fromState(saved: RngState): Rng {
     },
     chance: (p) => (p <= 0 ? false : p >= 1 ? true : next() < p),
     pick: (items) => {
-      if (items.length === 0) throw new Error('rng.pick: 빈 배열');
+      if (items.length === 0) throw new Error('rng.pick: empty array');
       return items[Math.floor(next() * items.length)] as (typeof items)[number];
     },
     weighted: (items, weightOf) => {
       let total = 0;
       for (const item of items) total += Math.max(0, weightOf(item));
-      if (total <= 0) throw new Error('rng.weighted: 가중치 합이 0');
+      if (total <= 0) throw new Error('rng.weighted: total weight is 0');
       let roll = next() * total;
       for (const item of items) {
         const w = Math.max(0, weightOf(item));
@@ -116,7 +116,7 @@ export function fromState(saved: RngState): Rng {
         const item = items[i] as (typeof items)[number];
         if (weightOf(item) > 0) return item;
       }
-      throw new Error('rng.weighted: 도달 불가');
+      throw new Error('rng.weighted: unreachable');
     },
     shuffle: (items) => {
       const out = items.slice();

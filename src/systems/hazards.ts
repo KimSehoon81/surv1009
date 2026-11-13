@@ -1,6 +1,7 @@
 import type * as Phaser from 'phaser';
 import { Pool } from '../core/pool';
 import { Depth } from '../config/depth';
+import { enemyMark } from '../ui/factionMark';
 
 /** 피해 장판(화염 등): 수명 동안 tickMs마다 안에 있는 대상에게 피해. 이후 연기·독가스류도 같은 엔티티 */
 export interface HazardSpec {
@@ -72,6 +73,7 @@ export class HazardSystem {
       const wob = 1 + 0.06 * Math.sin(nowMs / 90 + h.x);
       g.fillStyle(c1, 0.35 * fade).fillEllipse(h.x, h.y, h.spec.radius * 2 * wob, h.spec.radius * wob);
       g.fillStyle(c2, 0.3 * fade).fillEllipse(h.x, h.y, h.spec.radius * 1.2, h.spec.radius * 0.55);
+      if (h.spec.faction === 'enemy') enemyMark(g, h.x, h.y, c1, 0.8 * fade);
       if (nowMs < h.nextTickMs) continue;
       h.nextTickMs = nowMs + h.spec.tickMs;
       if (h.spec.faction === 'enemy') {

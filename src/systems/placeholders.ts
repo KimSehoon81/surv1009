@@ -131,7 +131,7 @@ function drawUnitFrame(ctx: Ctx, ox: number, oy: number, s: number, sheet: Sheet
 export function createSheetPlaceholder(scene: Phaser.Scene, sheet: SheetSpec): void {
   const fs = sheet.frameSize;
   const tex = scene.textures.createCanvas(sheet.key, fs * sheet.cols, fs * sheet.rows);
-  if (!tex) throw new Error(`placeholder: 텍스처 생성 실패 ${sheet.key}`);
+  if (!tex) throw new Error(`placeholder: texture failed ${sheet.key}`);
   const ctx = tex.getContext();
   ctx.imageSmoothingEnabled = false;
   const s = fs / 100;
@@ -148,7 +148,7 @@ export function createSheetPlaceholder(scene: Phaser.Scene, sheet: SheetSpec): v
 export function createImagePlaceholder(scene: Phaser.Scene, image: ImageSpec): void {
   const { width: w, height: h } = image;
   const tex = scene.textures.createCanvas(image.key, w, h);
-  if (!tex) throw new Error(`placeholder: 텍스처 생성 실패 ${image.key}`);
+  if (!tex) throw new Error(`placeholder: texture failed ${image.key}`);
   const ctx = tex.getContext();
   ctx.imageSmoothingEnabled = false;
 
@@ -181,7 +181,7 @@ export function createImagePlaceholder(scene: Phaser.Scene, image: ImageSpec): v
 export function createFxPlaceholder(scene: Phaser.Scene, fx: FxSpec): void {
   const fs = fx.frameSize;
   const tex = scene.textures.createCanvas(fx.key, fs * fx.cols, fs * fx.rows);
-  if (!tex) throw new Error(`placeholder: 텍스처 생성 실패 ${fx.key}`);
+  if (!tex) throw new Error(`placeholder: texture failed ${fx.key}`);
   const ctx = tex.getContext();
   for (let i = 0; i < fx.frames; i++) {
     const x = (i % fx.cols) * fs;

@@ -5,6 +5,7 @@ import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { Depth } from '../config/depth';
 import { registerUnitAnims } from '../systems/anims';
 import { SceneKey } from './keys';
+import { t } from '../i18n';
 
 /** public/assets에 시트가 있는 유닛 ID(없으면 A01 하나로 자리표시자 확인) */
 export function galleryUnitIds(): string[] {
@@ -52,7 +53,7 @@ export class GalleryScene extends Phaser.Scene {
       y += CELL;
     }
     this.add
-      .text(LOGICAL_WIDTH - 4, 4, `유닛 ${ids.length} · 방향키/휠 스크롤 · G 기준선`, { fontFamily: 'monospace', fontSize: '10px', color: '#ffffff', backgroundColor: '#000000a0' })
+      .text(LOGICAL_WIDTH - 4, 4, t('gallery.help', { n: ids.length }), { fontFamily: 'monospace', fontSize: '10px', color: '#ffffff', backgroundColor: '#000000a0' })
       .setOrigin(1, 0)
       .setScrollFactor(0)
       .setDepth(Depth.Ui);

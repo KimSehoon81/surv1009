@@ -42,6 +42,8 @@ export interface SaveData {
     shortJudge?: boolean;
     autoDiscardMinus?: boolean;
     recruit?: boolean;
+    /** 화면 언어 ko·en(D42) */
+    lang?: string;
     /** 이펙트 품질 high·normal·low(D40) */
     quality?: string;
     /** 키 재설정: 액션 → 키(기본값 위에 덮어쓰기만) */
@@ -104,7 +106,7 @@ export function migrate(d: Record<string, unknown>): Record<string, unknown> {
   let v = typeof cur.v === 'number' ? cur.v : 0;
   while (v < SAVE_VERSION) {
     const step = MIGRATIONS[v];
-    if (!step) throw new Error(`세이브 마이그레이션 없음: v${v}`);
+    if (!step) throw new Error(`no save migration: v${v}`);
     cur = step(cur);
     v = typeof cur.v === 'number' ? cur.v : v + 1;
   }
