@@ -1,0 +1,9 @@
+{
+  "v": 1,
+  "stages": { "S1": { "captured": true, "bestTimeSec": 801, "clears": 1 } },
+  "unlocks": { "chars": ["A01", "A02", "A03", "A04"], "skills": ["AS03"] },
+  "merit": 340,
+  "startUpgrades": {},
+  "settings": { "volume": { "master": 1, "bgm": 1, "sfx": 1, "ui": 1 }, "guide": true },
+  "flags": { "guideSeen": ["move", "firstCard", "firstFail"], "firstRunDone": true }
+}

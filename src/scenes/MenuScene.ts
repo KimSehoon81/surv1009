@@ -1,7 +1,7 @@
 import * as Phaser from 'phaser';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { InputMap } from '../systems/input';
-import { loadProfile, loadStatus, updateProfile } from '../systems/save';
+import { hasBackup, loadProfile, loadStatus, restoreBackup, updateProfile } from '../systems/save';
 import { startNewGamePlus } from '../core/meta';
 import scalingData from '../data/scaling.json';
 
@@ -32,10 +32,12 @@ export class MenuScene extends Phaser.Scene {
       { label: t('settings.title'), run: () => this.scene.start(SceneKey.Settings, { back: SceneKey.Menu }) },
       // 엔딩을 봤으면 뉴게임+(위협 등급 +1, 점령만 초기화)
       ...(prof.flags.endingSeen && (prof.threat ?? 0) < MAX_THREAT ? [{ label: t('menu.ngPlus', { n: (prof.threat ?? 0) + 1 }), run: () => this.newGamePlus() }] : []),
+      // 세이브가 손상돼 새로 시작했으면 마지막 정상 세이브로 되돌리기(D43)
+      ...(loadStatus() === 'corrupt' && hasBackup() ? [{ label: t('menu.restore'), run: () => restoreBackup() && window.location.reload() }] : []),
     ].map((it, i) => {
-      const t = this.add.text(cx, 290 + i * 30, '', uiText(20, '#ffffff')).setOrigin(0.5).setInteractive({ useHandCursor: true });
-      t.on('pointerdown', () => it.run());
-      return { ...it, text: t };
+      const label = this.add.text(cx, 290 + i * 30, '', uiText(20, '#ffffff')).setOrigin(0.5).setInteractive({ useHandCursor: true });
+      label.on('pointerdown', () => it.run());
+      return { ...it, text: label };
     });
     this.renderItems();
     const captured = Object.values(prof.stages).filter((s) => s.captured).length;

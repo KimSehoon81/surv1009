@@ -44,15 +44,17 @@
       "keys.remappable.cardSelect5": "Card 5",
       "quality.names.high": "High",
       "quality.names.normal": "Normal",
-      "quality.names.low": "Low"
+      "quality.names.low": "Low",
+      "tabs.0.options.9.label": "Restore last good save",
+      "tabs.0.options.9.hint": "If your save looks wrong: go back to the good save from just before the last overwrite (press Enter twice)"
     },
     "guide": {
-      "tips.move": "Move with WASD — firing is automatic",
-      "tips.firstCard": "Press Space twice to launch the suggested combo (practice card: Precision Strike always succeeds; you can also pick with 1–5)",
+      "tips.move": "Move with {move} — firing is automatic",
+      "tips.firstCard": "Press {submit} twice to launch the suggested combo (practice card: Precision Strike always succeeds; you can also pick with 1–5)",
       "tips.firstFail": "A failure still gives OP +1 — at 10 you get a guaranteed-success seal",
       "tips.firstPair": "Play matching cards together for a big skill and better odds",
-      "tips.skillReady": "TP is full — press Q for your skill",
-      "tips.firstSeal": "Shift+Space submits with a seal = guaranteed success",
+      "tips.skillReady": "TP is full — press {skill} for your skill",
+      "tips.firstSeal": "{seal} submits with a seal = guaranteed success",
       "tips.firstMinus": "Minus card: alone it is discarded for OP 3, inside a combo it is a gamble",
       "tips.firstDisruption": "Disruptions fade with time or when their source is killed; Comms Restore clears them at once"
     },

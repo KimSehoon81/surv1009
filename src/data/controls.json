@@ -1,5 +1,5 @@
 {
-  "$comment": "키 배치(PRD §3). 액션 이름 → Phaser 키 이름 목록. D29·D42에서 키 재설정이 이 표를 바꾼다. debug*는 개발용(디버그 모드에서만). levelPick1~4·levelReroll은 레벨업 창(전투 정지 중)에서만 쓰여 전투 키와 상황이 겹치지 않는다(PRD §3 키 재설정 규칙). cardSelect1~5·cardSubmit(Shift와 함께면 인장 제출)·cardClear·opsBoard는 전투 중 카드 조작(PRD §3 v0.2). skillQ·E·R·F는 고급 스킬 슬롯(W는 이동과 겹쳐 F). ui*·toMap은 메뉴·지도·결과 화면 전용(전투 키와 상황이 겹치지 않음). R은 levelReroll과 같지만 레벨업 창이 열리면 스킬 입력이 막혀 상황이 겹치지 않는다",
+  "$comment": "키 배치(PRD §3). 액션 이름 → Phaser 키 이름 목록. D29·D42에서 키 재설정이 이 표를 바꾼다. debug*는 개발용(디버그 모드에서만). levelPick1~4·levelReroll은 레벨업 창(전투 정지 중)에서만 쓰여 전투 키와 상황이 겹치지 않는다(PRD §3 키 재설정 규칙). cardSelect1~5·cardSubmit(Shift와 함께면 인장 제출)·cardClear·opsBoard는 전투 중 카드 조작(PRD §3 v0.2). skillQ·E·R·F는 고급 스킬 슬롯(W는 이동과 겹쳐 F). ui*·toMap은 메뉴·지도·결과 화면 전용(전투 키와 상황이 겹치지 않음). R은 levelReroll과 같지만 레벨업 창이 열리면 스킬 입력이 막혀 상황이 겹치지 않는다 pad(D43)=게임패드 액션 → 버튼(표준 매핑 A B X Y LB RB LT RT View Start LS RS DUp DDown DLeft DRight, 스틱 방향 LSUp…RSRight, ':hold'=padConfig.holdMs 길게). 이동은 왼쪽 스틱 아날로그(padConfig.deadzone). cardPrev·cardNext·cardToggle·cardSealSubmit·level*은 패드 전용(키 없음): 카드 커서 = 방향 패드·오른쪽 스틱 좌우 + X, 인장 제출 = Y 길게(PRD §3).",
   "keys": {
     "up": [
       "W",
@@ -187,6 +187,119 @@
     ],
     "debugNpc": [
       "F9"
+    ],
+    "cardPrev": [],
+    "cardNext": [],
+    "cardToggle": [],
+    "cardSealSubmit": [],
+    "levelPrev": [],
+    "levelNext": [],
+    "levelConfirm": []
+  },
+  "padConfig": {
+    "deadzone": 0.2,
+    "press": 0.5,
+    "stickButton": 0.6,
+    "holdMs": 300,
+    "repeatDelayMs": 350,
+    "repeatMs": 140
+  },
+  "pad": {
+    "pause": [
+      "Start"
+    ],
+    "opsBoard": [
+      "View"
+    ],
+    "skillQ": [
+      "LB"
+    ],
+    "skillE": [
+      "RB"
+    ],
+    "skillR": [
+      "LT"
+    ],
+    "skillF": [
+      "RT"
+    ],
+    "cardSubmit": [
+      "A"
+    ],
+    "cardClear": [
+      "B"
+    ],
+    "cardToggle": [
+      "X"
+    ],
+    "cardSealSubmit": [
+      "Y:hold"
+    ],
+    "cardPrev": [
+      "DLeft",
+      "RSLeft"
+    ],
+    "cardNext": [
+      "DRight",
+      "RSRight"
+    ],
+    "levelPrev": [
+      "DLeft",
+      "LSLeft",
+      "RSLeft"
+    ],
+    "levelNext": [
+      "DRight",
+      "LSRight",
+      "RSRight"
+    ],
+    "levelConfirm": [
+      "A"
+    ],
+    "levelReroll": [
+      "X"
+    ],
+    "redeploy": [
+      "A"
+    ],
+    "toMap": [
+      "B"
+    ],
+    "uiConfirm": [
+      "A"
+    ],
+    "uiBack": [
+      "B"
+    ],
+    "uiUp": [
+      "DUp",
+      "LSUp"
+    ],
+    "uiDown": [
+      "DDown",
+      "LSDown"
+    ],
+    "uiLeft": [
+      "DLeft",
+      "LSLeft"
+    ],
+    "uiRight": [
+      "DRight",
+      "LSRight"
+    ],
+    "uiPrev": [
+      "DLeft",
+      "DUp"
+    ],
+    "uiNext": [
+      "DRight",
+      "DDown"
+    ],
+    "uiInc": [
+      "RB"
+    ],
+    "uiDec": [
+      "LB"
     ]
   }
 }

@@ -4,9 +4,10 @@ import settingsData from '../data/settings.json';
 import { conflicts, effectiveKeys, rebind } from '../core/keymap';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { InputMap } from '../systems/input';
-import { loadProfile, updateProfile } from '../systems/save';
+import { hasBackup, loadProfile, restoreBackup, updateProfile } from '../systems/save';
 import { FocusGroup, UI, UiList, panel, type ListItem } from '../ui/widgets';
 import { uiText } from '../ui/text';
+import { prettyKey } from '../ui/buttons';
 import { SceneKey } from './keys';
 import { setLocale, t } from '../i18n';
 
@@ -17,8 +18,7 @@ const Q = settingsData.quality;
 const REMAP = settingsData.keys.remappable as Record<string, string>;
 const DEF_KEYS = controls.keys as Record<string, string[]>;
 const KEY_NAMES = Object.entries(Phaser.Input.Keyboard.KeyCodes).reduce<Record<number, string>>((m, [name, code]) => ((m[code as number] ??= name), m), {});
-const PRETTY: Record<string, string> = { ONE: '1', TWO: '2', THREE: '3', FOUR: '4', FIVE: '5', SPACE: 'Space', ENTER: 'Enter', ESC: 'Esc', SHIFT: 'Shift', BACKSPACE: 'Backspace', UP: '↑', DOWN: '↓', LEFT: '←', RIGHT: '→', TAB: 'Tab' };
-const pretty = (k: string) => PRETTY[k] ?? k;
+const pretty = prettyKey;
 
 /** 설정(PRD §11, D29): 기본(강도·볼륨·모노·안내) / 편의 / 키 재설정. ←→ 칸, ↑↓ 고르기, Enter·+/− 바꾸기, Esc 돌아가기 */
 export class SettingsScene extends Phaser.Scene {
@@ -95,6 +95,7 @@ export class SettingsScene extends Phaser.Scene {
   }
 
   private optionItem(o: Option): ListItem {
+    if (o.kind === 'action') return this.restoreItem(o);
     const v = this.read(o.key);
     if (o.kind === 'choice') {
       // 목록 차례로 순환(이펙트 품질: 높음 → 보통 → 낮음, 언어: 한국어 → English)
@@ -110,6 +111,29 @@ export class SettingsScene extends Phaser.Scene {
       return { label: o.label, right: `${Math.round(n * 100)}%`, hint: o.hint ?? t('settings.percentHint'), onAdjust: step, onSelect: () => this.write(o.key, n >= 1 ? 0 : Math.round((n + 0.1) * 10) / 10) };
     }
     return { label: o.label, right: v ? t('settings.on') : t('settings.off'), color: v ? UI.text : UI.dim, hint: o.hint, onSelect: () => this.write(o.key, !v), onAdjust: () => this.write(o.key, !v) };
+  }
+
+  /** 마지막 정상 세이브로 되돌리기(D43): 두 번 눌러야 실행, 성공하면 다시 불러옴(언어·설정까지 반영) */
+  private restoreArmed = false;
+  private restoreItem(o: Option): ListItem {
+    const ok = hasBackup();
+    return {
+      label: o.label,
+      right: ok ? '' : t('settings.noBackup'),
+      color: ok ? UI.bad : UI.dim,
+      disabled: !ok,
+      hint: o.hint,
+      onSelect: () => {
+        if (!ok) return;
+        if (!this.restoreArmed) {
+          this.restoreArmed = true;
+          this.hint.setText(t('settings.restoreConfirm')).setColor(UI.bad);
+          return;
+        }
+        this.restoreArmed = false;
+        if (restoreBackup() && typeof window !== 'undefined') window.location.reload();
+      },
+    };
   }
 
   private keyItems(): ListItem[] {

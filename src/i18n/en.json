@@ -50,10 +50,11 @@
     "levelUp": {
       "title": "LEVEL UP!  Lv {n}",
       "supply": "Supply",
-      "reroll": "R  Reroll ({n} left)",
+      "reroll": "{key}  Reroll ({n} left)",
       "noReroll": "No rerolls",
       "pending": "{n} level-ups left · ",
-      "help": "Pick with number keys or click"
+      "help": "Pick with number keys or click",
+      "helpPad": "←→ choose · {pick} select"
     },
     "intro": "{n}/10  {region} · {name}\nDefeat the boss to capture — it appears at Lv {lv} or {time}",
     "obj": {
@@ -93,13 +94,13 @@
       "smoke": "Hard to see through the smoke"
     },
     "judgingDots": "Judging…",
-    "minusDiscard": "Discard minus (OP {n})  Space",
+    "minusDiscard": "Discard minus (OP {n})  {key}",
     "faceDown": "Face-down",
     "withHidden": "Op with hidden card",
     "single": "Single effects",
     "sealTag": "[Seal]",
-    "submitHelp": "Space submit · X clear",
-    "recommend": "Space: suggested — {name} {pct}%",
+    "submitHelp": "{submit} submit · {clear} clear",
+    "recommend": "{key}: suggested — {name} {pct}%",
     "sealOp": "Sealed op",
     "success": "Op success",
     "failSeal": "Failed · seal gained!",
@@ -231,7 +232,8 @@
     "threat": " · Threat {n}",
     "bestStep": " · Best step {n}/100",
     "saveCorrupt": "Save was corrupted — backed up and started fresh",
-    "saveMigrated": "Old save migrated to the new format"
+    "saveMigrated": "Old save migrated to the new format",
+    "restore": "Restore from backup (last good save)"
   },
   "settings": {
     "title": "Settings",
@@ -247,7 +249,9 @@
     "cancelled": "Cancelled",
     "conflict": "{key}: already used by '{who}'",
     "rebound": "'{label}' = {key} (applies from next battle)",
-    "keyClash": "⚠ Same key as '{list}' — press Enter to set another key, or restore defaults"
+    "keyClash": "⚠ Same key as '{list}' — press Enter to set another key, or restore defaults",
+    "noBackup": "No backup",
+    "restoreConfirm": "Press again to restore the last good save (the current save is kept as a backup)"
   },
   "fx": {
     "scout": "Scout report: next op +10%p",
@@ -303,5 +307,9 @@
     "off": "Off",
     "stats": "played {played} · dropped {dropped} · voices {voices} · BGM {bgm}",
     "noBgm": "none (no file)"
+  },
+  "buttons": {
+    "hold": "hold {b}",
+    "leftStick": "left stick"
   }
 }

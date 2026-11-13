@@ -15,6 +15,8 @@ const COL = Object.fromEntries(Object.entries(cardUi.colors).map(([k, v]) => [k,
 const FLIP = cardUi.flipMs;
 import { prefs } from '../systems/prefs';
 import { t } from '../i18n';
+import { lastDevice } from '../systems/pad';
+import { buttonLabel } from './buttons';
 /** 거부 사유 → i18n card.reject.* (없으면 사유 그대로) */
 const rejectText = (reason: string): string => (reason ? t(`card.reject.${reason}`) : '');
 
@@ -41,6 +43,8 @@ export class CardHud {
   private readonly toast: Phaser.GameObjects.Text;
   private readonly tip: Phaser.GameObjects.Text;
   private hoverUid: number | null = null;
+  /** 패드 카드 커서(방향 패드·오른쪽 스틱 좌우 + X, D43) */
+  private cursor = 0;
   private toastUntil = 0;
   private readonly smokeGfx: Phaser.GameObjects.Graphics;
   private toastSetAt = -1;
@@ -126,12 +130,18 @@ export class CardHud {
       return;
     }
     for (let i = 0; i < 5; i++) if (c.justDown(`cardSelect${i + 1}` as 'cardSelect1')) this.requestToggle(i, time);
+    const n = Math.max(1, this.cards.state.hand.length);
+    if (c.justDown('cardPrev')) this.cursor = (this.cursor + n - 1) % n;
+    if (c.justDown('cardNext')) this.cursor = (this.cursor + 1) % n;
+    this.cursor = Math.min(this.cursor, n - 1);
+    if (c.justDown('cardToggle') && this.cards.state.hand.length > 0) this.requestToggle(this.cursor, time);
     // 통신 노이즈: 선택이 늦게 들어감(HUD 입력 대기열, 규칙은 그대로)
     while (this.pendingToggles.length > 0 && (this.pendingToggles[0]?.at ?? Infinity) <= time) {
       const t = this.pendingToggles.shift();
       if (t) this.cards.toggle(t.index);
     }
     if (c.justDown('cardSubmit')) this.cards.submit(this.shiftDown(), time);
+    if (c.justDown('cardSealSubmit')) this.cards.submit(true, time);
     if (c.justDown('cardClear')) this.cards.clear();
   }
 
@@ -209,6 +219,11 @@ export class CardHud {
       }
       label.setText(String(i + 1)).setPosition(Math.round(x - FACE_W / 2), Math.round(y - FACE_H / 2 - 1)).setTint(sel ? COL.select : 0xffffff);
       if (sel) g.lineStyle(2, COL.select, 1).strokeRect(Math.round(x - FACE_W / 2) - 1, Math.round(y - FACE_H / 2) - 1, FACE_W + 2, FACE_H + 2);
+      // 패드 커서: 흰 테두리 + 아래 삼각형(선택 노란 테두리와 형태로도 구분)
+      if (lastDevice() === 'pad' && i === this.cursor) {
+        g.lineStyle(1, 0xffffff, 0.9).strokeRect(Math.round(x - FACE_W / 2) - 4, Math.round(y - FACE_H / 2) - 4, FACE_W + 8, FACE_H + 8);
+        g.fillStyle(0xffffff, 0.95).fillTriangle(x - 5, y + FACE_H / 2 + 10, x + 5, y + FACE_H / 2 + 10, x, y + FACE_H / 2 + 5);
+      }
       if (noise) {
         // 통신 노이즈: 그림·이름 칸에 지직거리는 가로줄과 색 번짐(태그 아이콘·테두리는 가리지 않음)
         const l = Math.round(x - FACE_W / 2) + 3;
@@ -267,7 +282,7 @@ export class CardHud {
     } else if (this.cards.judging) {
       this.info.setText(t('card.judgingDots'));
     } else if (pv) {
-      if (pv.discardOnly) this.info.setText(t('card.minusDiscard', { n: CARD_DATA.rules.minusDiscardOp }));
+      if (pv.discardOnly) this.info.setText(t('card.minusDiscard', { n: CARD_DATA.rules.minusDiscardOp, key: buttonLabel('cardSubmit') }));
       else if (pv.chance) {
         const names = this.cards.selected.map((uid) => {
           const c = hand.find((h) => h.uid === uid);
@@ -277,11 +292,11 @@ export class CardHud {
         const hiddenSel = this.cards.selected.some((uid) => hand.find((h) => h.uid === uid)?.faceDown);
         const what = hiddenSel ? t('card.withHidden') : pv.combo ? comboName(pv.combo) : names.length > 1 ? t('card.single') : (names[0] ?? '');
         const seal = this.shiftDown() ? ` ${t('card.sealTag')}` : '';
-        this.info.setText(`${what} ${Math.round(pv.chance.final * 100)}%${seal}   ${t('card.submitHelp')}`);
+        this.info.setText(`${what} ${Math.round(pv.chance.final * 100)}%${seal}   ${t('card.submitHelp', { submit: buttonLabel('cardSubmit'), clear: buttonLabel('cardClear') })}`);
       } else this.info.setText(rejectText(pv.reason ?? ''));
     } else if (n > 0) {
       const a = this.cards.advice();
-      this.info.setText(a && this.recommendHint ? t('card.recommend', { name: a.combo ? comboName(a.combo) : cardName(hand.find((c) => c.uid === a.uids[0])?.id ?? ''), pct: Math.round(a.chance * 100) }) : '');
+      this.info.setText(a && this.recommendHint ? t('card.recommend', { key: buttonLabel('cardSubmit'), name: a.combo ? comboName(a.combo) : cardName(hand.find((c) => c.uid === a.uids[0])?.id ?? ''), pct: Math.round(a.chance * 100) }) : '');
     } else this.info.setText('');
     // 포연: 수치 흐림
     if (smoke > 0) this.info.setText(this.info.text.replace(/\d+%/g, '??%'));

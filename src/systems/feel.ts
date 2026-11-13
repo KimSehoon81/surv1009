@@ -22,9 +22,12 @@ import { MAX_REAL_DELTA_MS, type GameClock } from './clock';
 import { DamageNumbers, type NumbersData } from './damageNumbers';
 import type { FxSystem } from './fx';
 import { ParticleSystem, ensureParticleTextures, type ParticleKindData } from './particles';
+import { rumble } from './pad';
 
 /** feel.json 프리셋. 없는 항목은 연출하지 않는다 */
 export interface FeelPreset {
+  /** 패드 진동 [ms, 강한 모터, 약한 모터](D43, 흔들림 강도 설정을 곱함) */
+  rumble?: readonly number[];
   /** 전역 히트스톱(화면 전체 정지). 치명 이상만 */
   hitstopFrames?: number;
   hitstopMinGapMs?: number;
@@ -183,6 +186,8 @@ export class Feel {
     if (full) this.fullUsed++;
     const dirX = opt.dirX ?? 0;
     const dirY = opt.dirY ?? 0;
+    // 패드 진동: 화면 안 타격만(플레이어 피격은 늘 화면 안)
+    if (p.rumble && visible) rumble(p.rumble[0] ?? 0, (p.rumble[1] ?? 0) * this.intensity.shake, (p.rumble[2] ?? 0) * this.intensity.shake);
 
     // 시간: 전역 정지는 예산 안에서만, 슬로모는 정지가 끝난 뒤부터 센다
     let stopMs = 0;

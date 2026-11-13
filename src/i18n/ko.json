@@ -50,10 +50,11 @@
     "levelUp": {
       "title": "레벨 업!  Lv {n}",
       "supply": "보급",
-      "reroll": "R  다시 뽑기 (남은 {n})",
+      "reroll": "{key}  다시 뽑기 (남은 {n})",
       "noReroll": "다시 뽑기 없음",
       "pending": "레벨업 {n}번 남음 · ",
-      "help": "숫자키 또는 클릭으로 선택"
+      "help": "숫자키 또는 클릭으로 선택",
+      "helpPad": "←→ 고르기 · {pick} 선택"
     },
     "intro": "{n}/10  {region} · {name}\n보스를 격파하면 점령 — Lv {lv} 또는 {time}에 출현",
     "obj": {
@@ -93,13 +94,13 @@
       "smoke": "포연으로 잘 보이지 않음"
     },
     "judgingDots": "판정 중…",
-    "minusDiscard": "마이너스 폐기 (OP {n})  Space",
+    "minusDiscard": "마이너스 폐기 (OP {n})  {key}",
     "faceDown": "뒷면 카드",
     "withHidden": "뒷면 포함 작전",
     "single": "단일 효과",
     "sealTag": "[인장]",
-    "submitHelp": "Space 제출 · X 해제",
-    "recommend": "Space: 추천 — {name} {pct}%",
+    "submitHelp": "{submit} 제출 · {clear} 해제",
+    "recommend": "{key}: 추천 — {name} {pct}%",
     "sealOp": "인장 작전",
     "success": "작전 성공",
     "failSeal": "실패 · 인장 획득!",
@@ -231,7 +232,8 @@
     "threat": " · 위협 등급 {n}",
     "bestStep": " · 최고 단계 {n}/100",
     "saveCorrupt": "세이브가 손상되어 백업해 두고 새로 시작했습니다",
-    "saveMigrated": "이전 저장을 새 형식으로 옮겼습니다"
+    "saveMigrated": "이전 저장을 새 형식으로 옮겼습니다",
+    "restore": "백업에서 복원 (마지막 정상 세이브)"
   },
   "settings": {
     "title": "설정",
@@ -247,7 +249,9 @@
     "cancelled": "취소",
     "conflict": "{key}: 이미 '{who}'에 쓰는 키입니다",
     "rebound": "'{label}' = {key} (다음 전투부터 적용)",
-    "keyClash": "⚠ 같은 키를 '{list}'도 씀 — Enter로 다른 키를 지정하거나 기본값 복원"
+    "keyClash": "⚠ 같은 키를 '{list}'도 씀 — Enter로 다른 키를 지정하거나 기본값 복원",
+    "noBackup": "백업 없음",
+    "restoreConfirm": "한 번 더 누르면 마지막 정상 세이브로 되돌립니다(지금 저장은 백업으로 남김)"
   },
   "fx": {
     "scout": "척후 보고: 다음 작전 +10%p",
@@ -303,5 +307,9 @@
     "off": "끄기",
     "stats": "재생 {played} · 버림 {dropped} · 동시 {voices} · BGM {bgm}",
     "noBgm": "없음(파일 없음)"
+  },
+  "buttons": {
+    "hold": "{b} 길게",
+    "leftStick": "왼쪽 스틱"
   }
 }

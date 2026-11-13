@@ -1,0 +1,4 @@
+{
+  "$comment": "v0(D14~D16): 키마다 따로 저장. localStorage 키 amnok.guide·amnok.profile.firstRunDone·amnok.settings.volume·amnok.merit 값",
+  "legacy": { "guide": { "enabled": false, "seen": ["move", "firstCard"] }, "firstRunDone": true, "volume": { "master": 0.6, "bgm": 0.3 }, "merit": 120 }
+}

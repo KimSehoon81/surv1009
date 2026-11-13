@@ -25,6 +25,8 @@ import { canBuy, remaining, type ShopItem } from '../core/shop';
 import { panel, UI } from '../ui/widgets';
 import { uiText } from '../ui/text';
 import { t } from '../i18n';
+import { lastDevice } from '../systems/pad';
+import { buttonLabel, sealLabel } from '../ui/buttons';
 
 const RARITY = upgradesData.rarity;
 const mmss = (sec: number): string => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
@@ -81,7 +83,15 @@ export class HudScene extends Phaser.Scene {
   private guideText!: Phaser.GameObjects.Text;
   private readonly guideQueue: string[] = [];
   private guideUntil = 0;
-  private readonly onGuide = (text: string) => this.guideQueue.push(text);
+  /** 안내 문구의 {submit}·{seal}·{skill}·{move}를 지금 장치(키보드·패드)의 버튼 이름으로 */
+  private readonly onGuide = (text: string) =>
+    this.guideQueue.push(
+      text
+        .replace(/\{submit\}/g, buttonLabel('cardSubmit'))
+        .replace(/\{seal\}/g, sealLabel())
+        .replace(/\{skill\}/g, buttonLabel('skillQ'))
+        .replace(/\{move\}/g, lastDevice() === 'pad' ? t('buttons.leftStick') : 'WASD'),
+    );
   private readonly onWarn = (msg: string, inSec: number, kind?: string) => {
     this.warn = { msg, untilMs: this.battle.clock.timeMs + inSec * 1000, boss: kind === 'boss' };
     this.warnText.setColor(kind === 'boss' ? '#ff4030' : '#ff8060').setFontSize(kind === 'boss' ? 20 : 16);
@@ -132,6 +142,10 @@ export class HudScene extends Phaser.Scene {
   private readonly onCardEffect = (ev: CardEvent) => this.cardHud.showEffect(ev);
   private readonly onToast = (msg: string, color?: string) => this.cardHud.showText(msg, color);
   private levelUpOpenedAt = 0;
+  /** 레벨업 패드 커서(←→ + A, D43)와 테두리 */
+  private levelCursor = 0;
+  private levelCursorGfx: Phaser.GameObjects.Graphics | null = null;
+  private levelCardX: number[] = [];
   private readonly onLevelUp = (choices: Choice[]) => this.showLevelUp(choices);
   private readonly onLevelUpClosed = () => this.hideLevelUp();
 
@@ -583,6 +597,8 @@ export class HudScene extends Phaser.Scene {
     const total = choices.length * CARD_W + (choices.length - 1) * CARD_GAP;
     const x0 = (LOGICAL_WIDTH - total) / 2;
     const y0 = 190;
+    this.levelCursor = 0;
+    this.levelCardX = choices.map((_, i) => x0 + i * (CARD_W + CARD_GAP));
     choices.forEach((c, i) => {
       const x = x0 + i * (CARD_W + CARD_GAP);
       const card = this.add.container(x, y0);
@@ -601,10 +617,12 @@ export class HudScene extends Phaser.Scene {
       .text(LOGICAL_WIDTH / 2, y0 + CARD_H + 30, '', textStyle(13, p.rerolls > 0 ? '#ffffff' : '#807868'))
       .setOrigin(0.5)
       .setName('reroll');
-    rr.setText(p.rerolls > 0 ? t('hud.levelUp.reroll', { n: p.rerolls }) : t('hud.levelUp.noReroll'));
+    rr.setText(p.rerolls > 0 ? t('hud.levelUp.reroll', { key: buttonLabel('levelReroll'), n: p.rerolls }) : t('hud.levelUp.noReroll'));
     if (p.rerolls > 0) rr.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.reroll());
     root.add(rr);
-    root.add(this.add.text(LOGICAL_WIDTH / 2, y0 + CARD_H + 56, `${p.pending > 1 ? t('hud.levelUp.pending', { n: p.pending }) : ''}${t('hud.levelUp.help')}`, textStyle(11, '#b0a890')).setOrigin(0.5));
+    root.add(this.add.text(LOGICAL_WIDTH / 2, y0 + CARD_H + 56, `${p.pending > 1 ? t('hud.levelUp.pending', { n: p.pending }) : ''}${lastDevice() === 'pad' ? t('hud.levelUp.helpPad', { pick: buttonLabel('levelConfirm') }) : t('hud.levelUp.help')}`, textStyle(11, '#b0a890')).setOrigin(0.5));
+    this.levelCursorGfx = this.add.graphics();
+    root.add(this.levelCursorGfx);
     this.levelUp = root;
     this.levelUpOpenedAt = this.time.now;
     root.setAlpha(0.4);
@@ -625,6 +643,14 @@ export class HudScene extends Phaser.Scene {
       if (this.controls.justDown(a)) this.pick(i);
     });
     if (this.controls.justDown('levelReroll')) this.reroll();
+    const n = Math.max(1, this.levelCardX.length);
+    if (this.controls.justDown('levelPrev')) this.levelCursor = (this.levelCursor + n - 1) % n;
+    if (this.controls.justDown('levelNext')) this.levelCursor = (this.levelCursor + 1) % n;
+    if (this.controls.justDown('levelConfirm')) this.pick(this.levelCursor);
+    // 패드로 놀 때만 커서 테두리(키보드·마우스는 숫자·클릭)
+    const g = this.levelCursorGfx?.clear();
+    const x = this.levelCardX[this.levelCursor];
+    if (g && x !== undefined && lastDevice() === 'pad') g.lineStyle(3, 0xffffff, 1).strokeRect(x - 5, 185, CARD_W + 10, CARD_H + 10);
   }
 
   private pick(i: number): void {

@@ -1,0 +1,11 @@
+{
+  "v": 1,
+  "stages": { "S1": { "captured": true, "bestTimeSec": 760, "clears": 2 }, "S2": { "captured": false, "clears": 0 } },
+  "unlocks": { "chars": ["A01", "A02", "A03", "A04", "A05", "A06"], "skills": ["AS03", "AS01"], "cards": ["P01", "P02"], "slots": ["Q"] },
+  "loadout": { "char": "A04", "deck": ["P01", "P01", "P02"], "skills": { "Q": "AS01", "E": null } },
+  "deckPreset": ["P01", "P02", "P03"],
+  "merit": 85,
+  "startUpgrades": { "startLevel": 1, "startHand": 1 },
+  "settings": { "volume": { "master": 0.8, "bgm": 0.5, "sfx": 1, "ui": 1 }, "guide": false, "feel": 0.5, "mono": true, "keys": { "skillF": ["G"] }, "threatFirst": false },
+  "flags": { "guideSeen": ["move"], "firstRunDone": true }
+}

@@ -1,5 +1,5 @@
 {
-  "$comment": "설정 화면(PRD §11, D29). defaults=편의·접근성 기본값(저장에 없으면 이 값), options=탭별 항목(라벨·종류·저장 키), keys.remappable=키 재설정 가능한 액션(라벨), keys.conflictGroup=전투 중 함께 쓰이는 액션(이 안에서 같은 키는 거부, 레벨업 숫자키와 카드 숫자키처럼 화면이 다른 것은 기본 공유 허용). recruitDamageMul=신병 모드 받는 피해 배율(PRD §11: −30%), shortJudgeMul=판정 연출 짧게 배율. quality(D40)=이펙트 품질 프리셋(입자·숫자 상한, 흔들림 배율, 소품 표시), autoLow=FPS가 sec초 동안 fps 미만이면 한 단계 자동 하향(한 판에 한 번). lang(D42)=언어 선택(choices·names가 있는 choice는 그 목록을 씀, 바꾸면 페이지를 다시 불러와 모든 문자열 갱신).",
+  "$comment": "설정 화면(PRD §11, D29). defaults=편의·접근성 기본값(저장에 없으면 이 값), options=탭별 항목(라벨·종류·저장 키), keys.remappable=키 재설정 가능한 액션(라벨), keys.conflictGroup=전투 중 함께 쓰이는 액션(이 안에서 같은 키는 거부, 레벨업 숫자키와 카드 숫자키처럼 화면이 다른 것은 기본 공유 허용). recruitDamageMul=신병 모드 받는 피해 배율(PRD §11: −30%), shortJudgeMul=판정 연출 짧게 배율. quality(D40)=이펙트 품질 프리셋(입자·숫자 상한, 흔들림 배율, 소품 표시), autoLow=FPS가 sec초 동안 fps 미만이면 한 단계 자동 하향(한 판에 한 번). lang(D42)=언어 선택(choices·names가 있는 choice는 그 목록을 씀, 바꾸면 페이지를 다시 불러와 모든 문자열 갱신). kind action(D43)=누르면 실행하는 항목(restoreBackup = 마지막 정상 세이브로 되돌리기, 두 번 눌러 확인).",
   "defaults": {
     "feel": 1,
     "mono": false,
@@ -73,6 +73,12 @@
           "key": "guide",
           "label": "첫 플레이 안내",
           "kind": "toggle"
+        },
+        {
+          "key": "restoreBackup",
+          "label": "마지막 정상 세이브로 되돌리기",
+          "kind": "action",
+          "hint": "저장이 이상해졌을 때: 덮어쓰기 직전의 정상 세이브로 되돌립니다(Enter 두 번)"
         }
       ]
     },

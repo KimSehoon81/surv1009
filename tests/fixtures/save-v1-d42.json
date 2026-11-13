@@ -1,0 +1,13 @@
+{
+  "v": 1,
+  "stages": { "S1": { "captured": true, "bestTimeSec": 700, "clears": 3 }, "S10": { "captured": true, "bestTimeSec": 880, "clears": 1 } },
+  "unlocks": { "chars": ["A01", "A02", "A03"], "skills": ["AS03", "AS09"], "cards": [], "slots": ["Q", "E", "R", "F"], "flags": ["ending"] },
+  "merit": 2400,
+  "startUpgrades": { "startLevel": 2, "startTp": 2 },
+  "threat": 2,
+  "bestStep": 100,
+  "achievements": { "done": ["firstKill"], "counters": { "kills": 5000 }, "sets": { "bosses": ["E05", "E10"] } },
+  "codex": { "chars": ["A01"], "enemies": ["E01", "E02"], "cards": ["P01"] },
+  "settings": { "volume": { "master": 1, "bgm": 1, "sfx": 1, "ui": 1 }, "guide": true, "quality": "normal", "lang": "en", "recruit": true },
+  "flags": { "guideSeen": [], "firstRunDone": true, "endingSeen": true }
+}
