@@ -1,8 +1,13 @@
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
+
+const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string };
 
 export default defineConfig({
   // 상대 경로: GitHub Pages·itch.io 하위 경로 배포 대비(D45)
   base: './',
+  // 메인화면 구석 버전 표기(D45)
+  define: { __APP_VERSION__: JSON.stringify(version) },
   build: {
     target: 'es2022',
     // 빌드 산출물(js)과 public/assets(사용자 그래픽)가 같은 폴더에 섞이지 않게 분리

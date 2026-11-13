@@ -26,6 +26,8 @@ export class MenuScene extends Phaser.Scene {
     const cx = LOGICAL_WIDTH / 2;
     this.add.text(cx, 150, t('menu.title'), uiText(40, '#ffe14d')).setOrigin(0.5);
     this.add.text(cx, 200, t('menu.subtitle'), uiText(13, '#b0a890')).setOrigin(0.5);
+    // 첫 화면에서 무엇을 하는 게임인지 한 줄(몰입·목적 전달)
+    this.add.text(cx, 232, t('menu.tagline'), uiText(14, '#e8dcc0')).setOrigin(0.5);
     this.sel = 0;
     this.items = [
       { label: t('menu.start'), run: () => this.go() },
@@ -45,6 +47,8 @@ export class MenuScene extends Phaser.Scene {
     const captured = Object.values(prof.stages).filter((s) => s.captured).length;
     const threat = prof.threat ?? 0;
     this.add.text(cx, 290 + this.items.length * 30 + 20, `${t('menu.summary', { captured, merit: prof.merit })}${threat > 0 ? t('menu.threat', { n: threat }) : ''}${prof.bestStep ? t('menu.bestStep', { n: prof.bestStep }) : ''}`, uiText(13)).setOrigin(0.5);
+    // 버전 표기(D45): 오른쪽 아래 구석
+    this.add.text(LOGICAL_WIDTH - 8, LOGICAL_HEIGHT - 6, `v${typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev'}`, uiText(11, '#807868')).setOrigin(1, 1);
     const status = loadStatus();
     if (status === 'corrupt') this.add.text(cx, LOGICAL_HEIGHT - 40, t('menu.saveCorrupt'), uiText(12, '#ff8060')).setOrigin(0.5);
     else if (status === 'migrated') this.add.text(cx, LOGICAL_HEIGHT - 40, t('menu.saveMigrated'), uiText(12, '#7fd8ff')).setOrigin(0.5);

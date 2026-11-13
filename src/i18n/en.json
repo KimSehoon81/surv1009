@@ -234,7 +234,8 @@
     "bestStep": " · Best step {n}/100",
     "saveCorrupt": "Save was corrupted — backed up and started fresh",
     "saveMigrated": "Old save migrated to the new format",
-    "restore": "Restore from backup (last good save)"
+    "restore": "Restore from backup (last good save)",
+    "tagline": "1950 — from the Nakdong to the Yalu: hold out and push north through 10 regions"
   },
   "settings": {
     "title": "Settings",

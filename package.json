@@ -1,7 +1,7 @@
 {
   "name": "amnok-survival",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "\uc555\ub85d\uac15 \uc11c\ubc14\uc774\ubc8c(\uac00\uce6d) \u2014 \ub808\ud2b8\ub85c 2D \ub3c4\ud2b8 \uc11c\ubc14\uc774\ubc8c + \ud655\ub960\ud615 \uc804\ub7b5\uce74\ub4dc",
   "engines": {
@@ -25,7 +25,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "check": "npm run assets && tsc --noEmit && vitest run --reporter=dot && vite build --logLevel warn",
-    "test:e2e": "vite build --logLevel warn && playwright test"
+    "test:e2e": "vite build --logLevel warn && playwright test",
+    "package": "npm run build:release && node tools/package.mjs"
   },
   "dependencies": {
     "phaser": "3.90.0"
