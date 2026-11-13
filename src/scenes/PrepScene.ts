@@ -19,6 +19,7 @@ import { FocusGroup, UI, UiButton, UiList, panel } from '../ui/widgets';
 import type { BattlePayload, MapPayload, PrepPayload } from '../types/scenes';
 import { SceneKey } from './keys';
 import { t } from '../i18n';
+import { params } from '../config/params';
 
 const CARDS = cardsData.cards as Record<string, DeckCard>;
 const RULES = cardsData.deckRules as DeckRules;
@@ -107,6 +108,7 @@ export class PrepScene extends Phaser.Scene {
     // 첫 포커스는 출정: 기본 구성 그대로 Enter 한 번이면 출정
     this.focus.focus(8);
     this.refresh();
+    if (params.auto) this.time.delayedCall(300, () => this.sortie());
   }
 
   private say(msg: string, color: string = UI.hi): void {

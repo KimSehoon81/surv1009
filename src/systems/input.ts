@@ -21,6 +21,8 @@ export class InputMap {
   private padFrame = -1;
   private padHeld = new Set<string>();
   private padVec: Vec2 = { x: 0, y: 0 };
+  /** 자동 진행(D44): 있으면 이동을 이것으로 */
+  autoMove: (() => Vec2) | null = null;
 
   constructor(private readonly scene: Phaser.Scene) {
     const kb = scene.input.keyboard;
@@ -86,6 +88,7 @@ export class InputMap {
 
   /** 정규화된 이동 방향(대각선도 길이 1). 키를 안 누르면 왼쪽 스틱(아날로그, 길이 0~1) */
   moveVector(): Vec2 {
+    if (this.autoMove) return this.autoMove();
     const x = (this.isDown('right') ? 1 : 0) - (this.isDown('left') ? 1 : 0);
     const y = (this.isDown('down') ? 1 : 0) - (this.isDown('up') ? 1 : 0);
     return x === 0 && y === 0 ? this.padVec : normalizeAxis(x, y);

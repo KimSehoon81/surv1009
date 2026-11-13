@@ -311,5 +311,10 @@
   "buttons": {
     "hold": "hold {b}",
     "leftStick": "left stick"
+  },
+  "error": {
+    "title": "Something went wrong — the game stopped",
+    "body": "Your progress is saved. If it happens again after reloading, or your save looks wrong, use Settings → 'Restore last good save'.",
+    "reload": "Reload"
   }
 }

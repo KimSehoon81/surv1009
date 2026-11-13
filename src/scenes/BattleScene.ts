@@ -548,6 +548,15 @@ export class BattleScene extends Phaser.Scene {
     };
 
     this.applyRunStart();
+    if (params.auto) {
+      // 자동 진행: 배율 시계, 단순 원운동(결정적: 전투 시계 기준)
+      this.clock.debugSpeed = params.speed > 0 ? params.speed : 1;
+      this.autoNextCardMs = 0;
+      this.controls.autoMove = () => {
+        const a = this.clock.timeMs / 1500;
+        return { x: Math.cos(a), y: Math.sin(a) };
+      };
+    }
     this.debug = new DebugOverlay(this, this.clock, params.debug, () => {
       const p = this.player;
       return [
@@ -669,6 +678,7 @@ export class BattleScene extends Phaser.Scene {
     const scale = this.clock.scale;
     const p = this.player;
     if (params.debug && !this.clock.hasScale('pause')) this.debugKeys(now);
+    if (params.auto) this.autoTick(now);
     this.perf.start();
     this.autoQuality(delta);
 
@@ -1509,6 +1519,21 @@ export class BattleScene extends Phaser.Scene {
   }
 
   /** HUD에서 고른 업그레이드 적용. 레벨업이 더 쌓여 있으면 다음 프레임에 다시 열린다 */
+  /** 자동 진행(D44 자동 QA): 레벨업 첫 칸, 상점 닫기, 카드 1장씩 제출, autoSec초가 지나면 결과 화면 */
+  private autoNextCardMs = 0;
+  private autoTick(now: number): void {
+    if (this.result || this.run.defeated) return;
+    if (this.progression.isOpen) this.pickUpgrade(0);
+    if (this.shopOpen) this.closeShop();
+    const c = this.cards;
+    if (now >= this.autoNextCardMs && c.state.hand.length > 0 && c.selected.length === 0 && !c.judging) {
+      this.autoNextCardMs = now + 3000;
+      c.toggle(0);
+      c.submit(false, this.time.now);
+    }
+    if (now >= params.autoSec * 1000) this.defeat();
+  }
+
   pickUpgrade(index: number): void {
     if (!this.progression.choose(index, this.upgradeTarget)) return;
     this.audio.play('select');

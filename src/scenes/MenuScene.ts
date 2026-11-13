@@ -9,6 +9,7 @@ const MAX_THREAT = scalingData.threat.max;
 import { uiText } from '../ui/text';
 import { SceneKey } from './keys';
 import { t } from '../i18n';
+import { params } from '../config/params';
 
 /** 메인 메뉴(임시, 정식 화면은 목업 수령 후 — docs/mockup/main.png 대기): 출정 → 작전지도 / 설정 */
 export class MenuScene extends Phaser.Scene {
@@ -40,6 +41,7 @@ export class MenuScene extends Phaser.Scene {
       return { ...it, text: label };
     });
     this.renderItems();
+    if (params.auto) this.time.delayedCall(300, () => this.go());
     const captured = Object.values(prof.stages).filter((s) => s.captured).length;
     const threat = prof.threat ?? 0;
     this.add.text(cx, 290 + this.items.length * 30 + 20, `${t('menu.summary', { captured, merit: prof.merit })}${threat > 0 ? t('menu.threat', { n: threat }) : ''}${prof.bestStep ? t('menu.bestStep', { n: prof.bestStep }) : ''}`, uiText(13)).setOrigin(0.5);

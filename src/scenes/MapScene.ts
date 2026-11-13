@@ -10,6 +10,7 @@ import { uiText } from '../ui/text';
 import type { MapPayload, PrepPayload } from '../types/scenes';
 import { SceneKey } from './keys';
 import { t } from '../i18n';
+import { params } from '../config/params';
 
 const NODES = mapData.nodes;
 const ORDER = NODES.map((n) => n.id);
@@ -69,6 +70,12 @@ export class MapScene extends Phaser.Scene {
     if (r) {
       const name = (stagesData.stages as Record<string, { name: string }>)[r.stage]?.name ?? r.stage;
       this.say(t(r.victory ? 'map.returnWin' : 'map.returnLose', { name, n: r.merit }));
+    }
+    // 자동 진행(D44): 지정 스테이지를 골라 출정 준비로
+    const auto = params.auto;
+    if (auto && !r) {
+      this.sel = Math.max(0, ORDER.indexOf(auto));
+      this.time.delayedCall(300, () => this.confirm());
     }
   }
 

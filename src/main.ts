@@ -1,4 +1,5 @@
 import './i18n/boot';
+import { installErrorScreen } from './systems/errors';
 import * as Phaser from 'phaser';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH, computeZoom } from './config/display';
 import { BootScene } from './scenes/BootScene';
@@ -13,6 +14,8 @@ import { PrepScene } from './scenes/PrepScene';
 import { SettingsScene } from './scenes/SettingsScene';
 import { EndingScene } from './scenes/EndingScene';
 import { CodexScene } from './scenes/CodexScene';
+
+installErrorScreen();
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
