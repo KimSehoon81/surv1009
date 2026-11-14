@@ -4,10 +4,10 @@
 > 1. 완성: 스테이지 10(S1~S10, 적 50종·보스 10), 아군 30·고급 스킬 12·카드 24/조합 11, 메타 진행(전공·스타팅 포인트·해금)·뉴게임+·엔딩·업적 18·도감
 > 2. 품질: 테스트 310(단위·세이브 픽스처·시뮬 스냅샷) + Playwright 스모크(`npm run test:e2e`), 타격감은 PRD §4.4 수치 그대로, 최악 장면 로직 1.6ms/프레임
 > 3. 접근성·편의: 한국어/English, 색약 형태 표시, 키 재설정·게임패드·진동, 신병 모드·이펙트 품질, 세이브 백업 복원, 목표·시간 표시
-> 4. 배포: GitHub Pages 워크플로 + itch.io zip(`npm run package`), README · 남은 것(실제 GPU FPS·사람 플레이 밸런스·패드 실기·메인화면 목업·영어 번역 나머지)은 [BACKLOG](BACKLOG.md)
+> 4. 배포: GitHub Pages(2026-11-14 Actions 배포 성공, https://kimsehoon81.github.io/surv1009/) + itch.io zip(`npm run package`), README · 남은 것(실제 GPU FPS·사람 플레이 밸런스·패드 실기·메인화면 목업·영어 번역 나머지)은 [BACKLOG](BACKLOG.md)
 
 > **다음 작업: 45일 계획 완료 — 다음은 docs/BACKLOG.md(사람 플레이 확인부터)**
-> 이월: GitHub Pages 켜기 1건(저장소 Settings → Pages → Source: GitHub Actions 후 Actions의 Pages 워크플로 Re-run — 빌드는 통과, 배포만 'Pages 꺼짐 404'), 실제 GPU FPS 확인 1건, 사람 플레이 밸런스 확인 1건(아래 표), 메인화면 목업 대기(docs/mockup/main.png) · 마지막 갱신: 2026-11-13 (D45 완료)
+> 이월: 실제 GPU FPS 확인 1건, 사람 플레이 밸런스 확인 1건(아래 표), 메인화면 목업 대기(docs/mockup/main.png) · 마지막 갱신: 2026-11-13 (D45 완료)
 > 권장 명령: 45일 계획 완료. 사람 플레이 뒤 체감을 알려 주면 2차 조정(BACKLOG 1장)
 
 ## 전체 진행
@@ -42,7 +42,6 @@
 | 원래 Day | 항목 | 처리 예정 |
 | --- | --- | --- |
 | 성능 | 적 300체 FPS를 실제 GPU에서 확인(헤드리스 소프트웨어 렌더링은 28fps, 로직만은 60fps). 사용자 PC에서 `npm run dev` → `?debug=1` → F2 → F1 표시의 10초 평균 | D16 전 |
-| 배포 | GitHub Pages가 저장소에서 꺼져 있어 deploy-pages가 404(빌드·검사 잡은 Actions에서 통과). Settings → Pages → Source를 GitHub Actions로 → Actions 탭 Pages 워크플로 Re-run → https://kimsehoon81.github.io/surv1009/ | 사용자 |
 | 다음 단계 | 남은 이월·아이디어는 [docs/BACKLOG.md](BACKLOG.md)로 옮김(아래 두 줄 포함) | 사람 플레이 뒤 |
 | 밸런스 | D16 1차 조정(별 자석 90·6초 자동 흡수·S1 스폰 완화). 봇(회피·별 줍기·업그레이드 무작위)은 ×3에서 5:38 Lv7 전사 → 사람이 한 판 해 보고 체감(난이도·70:30·타격감) 알려 주면 2차 조정 | 사용자 플레이 후 |
 

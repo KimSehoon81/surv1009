@@ -6,7 +6,6 @@
 
 | 항목 | 내용 | 확인 방법 |
 | --- | --- | --- |
-| GitHub Pages 켜기 | 워크플로 빌드는 Actions에서 통과, 배포만 'Pages 꺼짐(404)' | Settings → Pages → Source: GitHub Actions → Actions 탭에서 Pages 워크플로 Re-run |
 | 실제 GPU 성능 | 적 300체 FPS(헤드리스 소프트웨어 렌더링은 28~30fps, 로직만은 1.6ms/프레임) | `npm run dev` → `?debug=1` → F2 → F1 표시의 10초 평균, 60fps 유지인지 |
 | 사람 플레이 밸런스 | 봇은 붉은 원 회피가 서툴러 S1에서 5~6분에 전사(생존 시간 편차 5:10~6:33). 모델 생존 근사는 S1 50% → S10 41% | 새 게임 S1 2~3판: 박격포 체감, 70:30 카드 체감, 레벨업 간격(지금 Lv3 뒤 약 1분에 1) |
 | 타격감 체감 | 수치는 PRD §4.4 표대로, 일반 처치에 스파크·섬광 추가. 정지 비율 2.4%(예산 20%로 여유) | 손맛이 가볍다면 feel.json `kill`·`normal`만 조정 |
@@ -30,7 +29,7 @@
 
 ## 4. 기술
 
-- GitHub Pages: 저장소 Settings → Pages → Source = GitHub Actions(워크플로 `.github/workflows/pages.yml`)
+- GitHub Pages: 켜짐(Source = GitHub Actions, 워크플로 `.github/workflows/pages.yml`, 2026-11-14 첫 배포 성공) → https://kimsehoon81.github.io/surv1009/
 - 배포 빌드 아틀라스: `build:release`는 Python Pillow 필요(워크플로는 설치함)
 - e2e를 CI에 넣기(지금은 로컬 `npm run test:e2e`만, 약 20초)
 - 세이브 버전 v2가 생기면 `src/core/save.ts` MIGRATIONS에 한 줄 + `tests/fixtures`에 샘플 추가
