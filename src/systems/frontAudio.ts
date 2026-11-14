@@ -13,6 +13,12 @@ export function playMenuMusic(scene: Phaser.Scene): void {
   front.update(CALM, 0, 0);
 }
 
+/** 메뉴 화면 효과음(sfx.json cues 이름) */
+export function frontSfx(scene: Phaser.Scene, cue: string): void {
+  front ??= new AudioSystem(scene, createRng('front'));
+  front.play(cue);
+}
+
 /** 설정 화면에서 볼륨을 바꿨을 때 바로 반영 */
 export function frontVolume(bus: 'master' | 'bgm' | 'sfx' | 'ui', v: number): void {
   if (!front) return;

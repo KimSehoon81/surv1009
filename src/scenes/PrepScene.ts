@@ -21,6 +21,11 @@ import { SceneKey } from './keys';
 import { t } from '../i18n';
 import { params } from '../config/params';
 import { playMenuMusic } from '../systems/frontAudio';
+import webJson from '../data/skillWeb.json';
+import { buildWeb, masteryLevel, points, type WebData } from '../core/web';
+import type { WebPayload } from '../types/scenes';
+
+const WEB = webJson as unknown as WebData;
 
 const CARDS = cardsData.cards as Record<string, DeckCard>;
 const RULES = cardsData.deckRules as DeckRules;
@@ -47,6 +52,7 @@ export class PrepScene extends Phaser.Scene {
   private charImg!: Phaser.GameObjects.Image;
   private message!: Phaser.GameObjects.Text;
   private focus!: FocusGroup;
+  private webBtn!: UiButton;
 
   constructor() {
     super(SceneKey.Prep);
@@ -103,12 +109,13 @@ export class PrepScene extends Phaser.Scene {
     const btnSave = new UiButton(this, 486, by, t('prep.presetSave'), () => this.savePreset());
     const btnLoad = new UiButton(this, 626, by, t('prep.presetLoad'), () => this.loadPreset());
     const btnGo = new UiButton(this, 840, by, t('prep.go'), () => this.sortie());
+    this.webBtn = new UiButton(this, 122, by, t('prep.web'), () => this.openWeb());
     this.add.text(12, LOGICAL_HEIGHT - 22, t('prep.help'), uiText(11, UI.dim));
     this.message = this.add.text(LOGICAL_WIDTH / 2, by + 34, '', uiText(12, UI.hi)).setOrigin(0.5);
 
-    this.focus = new FocusGroup([this.charList, this.deckList, this.skillList, this.shopList, btnRec, btnDef, btnSave, btnLoad, btnGo]);
+    this.focus = new FocusGroup([this.charList, this.webBtn, this.deckList, this.skillList, this.shopList, btnRec, btnDef, btnSave, btnLoad, btnGo]);
     // 첫 포커스는 출정: 기본 구성 그대로 Enter 한 번이면 출정
-    this.focus.focus(8);
+    this.focus.focus(9);
     this.refresh();
     if (params.auto) this.time.delayedCall(300, () => this.sortie());
   }
@@ -158,7 +165,12 @@ export class PrepScene extends Phaser.Scene {
     if (isCharacterId(l.char)) {
       const c = characters.characters[l.char];
       this.charImg.setTexture(manifest.sheetKey(l.char, 'move_slow'), 0);
-      this.charInfo.setText(t('prep.charInfo', { name: c.name, role: c.role, hp: c.stats.hp, atk: c.stats.attack, spd: c.stats.moveSpeed }));
+      // 숙련(성장 지도): 레벨과 남은 포인트, 남았으면 버튼에 점
+      const cw = prof.web?.[l.char];
+      const free = points(buildWeb(WEB, l.char), cw, WEB.mastery).free;
+      const level = masteryLevel(cw?.xp ?? 0, WEB.mastery).level;
+      this.charInfo.setText(`${t('prep.charInfo', { name: c.name, role: c.role, hp: c.stats.hp, atk: c.stats.attack, spd: c.stats.moveSpeed })}\n${t('prep.mastery', { level, free })}`);
+      this.webBtn.setLabel(free > 0 ? t('prep.webPoints', { n: free }) : t('prep.web'));
     }
     // 덱
     const counts = countBy(l.deck);
@@ -224,6 +236,16 @@ export class PrepScene extends Phaser.Scene {
         };
       }),
     );
+  }
+
+  /** 성장 지도: 지금 고른 캐릭터·구성을 저장하고 연다(닫으면 이 준비 화면으로) */
+  private openWeb(): void {
+    const l = this.loadout;
+    updateProfile((d) => {
+      d.loadout = { char: l.char, deck: [...l.deck], skills: { ...l.skills } };
+    });
+    const payload: WebPayload = { char: l.char, stage: this.payload.stage };
+    this.scene.start(SceneKey.Web, payload);
   }
 
   private sortie(): void {

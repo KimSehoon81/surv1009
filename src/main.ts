@@ -11,6 +11,7 @@ import { AudioGalleryScene } from './scenes/AudioGalleryScene';
 import { MenuScene } from './scenes/MenuScene';
 import { MapScene } from './scenes/MapScene';
 import { PrepScene } from './scenes/PrepScene';
+import { WebScene } from './scenes/WebScene';
 import { SettingsScene } from './scenes/SettingsScene';
 import { EndingScene } from './scenes/EndingScene';
 import { CodexScene } from './scenes/CodexScene';
@@ -41,7 +42,7 @@ const game = new Phaser.Game({
     zoom: startZoom,
   },
   input: { keyboard: true, mouse: true, gamepad: false },
-  scene: [BootScene, PreloadScene, MenuScene, MapScene, PrepScene, SettingsScene, EndingScene, CodexScene, BattleScene, HudScene, GalleryScene, AudioGalleryScene],
+  scene: [BootScene, PreloadScene, MenuScene, MapScene, PrepScene, WebScene, SettingsScene, EndingScene, CodexScene, BattleScene, HudScene, GalleryScene, AudioGalleryScene],
 });
 
 /** 배율이 바뀌면 이미 있는 글자도 새 해상도로 다시 그림(1배 ↔ 2배에서 획이 빠지지 않게) */

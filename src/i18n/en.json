@@ -40,7 +40,9 @@
       "nextShort": "Next",
       "nextLabel": "Next objective",
       "next": "{key}  Deploy to next region ▶",
-      "retry": "{key}  Replay this region"
+      "retry": "{key}  Replay this region",
+      "mastery": "{name} mastery +{gain} · Lv {level}",
+      "masteryUp": "{name} mastery +{gain} · Lv {from} → {to} promoted!  points +{points}"
     },
     "unlock": {
       "title": "Unlocked",
@@ -216,7 +218,10 @@
     },
     "locked": "Locked",
     "emptySlot": "Empty",
-    "cannotGo": "Can't deploy: {list}"
+    "cannotGo": "Can't deploy: {list}",
+    "web": "Growth web",
+    "webPoints": "Growth web ●{n}",
+    "mastery": "Mastery Lv {level} · points {free}"
   },
   "map": {
     "title": "Korean Peninsula Campaign Map",
@@ -372,6 +377,49 @@
       "ammo": "Ammo crate (attack +25% for 20s, TP +15)",
       "orders": "Orders (2 cards)",
       "radio": "Radio (TP +45)"
+    }
+  },
+  "web": {
+    "title": "Growth web — {name}",
+    "head": "Mastery Lv {level} · XP {xp}/{need} · points {free} (of {total})",
+    "howToEarn": "Merit earned with this character becomes mastery XP; each level gives 2 points",
+    "back": "{key}  Back",
+    "sub": "{branch} branch · ring {ring} · cost {cost}",
+    "canOpen": "{key}  Unlock",
+    "why": {
+      "owned": "Unlocked",
+      "unreachable": "Unlock a linked node first (center outward)",
+      "points": "Not enough points (need {n})",
+      "missing": "No such node"
+    },
+    "opened": "{name} unlocked!",
+    "resetConfirm": "{key} again: refund every node",
+    "resetDone": "All nodes refunded",
+    "totalTitle": "Active bonuses (on deploy)",
+    "totalNone": "No nodes unlocked yet",
+    "help": "Arrows move · {ok} unlock · {reset} reset · {back} back",
+    "stat": {
+      "attack": "Attack",
+      "attackSpeed": "Attack speed",
+      "critChance": "Crit chance",
+      "critMult": "Crit damage",
+      "defense": "Defense",
+      "hp": "Max HP",
+      "moveSpeed": "Move speed",
+      "magnet": "Pickup range",
+      "range": "Range",
+      "luck": "Luck",
+      "drawSpeed": "Card draw speed",
+      "sealOpReduction": "Seal OP cost",
+      "damageMult": "Weapon damage",
+      "cooldownMs": "Reload time",
+      "pierce": "Pierce",
+      "aoeRadius": "Blast radius",
+      "auraRadius": "Aura radius",
+      "meleeRadius": "Melee reach",
+      "knockback": "Knockback",
+      "tp": "Starting TP",
+      "seals": "Starting seals"
     }
   }
 }

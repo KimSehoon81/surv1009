@@ -1,0 +1,624 @@
+{
+  "$comment": "성장 지도(2026-11-14, 사용자 요청 '거미줄형 캐릭터 고유 성장'). 캐릭터마다 숙련 경험치(그 캐릭터로 번 전공만큼)가 쌓여 숙련 레벨이 오르면 레벨당 pointsPerLevel 포인트, 그 포인트로 6갈래 거미줄의 칸을 연다. 1단계는 가운데와 이어져 언제나 열 수 있고, 같은 갈래는 안쪽→바깥쪽, ringLinks 단계의 고리는 옆 갈래와도 이어진다. 고유(sig) 갈래 내용은 캐릭터 계열(archetypes)마다 다르다. 칸 id는 '갈래id+단계'라 계열 내용이 바뀌어도 저장이 깨지지 않음. 수정자 mul은 core/stats처럼 더하는 비율(0.05 = +5%). 수치는 상점 스타팅 포인트(meta.json)보다 작게 잡아 전부 열면 약 +20~30% 전력. 비용 1·1·2·2 → 갈래당 6, 전체 36 = 숙련 Lv18(레벨 n→n+1에 base+step·n 경험치, 평균 한 판 전공 100~150 기준 약 25~30판).",
+  "mastery": {
+    "base": 40,
+    "step": 20,
+    "pointsPerLevel": 2,
+    "maxLevel": 30
+  },
+  "costs": [
+    1,
+    1,
+    2,
+    2
+  ],
+  "ringLinks": [
+    2,
+    4
+  ],
+  "layout": {
+    "cx": 320,
+    "cy": 292,
+    "radii": [
+      0,
+      54,
+      100,
+      146,
+      190
+    ],
+    "labelRadius": 220
+  },
+  "branches": [
+    {
+      "id": "sig",
+      "name": "고유",
+      "color": "#ffd34d",
+      "angle": -90
+    },
+    {
+      "id": "fire",
+      "name": "화력",
+      "color": "#ff8a5a",
+      "angle": -30
+    },
+    {
+      "id": "move",
+      "name": "기동",
+      "color": "#7fd8ff",
+      "angle": 30
+    },
+    {
+      "id": "supply",
+      "name": "보급",
+      "color": "#8ad86a",
+      "angle": 90
+    },
+    {
+      "id": "ops",
+      "name": "작전",
+      "color": "#c89aff",
+      "angle": 150
+    },
+    {
+      "id": "guard",
+      "name": "생존",
+      "color": "#ff6a7a",
+      "angle": 210
+    }
+  ],
+  "nodes": {
+    "fire": [
+      {
+        "name": "사격 훈련",
+        "player": [
+          {
+            "stat": "attack",
+            "op": "mul",
+            "value": 0.05
+          }
+        ]
+      },
+      {
+        "name": "속사",
+        "player": [
+          {
+            "stat": "attackSpeed",
+            "op": "mul",
+            "value": 0.06
+          }
+        ]
+      },
+      {
+        "name": "급소 조준",
+        "player": [
+          {
+            "stat": "critChance",
+            "op": "add",
+            "value": 0.04
+          }
+        ]
+      },
+      {
+        "name": "화력 집중",
+        "player": [
+          {
+            "stat": "attack",
+            "op": "mul",
+            "value": 0.1
+          }
+        ]
+      }
+    ],
+    "move": [
+      {
+        "name": "가벼운 군장",
+        "player": [
+          {
+            "stat": "moveSpeed",
+            "op": "mul",
+            "value": 0.04
+          }
+        ]
+      },
+      {
+        "name": "수색",
+        "player": [
+          {
+            "stat": "magnet",
+            "op": "mul",
+            "value": 0.15
+          }
+        ]
+      },
+      {
+        "name": "강행군",
+        "player": [
+          {
+            "stat": "moveSpeed",
+            "op": "mul",
+            "value": 0.05
+          }
+        ]
+      },
+      {
+        "name": "시야 확보",
+        "player": [
+          {
+            "stat": "range",
+            "op": "mul",
+            "value": 0.08
+          }
+        ]
+      }
+    ],
+    "supply": [
+      {
+        "name": "전투 식량",
+        "start": {
+          "tp": 10
+        }
+      },
+      {
+        "name": "탄약 보급",
+        "weapons": [
+          {
+            "stat": "damageMult",
+            "op": "mul",
+            "value": 0.05
+          }
+        ]
+      },
+      {
+        "name": "보급 인장",
+        "start": {
+          "seals": 1
+        }
+      },
+      {
+        "name": "야전 보급",
+        "start": {
+          "tp": 15
+        },
+        "player": [
+          {
+            "stat": "magnet",
+            "op": "mul",
+            "value": 0.1
+          }
+        ]
+      }
+    ],
+    "ops": [
+      {
+        "name": "카드 정리",
+        "player": [
+          {
+            "stat": "drawSpeed",
+            "op": "mul",
+            "value": 0.06
+          }
+        ]
+      },
+      {
+        "name": "행운",
+        "player": [
+          {
+            "stat": "luck",
+            "op": "add",
+            "value": 1
+          }
+        ]
+      },
+      {
+        "name": "전술 숙지",
+        "player": [
+          {
+            "stat": "drawSpeed",
+            "op": "mul",
+            "value": 0.08
+          }
+        ]
+      },
+      {
+        "name": "작전 감각",
+        "player": [
+          {
+            "stat": "luck",
+            "op": "add",
+            "value": 2
+          }
+        ],
+        "start": {
+          "tp": 10
+        }
+      }
+    ],
+    "guard": [
+      {
+        "name": "체력 단련",
+        "player": [
+          {
+            "stat": "hp",
+            "op": "add",
+            "value": 12
+          }
+        ]
+      },
+      {
+        "name": "철모",
+        "player": [
+          {
+            "stat": "defense",
+            "op": "add",
+            "value": 2
+          }
+        ]
+      },
+      {
+        "name": "인내",
+        "player": [
+          {
+            "stat": "hp",
+            "op": "add",
+            "value": 20
+          }
+        ]
+      },
+      {
+        "name": "강철 의지",
+        "player": [
+          {
+            "stat": "defense",
+            "op": "add",
+            "value": 4
+          },
+          {
+            "stat": "hp",
+            "op": "add",
+            "value": 10
+          }
+        ]
+      }
+    ]
+  },
+  "signature": {
+    "rifle": {
+      "name": "정밀 사격",
+      "nodes": [
+        {
+          "name": "탄도 계산",
+          "player": [
+            {
+              "stat": "range",
+              "op": "mul",
+              "value": 0.08
+            }
+          ]
+        },
+        {
+          "name": "관통탄",
+          "weapons": [
+            {
+              "stat": "pierce",
+              "op": "add",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "name": "연사 숙달",
+          "weapons": [
+            {
+              "stat": "cooldownMs",
+              "op": "mul",
+              "value": -0.1
+            }
+          ]
+        },
+        {
+          "name": "명사수",
+          "player": [
+            {
+              "stat": "critMult",
+              "op": "add",
+              "value": 0.3
+            }
+          ],
+          "weapons": [
+            {
+              "stat": "damageMult",
+              "op": "mul",
+              "value": 0.08
+            }
+          ]
+        }
+      ]
+    },
+    "guard": {
+      "name": "방호",
+      "nodes": [
+        {
+          "name": "방탄판 보강",
+          "player": [
+            {
+              "stat": "defense",
+              "op": "add",
+              "value": 3
+            }
+          ]
+        },
+        {
+          "name": "참호 정신",
+          "player": [
+            {
+              "stat": "hp",
+              "op": "add",
+              "value": 25
+            }
+          ]
+        },
+        {
+          "name": "방호 오라",
+          "weapons": [
+            {
+              "stat": "auraRadius",
+              "op": "mul",
+              "value": 0.15
+            }
+          ],
+          "player": [
+            {
+              "stat": "defense",
+              "op": "add",
+              "value": 2
+            }
+          ]
+        },
+        {
+          "name": "불굴",
+          "player": [
+            {
+              "stat": "hp",
+              "op": "add",
+              "value": 40
+            },
+            {
+              "stat": "defense",
+              "op": "add",
+              "value": 3
+            }
+          ]
+        }
+      ]
+    },
+    "artillery": {
+      "name": "포격",
+      "nodes": [
+        {
+          "name": "장약 증량",
+          "weapons": [
+            {
+              "stat": "aoeRadius",
+              "op": "mul",
+              "value": 0.1
+            }
+          ]
+        },
+        {
+          "name": "신관 조정",
+          "weapons": [
+            {
+              "stat": "cooldownMs",
+              "op": "mul",
+              "value": -0.08
+            }
+          ]
+        },
+        {
+          "name": "고폭탄",
+          "weapons": [
+            {
+              "stat": "damageMult",
+              "op": "mul",
+              "value": 0.12
+            }
+          ]
+        },
+        {
+          "name": "탄막 사격",
+          "weapons": [
+            {
+              "stat": "aoeRadius",
+              "op": "mul",
+              "value": 0.15
+            },
+            {
+              "stat": "damageMult",
+              "op": "mul",
+              "value": 0.08
+            }
+          ]
+        }
+      ]
+    },
+    "assault": {
+      "name": "돌격",
+      "nodes": [
+        {
+          "name": "돌격 훈련",
+          "player": [
+            {
+              "stat": "moveSpeed",
+              "op": "mul",
+              "value": 0.05
+            }
+          ]
+        },
+        {
+          "name": "백병전",
+          "weapons": [
+            {
+              "stat": "meleeRadius",
+              "op": "mul",
+              "value": 0.12
+            },
+            {
+              "stat": "knockback",
+              "op": "mul",
+              "value": 0.2
+            }
+          ]
+        },
+        {
+          "name": "기습",
+          "player": [
+            {
+              "stat": "critChance",
+              "op": "add",
+              "value": 0.05
+            }
+          ]
+        },
+        {
+          "name": "돌파",
+          "player": [
+            {
+              "stat": "critMult",
+              "op": "add",
+              "value": 0.4
+            },
+            {
+              "stat": "attack",
+              "op": "mul",
+              "value": 0.08
+            }
+          ]
+        }
+      ]
+    },
+    "support": {
+      "name": "지원",
+      "nodes": [
+        {
+          "name": "통신 숙달",
+          "player": [
+            {
+              "stat": "drawSpeed",
+              "op": "mul",
+              "value": 0.1
+            }
+          ]
+        },
+        {
+          "name": "작전 지원",
+          "start": {
+            "tp": 15
+          }
+        },
+        {
+          "name": "참모 인장",
+          "start": {
+            "seals": 1
+          }
+        },
+        {
+          "name": "참모 감각",
+          "player": [
+            {
+              "stat": "sealOpReduction",
+              "op": "add",
+              "value": 1
+            },
+            {
+              "stat": "luck",
+              "op": "add",
+              "value": 2
+            }
+          ]
+        }
+      ]
+    },
+    "recon": {
+      "name": "정찰",
+      "nodes": [
+        {
+          "name": "정찰 행군",
+          "player": [
+            {
+              "stat": "moveSpeed",
+              "op": "mul",
+              "value": 0.06
+            }
+          ]
+        },
+        {
+          "name": "쌍안경",
+          "player": [
+            {
+              "stat": "range",
+              "op": "mul",
+              "value": 0.1
+            }
+          ]
+        },
+        {
+          "name": "흔적 추적",
+          "player": [
+            {
+              "stat": "magnet",
+              "op": "mul",
+              "value": 0.25
+            }
+          ]
+        },
+        {
+          "name": "그림자 이동",
+          "player": [
+            {
+              "stat": "moveSpeed",
+              "op": "mul",
+              "value": 0.06
+            },
+            {
+              "stat": "critChance",
+              "op": "add",
+              "value": 0.05
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "archetypes": {
+    "A01": "rifle",
+    "A02": "guard",
+    "A03": "artillery",
+    "A04": "assault",
+    "A05": "artillery",
+    "A06": "assault",
+    "A07": "rifle",
+    "A08": "artillery",
+    "A09": "support",
+    "A10": "rifle",
+    "A11": "artillery",
+    "A12": "rifle",
+    "A13": "assault",
+    "A14": "support",
+    "A15": "guard",
+    "A16": "guard",
+    "A17": "assault",
+    "A18": "rifle",
+    "A19": "recon",
+    "A20": "support",
+    "A21": "recon",
+    "A22": "support",
+    "A23": "support",
+    "A24": "recon",
+    "A25": "artillery",
+    "A26": "rifle",
+    "A27": "recon",
+    "A28": "assault",
+    "A29": "support",
+    "A30": "support"
+  }
+}

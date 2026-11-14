@@ -9,6 +9,12 @@ export interface MapPayload {
   focus?: string;
 }
 
+/** 성장 지도(출정 준비에서 열고, 닫으면 같은 지역 준비로) */
+export interface WebPayload {
+  char: string;
+  stage: string;
+}
+
 /** 출정 준비 */
 export interface PrepPayload {
   stage: string;

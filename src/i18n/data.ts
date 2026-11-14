@@ -12,6 +12,7 @@ import npcs from '../data/npcs.json';
 import settings from '../data/settings.json';
 import shop from '../data/shop.json';
 import skills from '../data/skills.json';
+import skillWeb from '../data/skillWeb.json';
 import stages from '../data/stages.json';
 import upgrades from '../data/upgrades.json';
 import weapons from '../data/weapons.json';
@@ -23,7 +24,7 @@ import type { Locale } from './index';
  * 가져온 JSON 객체를 그 자리에서 바꾸므로 모든 사용처가 그대로 번역본을 본다(없는 경로는 한국어 원문 유지).
  * 모듈 수준에서 이름표를 미리 만드는 곳이 있어, 언어는 다른 모듈보다 먼저(i18n/boot) 정하고 바꿀 때는 다시 불러온다.
  */
-export const DATA_FILES: Record<string, unknown> = { achievements, cards, characters, combos, disruptions, ending, enemies, guide, map, meta, npcs, settings, shop, skills, stages, upgrades, weapons };
+export const DATA_FILES: Record<string, unknown> = { achievements, cards, characters, combos, disruptions, ending, enemies, guide, map, meta, npcs, settings, shop, skills, skillWeb, stages, upgrades, weapons };
 type Node = Record<string, unknown> | unknown[];
 const originals = new Map<string, { parent: Node; key: string; text: string }>();
 

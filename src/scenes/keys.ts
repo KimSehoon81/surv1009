@@ -11,6 +11,7 @@ export const SceneKey = {
   Settings: 'Settings',
   Ending: 'Ending',
   Codex: 'Codex',
+  Web: 'Web',
 } as const;
 
 export type SceneKey = (typeof SceneKey)[keyof typeof SceneKey];

@@ -13,6 +13,7 @@ import { CardHud } from '../ui/cardHud';
 import { cardBackKey } from '../ui/cardFace';
 import { drawMiniMap, type MiniMap } from '../ui/koreaMap';
 import mapData from '../data/map.json';
+import charactersData from '../data/characters.json';
 import { loadProfile } from '../systems/save';
 import guideData from '../data/guide.json';
 import skillsData from '../data/skills.json';
@@ -706,6 +707,7 @@ export class HudScene extends Phaser.Scene {
     const lines = [
       `${t('hud.result.summary', { time: `${mm}:${ss}`, level: rec.level, step: r.step, kills: rec.kills })}${rec.eliteKills > 0 ? t('hud.result.elite', { n: rec.eliteKills }) : ''}${rec.recruit ? `    ${t('hud.result.recruit')}` : ''}${r.threat > 0 ? `    ${t('hud.result.threat', { n: r.threat })}` : ''}`,
       `${t('hud.result.merit', { n: r.merit })}${rec.victory ? '' : `  ${t('hud.result.meritHalf')}`}`,
+      this.masteryLine(),
       '',
       t('hud.result.opsLog'),
       t('hud.result.opsLine', { submits: rec.submits, rate: r.rate, streak: rec.longestFailStreak, seals: rec.sealsUsed, residue: rec.residueDamage }),
@@ -771,6 +773,7 @@ export class HudScene extends Phaser.Scene {
     const lines = [
       t('hud.result.summary', { time: `${mm}:${ss}`, level: rec.level, step: r.step, kills: rec.kills }) + (rec.eliteKills > 0 ? t('hud.result.elite', { n: rec.eliteKills }) : ''),
       t('hud.result.merit', { n: r.merit }),
+      this.masteryLine(),
       '',
       t('hud.result.opsLog'),
       t('hud.result.opsLine', { submits: rec.submits, rate: r.rate, streak: rec.longestFailStreak, seals: rec.sealsUsed, residue: rec.residueDamage }),
@@ -927,6 +930,14 @@ export class HudScene extends Phaser.Scene {
   private closePauseMenu(): void {
     this.pauseMenu?.root.destroy();
     this.pauseMenu = null;
+  }
+
+  /** 결과: 이 캐릭터 숙련(성장 지도) 경험치와 진급 */
+  private masteryLine(): string {
+    const m = this.battle.result?.mastery;
+    if (!m) return '';
+    const name = (charactersData.characters as Record<string, { name: string }>)[this.battle.payload.char]?.name ?? '';
+    return m.to > m.from ? t('hud.result.masteryUp', { name, gain: m.gain, from: m.from, to: m.to, points: m.points }) : t('hud.result.mastery', { name, gain: m.gain, level: m.to });
   }
 
   /** 일시정지 화면: 지금까지 고른 업그레이드 */

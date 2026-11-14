@@ -40,7 +40,9 @@
       "nextShort": "다음",
       "nextLabel": "다음 목표",
       "next": "{key}  다음 지역 출정 ▶",
-      "retry": "{key}  같은 지역 다시"
+      "retry": "{key}  같은 지역 다시",
+      "mastery": "{name} 숙련 +{gain} · Lv {level}",
+      "masteryUp": "{name} 숙련 +{gain} · Lv {from} → {to} 진급!  성장 포인트 +{points}"
     },
     "unlock": {
       "title": "새로 해금됨",
@@ -216,7 +218,10 @@
     },
     "locked": "잠김",
     "emptySlot": "비어 있음",
-    "cannotGo": "출정 불가: {list}"
+    "cannotGo": "출정 불가: {list}",
+    "web": "성장 지도",
+    "webPoints": "성장 지도 ●{n}",
+    "mastery": "숙련 Lv {level} · 성장 포인트 {free}"
   },
   "map": {
     "title": "한반도 작전지도",
@@ -372,6 +377,49 @@
       "ammo": "탄약 상자(20초간 공격력 +25%, TP +15)",
       "orders": "작전 명령서(카드 2장)",
       "radio": "무전기(TP +45)"
+    }
+  },
+  "web": {
+    "title": "성장 지도 — {name}",
+    "head": "숙련 Lv {level} · 경험치 {xp}/{need} · 성장 포인트 {free} (모두 {total})",
+    "howToEarn": "이 캐릭터로 출정해 얻은 전공만큼 숙련 경험치가 쌓이고, 레벨마다 포인트 2",
+    "back": "{key}  돌아가기",
+    "sub": "{branch} 갈래 · {ring}단계 · 비용 {cost}",
+    "canOpen": "{key}  개방",
+    "why": {
+      "owned": "개방함",
+      "unreachable": "이어진 칸을 먼저 여세요(가운데에서 바깥으로)",
+      "points": "성장 포인트가 부족합니다(필요 {n})",
+      "missing": "없는 칸"
+    },
+    "opened": "{name} 개방!",
+    "resetConfirm": "{key} 한 번 더: 모든 칸을 되돌리고 포인트를 돌려받습니다",
+    "resetDone": "모든 칸을 되돌렸습니다(포인트 환급)",
+    "totalTitle": "적용 중인 효과(출정 때)",
+    "totalNone": "아직 연 칸이 없습니다",
+    "help": "방향키 이동 · {ok} 개방 · {reset} 초기화 · {back} 돌아가기",
+    "stat": {
+      "attack": "공격",
+      "attackSpeed": "공격 속도",
+      "critChance": "치명타 확률",
+      "critMult": "치명타 피해",
+      "defense": "방어",
+      "hp": "최대 체력",
+      "moveSpeed": "이동 속도",
+      "magnet": "회수 범위",
+      "range": "사거리",
+      "luck": "행운",
+      "drawSpeed": "카드 뽑기 속도",
+      "sealOpReduction": "인장 필요 OP",
+      "damageMult": "무기 피해",
+      "cooldownMs": "재장전 시간",
+      "pierce": "관통",
+      "aoeRadius": "폭발 범위",
+      "auraRadius": "오라 범위",
+      "meleeRadius": "근접 범위",
+      "knockback": "밀쳐내기",
+      "tp": "시작 TP",
+      "seals": "시작 인장"
     }
   }
 }

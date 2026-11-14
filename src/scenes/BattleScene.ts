@@ -12,6 +12,8 @@ import skillsData from '../data/skills.json';
 import stagesData from '../data/stages.json';
 import disruptionsData from '../data/disruptions.json';
 import metaData from '../data/meta.json';
+import webJson from '../data/skillWeb.json';
+import { addMasteryXp, buildWeb, masteryLevel, webEffects, type WebData } from '../core/web';
 import { StageDirector, type StageDef, type StageEvent } from '../core/stage';
 import { Disruptions } from '../core/disruptions';
 import { actualRate, defeatTip, meritPoints, type RunRecord } from '../core/results';
@@ -123,6 +125,15 @@ const DISRUPTION_NAMES: Record<string, string> = Object.fromEntries(Object.entri
 const HIT = { blockK: combat.blockK, blockReduction: combat.blockReduction, maxBlockChance: combat.maxBlockChance };
 
 /** 전투 씬: 플레이어·적·무기·투사체·경험치·피격·전사. 시간은 전부 전투 시계(clock) 기준 */
+const WEB = webJson as unknown as WebData;
+/** 결과 화면의 숙련(성장 지도) 줄 */
+export interface Mastery {
+  gain: number;
+  from: number;
+  to: number;
+  points: number;
+}
+
 export class BattleScene extends Phaser.Scene {
   readonly clock = new GameClock();
   private controls!: InputMap;
@@ -179,7 +190,7 @@ export class BattleScene extends Phaser.Scene {
   /** 살아 있는 보스(HUD 체력바·작전 카드) */
   boss: Enemy | null = null;
   /** 결과 화면에 넘긴 기록(점령·전사 뒤) */
-  result: { record: RunRecord; merit: number; tip: string; rate: number; unlocked: Unlock[]; step: number; threat: number; ending: boolean } | null = null;
+  result: { record: RunRecord; merit: number; tip: string; rate: number; unlocked: Unlock[]; step: number; threat: number; ending: boolean; mastery: Mastery } | null = null;
   /** 고급 스킬 슬롯(Q·E·R·F)과 TP. HUD가 읽음 */
   skills!: SkillSlots;
   /** 적 공격 예고·포탄 */
@@ -656,7 +667,14 @@ export class BattleScene extends Phaser.Scene {
 
   /** 스타팅 포인트(§8.2): 세이브에서 계산한 런 시작 상태를 이번 판에 적용(레벨은 선택지 대기로) */
   private applyRunStart(): void {
-    const rs = runInit(loadProfile(), metaData.startUpgrades as Record<string, StartUpgradeDef>);
+    const prof = loadProfile();
+    const rs = runInit(prof, metaData.startUpgrades as Record<string, StartUpgradeDef>);
+    // 성장 지도(캐릭터별 거미줄): 능력치·시작 무기 수정자, 시작 TP·인장은 스타팅 포인트에 더함
+    const web = webEffects(buildWeb(WEB, this.payload.char), prof.web?.[this.payload.char]?.nodes ?? []);
+    if (web.player.length > 0) this.player.addMods(web.player);
+    if (web.weapons.length > 0) for (const id of this.player.weapons) this.weapons.addMods(id, web.weapons);
+    rs.seals += web.seals;
+    rs.tp += web.tp;
     if (rs.handSizeBonus > 0) this.player.addMods([{ stat: 'handSize', op: 'add', value: rs.handSizeBonus }]);
     if (rs.sealOpReduction > 0) this.player.addMods([{ stat: 'sealOpReduction', op: 'add', value: rs.sealOpReduction }]);
     if (rs.weaponDamageMul > 0) for (const id of this.player.weapons) this.weapons.addMods(id, [{ stat: 'damageMult', op: 'mul', value: rs.weaponDamageMul }]);
@@ -1388,14 +1406,22 @@ export class BattleScene extends Phaser.Scene {
     const ending = victory && this.payload.stage === FINAL_STAGE;
     // 정산: 점령 기록·전공·첫 점령 해금(core/meta), 최고 전역 단계
     let unlocked: Unlock[] = [];
+    // 숙련(성장 지도): 이 캐릭터의 경험치 += 이번 판 전공
+    const char = this.payload.char;
+    let mastery: Mastery = { gain: merit, from: 0, to: 0, points: 0 };
     updateProfile((d) => {
       const r = applyCapture(d, this.payload.stage, { victory, timeSec: record.timeSec, merit }, unlocksData.stages as Record<string, UnlockEntry>);
       unlocked = r.unlocked;
-      const next = { ...r.save, bestStep: Math.max(r.save.bestStep ?? 0, step), achievements: this.ach, codex: this.codex, merit: r.save.merit + this.achMerit };
+      const before = r.save.web?.[char];
+      const after = addMasteryXp(before, merit);
+      const from = masteryLevel(before?.xp ?? 0, WEB.mastery).level;
+      const to = masteryLevel(after.xp, WEB.mastery).level;
+      mastery = { gain: merit, from, to, points: (to - from) * WEB.mastery.pointsPerLevel };
+      const next = { ...r.save, bestStep: Math.max(r.save.bestStep ?? 0, step), achievements: this.ach, codex: this.codex, merit: r.save.merit + this.achMerit, web: { ...(r.save.web ?? {}), [char]: after } };
       if (ending) next.flags = { ...next.flags, endingSeen: true };
       return next;
     });
-    this.result = { record, merit, tip: victory ? '' : defeatTip(record, metaData.tips), rate: actualRate(record), unlocked, step, threat, ending };
+    this.result = { record, merit, tip: victory ? '' : defeatTip(record, metaData.tips), rate: actualRate(record), unlocked, step, threat, ending, mastery };
   }
 
   /** 다시 출정(같은 구성) */
