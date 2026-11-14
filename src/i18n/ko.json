@@ -73,7 +73,8 @@
       "airdrop": "보급",
       "chest": "상자",
       "npc": "NPC",
-      "boss": "보스"
+      "boss": "보스",
+      "rush": "돌격대"
     },
     "chest": {
       "title": "보물 상자!",
@@ -172,7 +173,8 @@
       "elite": "{name} 접근!",
       "disrupt": "{name} 예보",
       "boss": "보스 {name} 출현",
-      "burst": "{name} 대규모 군집 접근!"
+      "burst": "{name} 대규모 군집 접근!",
+      "rush": "적 돌격대 접근! 전부 격퇴하면 보급"
     },
     "npcArrive": "{name} 등장 — 다가가서 만나기",
     "captured": "{name} 점령!",
@@ -187,7 +189,9 @@
     },
     "stampSub": "{n} 연속 처치 — 카드 보급",
     "multiKill": "대량 격파 ×{n}",
-    "multiKillSub": "한 번에 쓸어 담았다!"
+    "multiKillSub": "한 번에 쓸어 담았다!",
+    "rushClear": "돌격대 격퇴!",
+    "rushClearSub": "자석 보급 · TP +{tp}"
   },
   "prep": {
     "deckErr": {

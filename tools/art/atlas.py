@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """아틀라스 패커(D40 빌드 단계): public/assets의 시트를 종류별로 2048 이하 페이지에 묶는다.
 
-- 대상: fx·chars·enemies·npcs·props·skills (카드·UI 아이콘·타일·지도는 캔버스 합성·반복 무늬에 원본이 필요해 제외)
+- 대상: fx·chars·enemies·npcs·critters·props·skills (카드·UI 아이콘·타일·지도·sprites(바닥 데칼)는 캔버스 합성·반복 무늬에 원본이 필요해 제외)
 - 출력: public/atlas/<종류>-<번호>.png + .json(Phaser JSON Hash, 프레임 이름 = public/assets 기준 경로), index.json(페이지·파일·생성 시각)
 - 게임은 index.json을 npm run assets가 읽어 src/assets/atlases.json으로 만들고, 거기 있는 파일만 아틀라스에서 꺼낸다.
   아틀라스보다 새로 바뀐 원본은 자동으로 빠지고(개별 로드), 그림이 없는 키는 지금처럼 자리표시자.
@@ -17,7 +17,7 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / 'public' / 'assets'
 OUT = ROOT / 'public' / 'atlas'
-CATS = ['fx', 'chars', 'enemies', 'npcs', 'props', 'skills']
+CATS = ['fx', 'chars', 'enemies', 'npcs', 'critters', 'props', 'skills']
 PAGE = 2048
 PAD = 2
 

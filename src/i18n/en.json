@@ -73,7 +73,8 @@
       "airdrop": "Supply",
       "chest": "Chest",
       "npc": "NPC",
-      "boss": "Boss"
+      "boss": "Boss",
+      "rush": "Assault"
     },
     "chest": {
       "title": "TREASURE CHEST!",
@@ -172,7 +173,8 @@
       "elite": "{name} approaching!",
       "disrupt": "{name} forecast",
       "boss": "Boss {name} incoming",
-      "burst": "Mass of {name} approaching!"
+      "burst": "Mass of {name} approaching!",
+      "rush": "Enemy assault squad incoming! Wipe them out for supplies"
     },
     "npcArrive": "{name} arrived — walk over to meet",
     "captured": "{name} captured!",
@@ -187,7 +189,9 @@
     },
     "stampSub": "{n} kill streak — card supply",
     "multiKill": "MASS KILL ×{n}",
-    "multiKillSub": "Swept them all at once!"
+    "multiKillSub": "Swept them all at once!",
+    "rushClear": "ASSAULT REPELLED!",
+    "rushClearSub": "Magnet drop · TP +{tp}"
   },
   "prep": {
     "deckErr": {

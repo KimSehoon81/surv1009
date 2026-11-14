@@ -14,7 +14,7 @@ import disruptionsData from '../data/disruptions.json';
 import metaData from '../data/meta.json';
 import webJson from '../data/skillWeb.json';
 import { addMasteryXp, buildWeb, masteryLevel, webEffects, type WebData } from '../core/web';
-import { StageDirector, type StageDef, type StageEvent } from '../core/stage';
+import { StageDirector, rushBursts, type RushRule, type StageDef, type StageEvent } from '../core/stage';
 import { Disruptions } from '../core/disruptions';
 import { actualRate, defeatTip, meritPoints, type RunRecord } from '../core/results';
 import { createRng, type Rng } from '../core/rng';
@@ -125,6 +125,7 @@ const SHOP_ITEMS = shopData.items as ShopItem[];
 const TP_BY_TIER: Record<string, number> = { normal: TP.perKill, elite: TP.perEliteKill, boss: TP.perBossKill };
 const SKILL_ACTIONS = skillsData.slots.map((s) => s.action as InputAction);
 const STAGES = stagesData.stages as unknown as Record<string, StageDef>;
+const RUSH = stagesData.rules.rush as RushRule & { clearSec: number; rewardTp: number; arrowSec: number };
 type DisruptionType = { name: string; category: string; priority: number; hint: string; selectDelayMs?: number; drawMul?: number; blockTags?: string[]; spawnMul?: number; playerSpeedMul?: number; tagPenalty?: Record<string, number>; interactions?: { on: string; tag: string; do: string; ms: number }[] };
 const DTYPES = disruptionsData.types as Record<string, DisruptionType>;
 const DISRUPTION_NAMES: Record<string, string> = Object.fromEntries(Object.entries(DTYPES).map(([k, v]) => [k, v.name]));
@@ -215,6 +216,20 @@ export class BattleScene extends Phaser.Scene {
   private ghosts!: KillGhosts;
   private multi = newMultiKill();
   private killDir = { x: 0, y: 0 };
+  /** 진행 중인 돌격대: 예고(방향 화살표) → 등장 → 전부 격퇴하면 보급 */
+  private rush: { id: number; left: number; angle: number; untilMs: number; arrowUntilMs: number; live: boolean } | null = null;
+  private rushSeq = 0;
+  private rushRng!: Rng;
+
+  /** 돌격대 전부 격퇴: 마지막 자리에 자석(별 전부 회수) + TP, 가운데 도장 */
+  private rushCleared(x: number, y: number, now: number): void {
+    this.rush = null;
+    this.magnets.spawn(x, y, now);
+    this.skills.addTp(RUSH.rewardTp);
+    this.events.emit('stamp', t('battle.rushClear'), t('battle.rushClearSub', { tp: RUSH.rewardTp }));
+    this.feel.hit('card_success', x, y - combat.bodyOffsetY, { groundY: y });
+    this.audio.play('levelup');
+  }
   private multiStep = 0;
 
   /** 이번 프레임에 닿은 가장 높은 다중 처치 단계의 연출(묶음 가운데, 'X12' 표시, 큰 단계는 HUD 도장) */
@@ -313,7 +328,14 @@ export class BattleScene extends Phaser.Scene {
       residueDamage: 0,
       lastHitBy: 'contact',
     });
-    this.stage = STAGES[this.payload.stage] ?? (STAGES.S1 as StageDef);
+    const base = STAGES[this.payload.stage] ?? (STAGES.S1 as StageDef);
+    // 돌격대(rules.rush): 그 구간의 기본 보병으로 작은 군집을 일정에 더함(대형·정예·공중은 제외)
+    const footSoldier = (id: string) => {
+      const d = (enemyData.enemies as Record<string, { tier?: string; air?: boolean; radius?: number }>)[id];
+      return Boolean(d) && d?.tier === 'normal' && !d.air && (d.radius ?? 0) <= 16;
+    };
+    this.stage = { ...base, bursts: [...(base.bursts ?? []), ...rushBursts(base, RUSH, footSoldier)] };
+    this.rush = null;
     // 씬은 다시 시작해도 같은 객체: 지난 판의 그리기 객체·목록을 비운다
     this.swingGfx = null;
     this.swings = [];
@@ -504,6 +526,7 @@ export class BattleScene extends Phaser.Scene {
     this.sprinters.clear();
     this.sprintGfx = this.add.graphics().setDepth(Depth.Player + 3);
     this.sprintRng = rng.fork('enemySprint');
+    this.rushRng = rng.fork('rush');
     this.lootRng = rng.fork('loot');
     this.chests?.destroy();
     this.chests = new ChestSystem(this);
@@ -948,6 +971,8 @@ export class BattleScene extends Phaser.Scene {
     this.killDir.x = 0;
     this.killDir.y = 0;
     // 다중 처치: 짧은 시간에 이어진 처치가 단계에 닿으면 묶음 가운데에서 한 번 더 터뜨림
+    // 돌격대의 마지막 한 명이면 보상
+    if (e.rushId && this.rush?.id === e.rushId && --this.rush.left <= 0) this.rushCleared(e.x, e.y, now);
     // (한 프레임에 여러 단계를 넘으면 가장 높은 단계만, 프레임 끝에 한 번: flushMultiKill)
     const step = registerKill(this.multi, now, e.x, e.y, MULTI);
     if (step > this.multiStep) this.multiStep = step;
@@ -1176,6 +1201,8 @@ export class BattleScene extends Phaser.Scene {
     let onScreen = 0;
     for (const e of this.enemies.pool.active) if (e.alive && view.contains(e.x, e.y)) onScreen++;
     for (const ev of this.director.update(sec, this.progression.level, { enemiesOnScreen: onScreen })) this.onStageEvent(ev, now);
+    // 돌격대를 clearSec 안에 못 치우면 보상 없이 끝
+    if (this.rush?.live && now > this.rush.untilMs) this.rush = null;
     const sp = this.director.spawnsAt(sec);
     this.enemies.setSpawns(sp.spawns, sp.mult);
     this.disruptorTick();
@@ -1284,9 +1311,9 @@ export class BattleScene extends Phaser.Scene {
    * 화면 밖 관심 지점(HUD 가장자리 화살표, 화면 좌표): 숨은 보급품·보급 투하 상자·보물 상자·만날 NPC·보스.
    * 방해원은 disruptorsOffscreen(따로, 위협 우선 조준 표시와 함께)
    */
-  pointsOffscreen(): { x: number; y: number; kind: 'supply' | 'airdrop' | 'chest' | 'npc' | 'boss' }[] {
+  pointsOffscreen(): { x: number; y: number; kind: 'supply' | 'airdrop' | 'chest' | 'npc' | 'boss' | 'rush' }[] {
     const v = this.cameras.main.worldView;
-    const out: { x: number; y: number; kind: 'supply' | 'airdrop' | 'chest' | 'npc' | 'boss' }[] = [];
+    const out: { x: number; y: number; kind: 'supply' | 'airdrop' | 'chest' | 'npc' | 'boss' | 'rush' }[] = [];
     const add = (x: number, y: number, kind: (typeof out)[number]['kind']) => {
       if (!v.contains(x, y)) out.push({ x: x - v.x, y: y - v.y, kind });
     };
@@ -1295,6 +1322,12 @@ export class BattleScene extends Phaser.Scene {
     for (const c of this.chests.spots()) add(c.x, c.y, 'chest');
     for (const n of this.npcs.waiting()) add(n.x, n.y, 'npc');
     if (this.boss?.alive) add(this.boss.x, this.boss.y - 40, 'boss');
+    // 돌격대가 오는 방향(예고부터 등장 직후까지)
+    const r = this.rush;
+    if (r && this.clock.timeMs < r.arrowUntilMs) {
+      const at = this.enemies.rushPoint(this.player, r.angle);
+      add(at.x, at.y, 'rush');
+    }
     return out;
   }
 
@@ -1345,11 +1378,21 @@ export class BattleScene extends Phaser.Scene {
         this.toast(t('battle.npcArrive', { name: npcData.npcs[ev.npc as NpcId]?.name ?? ev.npc }), '#6fd06f');
         break;
       case 'burstWarn':
-        this.events.emit('warn', ev.burst.label ?? t('battle.warn.burst', { name: name(ev.burst.enemy) }), ev.inSec);
+        if (ev.burst.rush) {
+          // 돌격대: 올 방향을 지금 정해 화면 가장자리 화살표로 알림
+          this.rush = { id: ++this.rushSeq, left: ev.burst.count, angle: this.rushRng.next() * Math.PI * 2, untilMs: Infinity, arrowUntilMs: Infinity, live: false };
+          this.events.emit('warn', t('battle.warn.rush'), ev.inSec);
+        } else this.events.emit('warn', ev.burst.label ?? t('battle.warn.burst', { name: name(ev.burst.enemy) }), ev.inSec);
         this.audio.play('debuff');
         break;
       case 'burst':
-        this.enemies.burst(ev.burst.enemy, ev.burst.count, ev.burst.arcDeg);
+        if (ev.burst.rush) {
+          const r = (this.rush ??= { id: ++this.rushSeq, left: ev.burst.count, angle: this.rushRng.next() * Math.PI * 2, untilMs: 0, arrowUntilMs: 0, live: false });
+          r.live = true;
+          r.untilMs = now + RUSH.clearSec * 1000;
+          r.arrowUntilMs = now + RUSH.arrowSec * 1000;
+          this.enemies.burst(ev.burst.enemy, ev.burst.count, ev.burst.arcDeg, r.angle, r.id);
+        } else this.enemies.burst(ev.burst.enemy, ev.burst.count, ev.burst.arcDeg);
         break;
       case 'pacing':
         this.toast(ev.label, ev.mult > 1 ? '#ff8060' : '#7fd8ff');

@@ -36,7 +36,8 @@ import { buttonLabel, sealLabel } from '../ui/buttons';
 
 const RARITY = upgradesData.rarity;
 /** 화면 밖 관심 지점 화살표 색·크기 */
-const POI: Record<'supply' | 'airdrop' | 'chest' | 'npc' | 'boss', { color: number; size: number }> = {
+const POI: Record<'supply' | 'airdrop' | 'chest' | 'npc' | 'boss' | 'rush', { color: number; size: number }> = {
+  rush: { color: 0xff5a30, size: 16 },
   supply: { color: 0x6fd06f, size: 12 },
   airdrop: { color: 0x7fd8ff, size: 12 },
   chest: { color: 0xffd34d, size: 14 },
@@ -77,7 +78,7 @@ export class HudScene extends Phaser.Scene {
   /** 경과 시간(크게)과 이번 판 목표 한 줄(보스 출현 조건 → 보스 격파). 보스 예고가 뜨면 목표 줄은 경고·보스 이름표가 대신함 */
   private timerText!: Phaser.GameObjects.Text;
   private objText!: Phaser.GameObjects.Text;
-  private warn: { msg: string; untilMs: number; boss: boolean } | null = null;
+  private warn: { msg: string; untilMs: number; boss: boolean; totalSec: number } | null = null;
   private edgeGfx!: Phaser.GameObjects.Graphics;
   private bossTitle!: Phaser.GameObjects.Text;
   private bossGfx!: Phaser.GameObjects.Graphics;
@@ -102,7 +103,7 @@ export class HudScene extends Phaser.Scene {
         .replace(/\{sprint\}/g, buttonLabel('sprint')),
     );
   private readonly onWarn = (msg: string, inSec: number, kind?: string) => {
-    this.warn = { msg, untilMs: this.battle.clock.timeMs + inSec * 1000, boss: kind === 'boss' };
+    this.warn = { msg, untilMs: this.battle.clock.timeMs + inSec * 1000, boss: kind === 'boss', totalSec: inSec };
     this.warnText.setColor(kind === 'boss' ? '#ff4030' : '#ff8060').setFontSize(kind === 'boss' ? 20 : 16);
   };
   /** 보스 등장 공통 연출: 이름 카드(모든 스테이지 같은 경로) */
@@ -746,7 +747,8 @@ export class HudScene extends Phaser.Scene {
       const t = BOSS_INTRO.edgePx;
       this.edgeGfx.lineStyle(t, parseColor(BOSS_INTRO.edgeColor), a).strokeRect(t / 2, t / 2, LOGICAL_WIDTH - t, LOGICAL_HEIGHT - t);
     }
-    this.warnText.setText(`⚠ ${w.msg}  ${Math.ceil(left)}`).setVisible(left > 3 || Math.floor(time / 200) % 2 === 0);
+    // 끝나기 직전만 깜박임(짧은 예고는 절반이 지난 뒤부터: 처음부터 깜박이면 읽을 틈이 없음)
+    this.warnText.setText(`⚠ ${w.msg}  ${Math.ceil(left)}`).setVisible(left > Math.min(3, w.totalSec / 2) || Math.floor(time / 200) % 2 === 0);
   }
 
   /** 보스 체력바 + 작전 카드(충전·취소 게이지·판정 결과) */

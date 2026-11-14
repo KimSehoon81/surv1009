@@ -3,7 +3,7 @@ import stagesData from '../src/data/stages.json';
 import enemiesData from '../src/data/enemies.json';
 import floorData from '../src/data/floor.json';
 import metaData from '../src/data/meta.json';
-import { StageDirector, earlySpawns, introductions, pacingAt, phaseAt, type StageDef } from '../src/core/stage';
+import { StageDirector, earlySpawns, introductions, pacingAt, phaseAt, rushBursts, type RushRule, type StageDef } from '../src/core/stage';
 import { Disruptions } from '../src/core/disruptions';
 import { actualRate, defeatTip, meritPoints, type RunRecord } from '../src/core/results';
 import { createAttackState, damageTakenMult, moveMode, stepAttack, type AttackSpec } from '../src/core/enemyAttack';
@@ -123,6 +123,46 @@ describe('스테이지 진행', () => {
     let warned = false;
     for (let t = 321; t <= 326; t += 1) warned ||= d.update(t, 1, { enemiesOnScreen: 99 }).some((e) => e.type === 'disruptionWarn');
     expect(warned).toBe(true);
+  });
+});
+
+describe('돌격대(rules.rush)', () => {
+  const R = RULES.rush as RushRule;
+  const foot = (id: string) => ENEMIES[id]?.tier === 'normal';
+
+  it('S1: 70초부터 100초마다, 회차마다 2체씩 늘고 그 구간의 기본 적', () => {
+    const b = rushBursts(S1, R, foot);
+    expect(b.map((x) => x.at)).toEqual([70, 170, 270, 370]);
+    expect(b.map((x) => x.count)).toEqual([9, 11, 13, 15]);
+    expect(b.every((x) => x.rush && x.enemy === 'E01' && x.warnSec === R.warnSec)).toBe(true);
+  });
+
+  it('모든 지역: 엘리트·기존 군집과 겹치지 않고, 대군집 구간·보스 임박은 피함, 적은 그 지역 스폰 표에 있는 일반 적', () => {
+    for (const [id, st] of Object.entries(STAGES)) {
+      const b = rushBursts(st, R, foot);
+      expect(b.length, id).toBeGreaterThanOrEqual(2);
+      for (const x of b) {
+        for (const e of st.elites) expect(Math.abs(e.at - x.at), `${id} elite`).toBeGreaterThanOrEqual(R.avoidSec);
+        for (const o of st.bursts ?? []) expect(Math.abs(o.at - x.at), `${id} burst`).toBeGreaterThanOrEqual(R.avoidSec);
+        expect(pacingAt(st, x.at)?.mult ?? 1, id).toBeLessThanOrEqual(1);
+        expect(x.at, id).toBeLessThan(st.boss.trigger.time - R.avoidSec);
+        expect(phaseAt(st, x.at).spawns.some((s) => s.enemy === x.enemy), id).toBe(true);
+        expect(ENEMIES[x.enemy]?.tier, id).toBe('normal');
+      }
+    }
+  });
+
+  it('예고 → 등장 순서로 나오고, 보스가 예고된 뒤의 돌격대는 건너뜀', () => {
+    const st = { ...S1, bursts: rushBursts(S1, R, foot) };
+    const d = new StageDirector(st);
+    const types = (t: number, level = 1) => d.update(t, level, { enemiesOnScreen: 0 }).map((e) => e.type);
+    expect(types(66)).not.toContain('burstWarn');
+    expect(types(67.5)).toContain('burstWarn');
+    expect(types(70)).toContain('burst');
+    // Lv10 → 보스 예고가 시작되면 170초 돌격대는 나오지 않음
+    expect(types(100, 10)).toContain('bossWarn');
+    expect(types(168, 10)).not.toContain('burstWarn');
+    expect(types(171, 10)).not.toContain('burst');
   });
 });
 
