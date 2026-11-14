@@ -10,6 +10,7 @@ import { uiText } from '../ui/text';
 import { prettyKey } from '../ui/buttons';
 import { SceneKey } from './keys';
 import { setLocale, t } from '../i18n';
+import { frontVolume } from '../systems/frontAudio';
 
 type Tab = (typeof settingsData.tabs)[number];
 type Option = Tab['options'][number] & { hint?: string; choices?: string[]; names?: Record<string, string> };
@@ -89,6 +90,7 @@ export class SettingsScene extends Phaser.Scene {
       if (key.startsWith('volume.')) (s.volume as Record<string, number>)[key.slice(7)] = v as number;
       else s[key] = v;
     });
+    if (key.startsWith('volume.')) frontVolume(key.slice(7) as 'master' | 'bgm' | 'sfx' | 'ui', v as number);
     // 언어는 모듈 수준에서 만든 이름표까지 바꿔야 해서 다시 불러옴
     if (key === 'lang' && setLocale(String(v)) && typeof window !== 'undefined') window.location.reload();
     this.refresh();

@@ -1,0 +1,285 @@
+{
+  "$comment": "레트로 전투 음악(2026-11-14 사용자 요청, core/chiptune이 렌더). 파일이 없을 때 쓰는 합성 곡: bgm.tracks 이름 → 곡. bpm·steps(마디 칸 수, 8 = 8분음표)·vol(전체, tanh로 부드럽게 제한), melody=[{wave square|triangle|noise|saw, duty, vol, env{a,d,s,r 초}, gate(음 길이 중 소리 비율), vibrato[반음, Hz, 지연 초], bars[마디마다 칸 토큰: A4·C#5 음, '.' 이어서, '-' 쉼]}], drums={vol, bars[K 큰북·S 작은북·H 하이햇·R 롤(반 칸 두 번)·'.', 'K+H' 겹침]}. 직접 작곡: 전투 = A단조 행진곡 144BPM 16마디(4마디마다 작은북 롤), 보스 = E단조 160BPM 8마디(몰아붙이는 베이스), 메뉴 = D단조 96BPM 나팔풍 8마디.",
+  "songs": {
+    "bgm_stage01": {
+      "bpm": 144,
+      "steps": 8,
+      "vol": 1.35,
+      "melody": [
+        {
+          "wave": "square",
+          "duty": 0.25,
+          "vol": 0.2,
+          "env": {
+            "a": 0.004,
+            "d": 0.07,
+            "s": 0.55,
+            "r": 0.04
+          },
+          "gate": 0.85,
+          "vibrato": [
+            0.25,
+            5.5,
+            0.18
+          ],
+          "bars": [
+            "A4 . E4 A4 C5 . B4 A4",
+            "G4 . E4 G4 B4 . A4 G4",
+            "F4 . A4 C5 F5 . E5 D5",
+            "E5 . . . E4 . G#4 .",
+            "A4 . E4 A4 C5 . B4 A4",
+            "G4 . E4 G4 B4 . D5 C5",
+            "B4 . G#4 B4 E5 . D5 B4",
+            "A4 . . . - . E4 .",
+            "C5 . C5 D5 E5 . E5 F5",
+            "G5 . F5 E5 D5 . C5 D5",
+            "E5 . E5 F5 G5 . A5 G5",
+            "F5 . E5 D5 E5 . . -",
+            "A5 . G5 F5 E5 . D5 C5",
+            "D5 . C5 B4 C5 . A4 B4",
+            "C5 . B4 A4 G#4 . B4 E5",
+            "A4 . . . A4 - E4 G#4"
+          ]
+        },
+        {
+          "wave": "square",
+          "duty": 0.5,
+          "vol": 0.08,
+          "env": {
+            "a": 0.02,
+            "d": 0.2,
+            "s": 0.5,
+            "r": 0.12
+          },
+          "gate": 0.95,
+          "bars": [
+            "E4 . . . E4 . . .",
+            "D4 . . . D4 . . .",
+            "C4 . . . C4 . . .",
+            "B3 . . . G#3 . . .",
+            "E4 . . . E4 . . .",
+            "D4 . . . D4 . . .",
+            "G#3 . . . B3 . . .",
+            "E4 . . . C4 . . .",
+            "E4 . . . E4 . . .",
+            "D4 . . . B3 . . .",
+            "E4 . . . G4 . . .",
+            "A4 . . . G#4 . . .",
+            "A4 . . . C4 . . .",
+            "F4 . . . D4 . . .",
+            "G#3 . . . B3 . . .",
+            "C4 . . . B3 . . ."
+          ]
+        },
+        {
+          "wave": "triangle",
+          "vol": 0.42,
+          "env": {
+            "a": 0.003,
+            "d": 0.05,
+            "s": 0.8,
+            "r": 0.03
+          },
+          "gate": 0.8,
+          "bars": [
+            "A2 . E3 . A2 . E3 .",
+            "G2 . D3 . G2 . D3 .",
+            "F2 . C3 . F2 . C3 .",
+            "E2 . B2 . E2 . G#2 .",
+            "A2 . E3 . A2 . E3 .",
+            "G2 . D3 . G2 . D3 .",
+            "E2 . B2 . E2 . B2 .",
+            "A2 . E3 . A2 . A2 .",
+            "C3 . G2 . C3 . G2 .",
+            "G2 . D3 . G2 . D3 .",
+            "C3 . G2 . C3 . G2 .",
+            "F2 . C3 . E2 . B2 .",
+            "F2 . C3 . F2 . C3 .",
+            "D3 . A2 . D3 . A2 .",
+            "E2 . B2 . E2 . G#2 .",
+            "A2 . E3 . E2 . G#2 ."
+          ]
+        }
+      ],
+      "drums": {
+        "vol": 0.5,
+        "bars": [
+          "K H S H K H S H",
+          "K H S H K H S H",
+          "K H S H K H S H",
+          "K H S R K S R R",
+          "K H S H K H S H",
+          "K H S H K H S H",
+          "K H S H K H S H",
+          "K H S R K S R R",
+          "K H S H K H S H",
+          "K H S H K H S H",
+          "K H S H K H S H",
+          "K H S R K S R R",
+          "K H S H K H S H",
+          "K H S H K H S H",
+          "K H S H K H S H",
+          "K H S R K S R R"
+        ]
+      }
+    },
+    "bgm_boss": {
+      "bpm": 160,
+      "steps": 8,
+      "vol": 1.4,
+      "melody": [
+        {
+          "wave": "square",
+          "duty": 0.125,
+          "vol": 0.19,
+          "env": {
+            "a": 0.004,
+            "d": 0.07,
+            "s": 0.55,
+            "r": 0.04
+          },
+          "gate": 0.8,
+          "vibrato": [
+            0.3,
+            6,
+            0.15
+          ],
+          "bars": [
+            "E5 . E5 E5 G5 . E5 D5",
+            "E5 . E5 E5 B5 . A5 G5",
+            "F#5 . F#5 F#5 A5 . F#5 E5",
+            "D#5 . . . B4 . D#5 .",
+            "E5 . G5 E5 B5 . G5 E5",
+            "C6 . B5 A5 G5 . F#5 E5",
+            "F#5 . A5 F#5 D#5 . F#5 B4",
+            "E5 . . . E4 . . -"
+          ]
+        },
+        {
+          "wave": "square",
+          "duty": 0.5,
+          "vol": 0.07,
+          "env": {
+            "a": 0.02,
+            "d": 0.2,
+            "s": 0.5,
+            "r": 0.12
+          },
+          "gate": 0.95,
+          "bars": [
+            "B3 . . . B3 . . .",
+            "G3 . . . G3 . . .",
+            "A3 . . . A3 . . .",
+            "F#3 . . . F#3 . . .",
+            "B3 . . . B3 . . .",
+            "C4 . . . C4 . . .",
+            "A3 . . . F#3 . . .",
+            "G3 . . . B3 . . ."
+          ]
+        },
+        {
+          "wave": "triangle",
+          "vol": 0.45,
+          "env": {
+            "a": 0.003,
+            "d": 0.05,
+            "s": 0.8,
+            "r": 0.03
+          },
+          "gate": 0.7,
+          "bars": [
+            "E2 E2 E3 E2 E2 E2 E3 E2",
+            "E2 E2 E3 E2 E2 E2 E3 E2",
+            "C2 C2 C3 C2 C2 C2 C3 C2",
+            "B1 B1 B2 B1 B1 B1 B2 B1",
+            "E2 E2 E3 E2 E2 E2 E3 E2",
+            "C2 C2 C3 C2 C2 C2 C3 C2",
+            "B1 B1 B2 B1 B1 B1 B2 B1",
+            "E2 E2 E3 E2 B1 B1 B2 B1"
+          ]
+        }
+      ],
+      "drums": {
+        "vol": 0.55,
+        "bars": [
+          "K H S H K K S H",
+          "K H S H K K S H",
+          "K H S H K K S H",
+          "K S R S K R R R",
+          "K H S H K K S H",
+          "K H S H K K S H",
+          "K H S H K K S H",
+          "K S R S K R R R"
+        ]
+      }
+    },
+    "bgm_menu": {
+      "bpm": 96,
+      "steps": 8,
+      "vol": 1.3,
+      "melody": [
+        {
+          "wave": "square",
+          "duty": 0.5,
+          "vol": 0.15,
+          "env": {
+            "a": 0.02,
+            "d": 0.15,
+            "s": 0.6,
+            "r": 0.18
+          },
+          "gate": 0.92,
+          "vibrato": [
+            0.2,
+            5,
+            0.25
+          ],
+          "bars": [
+            "D4 . . A4 . . D5 .",
+            "C5 . . A4 . . F4 .",
+            "G4 . . A4 . A#4 A4 .",
+            "A4 . . . . . - -",
+            "D4 . . A4 . . D5 .",
+            "F5 . . E5 . D5 C5 .",
+            "D5 . . A4 . . C#5 .",
+            "D5 . . . . . - -"
+          ]
+        },
+        {
+          "wave": "triangle",
+          "vol": 0.38,
+          "env": {
+            "a": 0.01,
+            "d": 0.2,
+            "s": 0.7,
+            "r": 0.15
+          },
+          "gate": 0.95,
+          "bars": [
+            "D2 . . . A2 . . .",
+            "F2 . . . C3 . . .",
+            "G2 . . . E2 . . .",
+            "A2 . . . A2 . . .",
+            "D2 . . . A2 . . .",
+            "A#2 . . . F2 . . .",
+            "A2 . . . A2 . . .",
+            "D2 . . . D2 . . ."
+          ]
+        }
+      ],
+      "drums": {
+        "vol": 0.32,
+        "bars": [
+          "K . . . S . . R",
+          "K . . . S . R R",
+          "K . . . S . . R",
+          "K . . . S . R R",
+          "K . . . S . . R",
+          "K . . . S . R R",
+          "K . . . S . . R",
+          "K . . . S . R R"
+        ]
+      }
+    }
+  }
+}

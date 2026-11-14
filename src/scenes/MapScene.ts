@@ -11,6 +11,7 @@ import { SceneKey } from './keys';
 import { t } from '../i18n';
 import { params } from '../config/params';
 import { inside, project, type LonLat, type Projection } from '../core/geo';
+import { playMenuMusic } from '../systems/frontAudio';
 
 const PROJ = mapData.projection as Projection;
 const pr = (lon: number, lat: number) => project(PROJ, lon, lat);
@@ -46,6 +47,7 @@ export class MapScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.controls.destroy());
     const prof = loadProfile();
     this.drawTerrain();
+    playMenuMusic(this);
     this.gfx = this.add.graphics();
     this.add.text(16, 12, t('map.title'), uiText(18, '#ffe14d'));
     this.add.text(16, 36, t('map.merit', { n: prof.merit }), uiText(12));

@@ -11,6 +11,7 @@ import { drawWarBackdrop } from '../ui/warBackdrop';
 import { SceneKey } from './keys';
 import { t } from '../i18n';
 import { params } from '../config/params';
+import { playMenuMusic } from '../systems/frontAudio';
 
 /** 메인 메뉴: 노을 진 전장 배경(ui/warBackdrop) + 제목 로고 + 군용 판 메뉴. 출정 → 작전지도 / 도감 / 설정 */
 export class MenuScene extends Phaser.Scene {
@@ -26,6 +27,7 @@ export class MenuScene extends Phaser.Scene {
     const prof = loadProfile();
     const cx = LOGICAL_WIDTH / 2;
     drawWarBackdrop(this);
+    playMenuMusic(this);
     // 제목 로고: 연도 띠 + 큰 글씨(두꺼운 외곽선·그림자) + 가칭
     this.add.text(cx, 34, t('menu.year'), { ...uiText(14, '#ff6a50'), stroke: '#1a0a08', strokeThickness: 4, letterSpacing: 6 }).setOrigin(0.5);
     this.add.text(cx + 3, 85, t('menu.title'), { ...uiText(48, '#2a0a06') }).setOrigin(0.5);

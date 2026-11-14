@@ -7,7 +7,7 @@
 | 이름 | 종류 | 출처 | 라이선스 | 생성 도구 | 날짜 |
 | --- | --- | --- | --- | --- | --- |
 | `src/data/sfx.json` sources 전부(shot·hit·explode·boom·judge_* 등) | 효과음 | 자체 합성(코드) | 프로젝트 소유 | `src/core/synth.ts`, `npm run audio:bake`로 파일화 가능 | 2026-10-11~ |
-| BGM(bgm_stage01·bgm_boss·bgm_menu) | 음악 | 아직 없음(무음) | — | — | — |
+| BGM(bgm_stage01·bgm_boss·bgm_menu) | 음악 | 자체 작곡·합성(칩튠 악보 `src/data/music.json`) | 프로젝트 소유 | `src/core/chiptune.ts`(파일이 있으면 파일 우선) | 2026-11-14 |
 
 파일을 `public/assets/audio/`에 넣으면 합성음 대신 그 파일이 쓰인다. 넣을 때 이 표에 한 줄씩 추가한다.
 

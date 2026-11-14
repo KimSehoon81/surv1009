@@ -24,6 +24,7 @@ npm run build      # dist/ 에 배포용 빌드 (build:release는 아틀라스�
 | 행동 | 키보드 | 패드 |
 | --- | --- | --- |
 | 이동(사격은 자동) | WASD / 방향키 | 왼쪽 스틱 |
+| 질주(1초, 처음 잠깐 무적, 7초마다) | C | 왼쪽 스틱 누르기 |
 | 카드 고르기·해제(최대 3장) | 1~5, 클릭 | 방향 패드·오른쪽 스틱 좌우 + X |
 | 작전 개시(빈 선택이면 첫 입력은 추천 조합 채우기) | Space / Enter | A |
 | 인장 걸고 제출(확정 성공) | Shift+Space | Y 길게 |
@@ -45,7 +46,8 @@ npm run build      # dist/ 에 배포용 빌드 (build:release는 아틀라스�
 ## 크레딧
 
 - 기획·그래픽: 사용자 제작(AI 생성 파이프라인 `tools/art`), 출처·라이선스는 [docs/CREDITS.md](docs/CREDITS.md)
-- 효과음: 코드 합성음(`src/core/synth.ts`, 프로젝트 소유)
+- 효과음·음악: 코드 합성음(`src/core/synth.ts`)과 자체 작곡 칩튠(`src/data/music.json` → `src/core/chiptune.ts`), 프로젝트 소유
+- 글꼴: 갈무리(Galmuri, SIL OFL 1.1, `public/fonts`)
 - 엔진·도구: [Phaser 3](https://phaser.io)(MIT), TypeScript, Vite, Vitest, Playwright
 - 개발: Claude Code와 45일 일일 작업계획으로 제작([진척도](docs/PROGRESS.md))
 

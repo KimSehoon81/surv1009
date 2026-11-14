@@ -19,6 +19,8 @@ import {
 import type { Rng } from '../core/rng';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { manifest } from '../assets/manifest';
+import musicData from '../data/music.json';
+import { renderSong, type Song } from '../core/chiptune';
 import { loadProfile, updateProfile } from './save';
 
 /** 소리를 내는 쪽이 아는 것은 이것뿐(feel 프리셋의 sfx, 총구, 보급품 등) */
@@ -69,6 +71,12 @@ const LIMITS = sfxData.limits;
 const BUS_NAMES: BusName[] = ['bgm', 'sfx', 'ui', 'amb'];
 
 const BGM = sfxData.bgm as { fadeMs: number; tracks: Record<string, { vol: number; loopStart: number; loopEnd: number }> };
+const SONGS = musicData.songs as unknown as Record<string, Song>;
+/** 합성 곡 버퍼(2026-11-14): 파일이 없을 때 data/music.json 악보를 22kHz로 한 번 렌더해 둠 */
+const SONG_RATE = 22050;
+const songCache = new Map<string, AudioBuffer>();
+/** 지금 나오는 곡은 장면들이 함께 씀(메뉴 → 지도 → 준비 사이에 끊기지 않고, 전투가 이어받아 교차 페이드) */
+let currentBgm: { name: string; src: AudioBufferSourceNode; gain: GainNode; owner: AudioSystem } | null = null;
 const SILENCE = sfxData.silence;
 
 // 소리 버퍼는 게임 전체에서 한 번(씬 재시작마다 다시 만들지 않음). 파일이 있으면 파일, 없으면 합성
@@ -100,9 +108,9 @@ export class AudioSystem implements AudioSink {
   private volume: VolumeSettings = { ...DEFAULT_VOLUME, ...loadProfile().settings.volume };
   /** 이 시각(오디오 시계 ms)까지 효과음 버스 무음(큰 착탄 직전 0.2초) */
   private silenceUntil = 0;
-  private bgm: { name: string; src: AudioBufferSourceNode; gain: GainNode } | null = null;
   /** 잠금 해제(첫 입력) 전에 요청된 곡 */
   private pendingBgm: string | null = null;
+  private waitingUnlock = false;
   private camX = 0;
   private camY = 0;
   private frame = 0;
@@ -297,24 +305,31 @@ export class AudioSystem implements AudioSink {
     const ctx = this.ctx;
     if (!ctx) return;
     if (ctx.state !== 'running') {
+      // 브라우저 자동 재생 잠금: 첫 클릭·키 입력으로 풀리면 바로 틈(전투는 매 프레임 update도 다시 시도)
       this.pendingBgm = name;
+      if (!this.waitingUnlock) {
+        this.waitingUnlock = true;
+        ctx.addEventListener('statechange', () => {
+          if (ctx.state === 'running' && this.pendingBgm !== null) this.playBgm(this.pendingBgm);
+        });
+      }
       return;
     }
     this.pendingBgm = null;
-    if (this.bgm?.name === name) return;
+    if (currentBgm?.name === name) return;
     const fade = BGM.fadeMs / 1000;
     const t = ctx.currentTime;
-    const old = this.bgm;
+    const old = currentBgm;
     if (old) {
       old.gain.gain.cancelScheduledValues(t);
       old.gain.gain.setValueAtTime(old.gain.gain.value, t);
       old.gain.gain.linearRampToValueAtTime(0, t + fade);
       old.src.stop(t + fade + 0.05);
     }
-    this.bgm = null;
+    currentBgm = null;
     const bus = this.buses.get('bgm');
     const track = name ? BGM.tracks[name] : undefined;
-    const buf = name ? this.fileBuffers(name)?.[0] : undefined;
+    const buf = name ? (this.fileBuffers(name)?.[0] ?? this.songBuffer(ctx, name)) : undefined;
     if (!name || !bus || !track || !buf) return;
     const src = ctx.createBufferSource();
     src.buffer = buf;
@@ -328,11 +343,24 @@ export class AudioSystem implements AudioSink {
     gain.gain.linearRampToValueAtTime(track.vol, t + fade);
     src.connect(gain).connect(bus.gain);
     src.start();
-    this.bgm = { name, src, gain };
+    currentBgm = { name, src, gain, owner: this };
+  }
+
+  private songBuffer(ctx: AudioContext, name: string): AudioBuffer | undefined {
+    const song = SONGS[name];
+    if (!song) return undefined;
+    let buf = songCache.get(name);
+    if (!buf) {
+      const data = renderSong(song, SONG_RATE, name.length);
+      buf = ctx.createBuffer(1, data.length, SONG_RATE);
+      buf.getChannelData(0).set(data);
+      songCache.set(name, buf);
+    }
+    return buf;
   }
 
   get bgmPlaying(): string | null {
-    return this.bgm?.name ?? null;
+    return currentBgm?.name ?? null;
   }
 
   get volumes(): VolumeSettings {
@@ -400,12 +428,15 @@ export class AudioSystem implements AudioSink {
   }
 
   destroy(): void {
-    try {
-      this.bgm?.src.stop();
-    } catch {
-      // 이미 멈춤
+    // 이 시스템이 틀던 곡만 멈춤(공용 메뉴 곡은 다음 장면이 이어받음)
+    if (currentBgm?.owner === this) {
+      try {
+        currentBgm.src.stop();
+      } catch {
+        // 이미 멈춤
+      }
+      currentBgm = null;
     }
-    this.bgm = null;
     for (const id of [...this.live.keys()]) this.stop(id);
     this.voices.clear();
     this.gate.clear();

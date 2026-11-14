@@ -20,6 +20,7 @@ import type { BattlePayload, MapPayload, PrepPayload } from '../types/scenes';
 import { SceneKey } from './keys';
 import { t } from '../i18n';
 import { params } from '../config/params';
+import { playMenuMusic } from '../systems/frontAudio';
 
 const CARDS = cardsData.cards as Record<string, DeckCard>;
 const RULES = cardsData.deckRules as DeckRules;
@@ -59,6 +60,7 @@ export class PrepScene extends Phaser.Scene {
     this.controls = new InputMap(this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.controls.destroy());
     const prof = loadProfile();
+    playMenuMusic(this);
     this.unlockedCards = prof.unlocks.cards ?? [];
     // 첫 판·저장 없음: 기본 덱 자동 적용
     const saved = prof.loadout;
