@@ -64,8 +64,7 @@ export class HudScene extends Phaser.Scene {
   private comboText!: Phaser.GameObjects.BitmapText;
   private comboCount = 0;
   private comboBumpAt = -Infinity;
-  private pauseText!: Phaser.GameObjects.Text;
-  private ownedText!: Phaser.GameObjects.Text;
+  private pauseMenu: PauseMenu | null = null;
   private bannerText!: Phaser.GameObjects.Text;
   private levelUp: Phaser.GameObjects.Container | null = null;
   private cardHud!: CardHud;
@@ -168,6 +167,7 @@ export class HudScene extends Phaser.Scene {
     this.snowGfx = null;
     this.resultPanel = null;
     this.resultMap = null;
+    this.pauseMenu = null;
     this.levelUp = null;
     this.warn = null;
     this.shop = null;
@@ -189,11 +189,6 @@ export class HudScene extends Phaser.Scene {
       .setVisible(false);
 
     const panel = { ...textStyle(16), align: 'center', backgroundColor: '#000000b0', padding: { x: 12, y: 8 } };
-    this.pauseText = this.add.text(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT / 2 - 40, t('hud.paused'), panel).setOrigin(0.5).setVisible(false);
-    this.ownedText = this.add
-      .text(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT / 2 + 20, '', { ...textStyle(12, '#e8dcc0'), align: 'center', wordWrap: { width: 560 } })
-      .setOrigin(0.5, 0)
-      .setVisible(false);
     this.bannerText = this.add.text(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT / 2, '', panel).setOrigin(0.5).setVisible(false);
 
     this.cardHud = new CardHud(this, this.battle.cards, this.controls, {
@@ -281,9 +276,10 @@ export class HudScene extends Phaser.Scene {
       this.comboText.setText(`${n} COMBO`).setScale(feelData.combo.scale * (1 + 0.3 * (1 - k)));
     }
 
-    const paused = b.clock.hasScale('pause') && !b.run.defeated && !b.opsOpen;
-    this.pauseText.setVisible(paused);
-    this.ownedText.setVisible(paused).setText(paused ? this.ownedSummary() : '');
+    // 일시정지 메뉴(Esc·Start·창 벗어남): 계속하기 / 작전지도로 철수 / 메인 메뉴로 철수
+    const paused = b.clock.hasScale('pause') && !b.run.defeated && !b.opsOpen && !b.result;
+    if (paused && !this.pauseMenu) this.openPauseMenu();
+    else if (!paused && this.pauseMenu) this.closePauseMenu();
     this.bannerText.setVisible(b.bannerMessage !== null).setText(b.bannerMessage ?? '');
 
     this.skillHud.update();
@@ -304,7 +300,8 @@ export class HudScene extends Phaser.Scene {
       else if (enter && b.result?.record.victory && b.nextStage) b.toNextStage();
       else if (enter || retry) b.redeploy();
       else if (toMap) b.toMap();
-    } else if (this.shop) this.updateShop();
+    } else if (this.pauseMenu) this.updatePauseMenu();
+    else if (this.shop) this.updateShop();
     else if (this.chest) this.updateChest(time);
     else if (this.levelUp) this.updateLevelUp(time);
     else this.cardHud.update(time);
@@ -835,6 +832,103 @@ export class HudScene extends Phaser.Scene {
     g.fillStyle(0x7fd8ff, 1).fillRect(x, y, Math.round(w * p.progress), 6);
   }
 
+  /** 일시정지 메뉴: 철수 칸은 한 번 더 눌러야 확정(전사처럼 전공 절반 정산) */
+  private openPauseMenu(): void {
+    const b = this.battle;
+    const cx = LOGICAL_WIDTH / 2;
+    // 안내 문구(가이드)보다 위, 알림(1050)보다 아래
+    const root = this.add.container(0, 0).setDepth(1040);
+    root.add(this.add.rectangle(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT, 0x05080c, 0.8).setOrigin(0));
+    // 뒤의 안내·카드 문구가 비치지 않게 메뉴 판
+    const board = this.add.graphics();
+    board.fillStyle(0x0c0a08, 0.97).fillRect(cx - 260, 56, 520, 388).lineStyle(2, 0x8a6a30, 1).strokeRect(cx - 260, 56, 520, 388);
+    root.add(board);
+    root.add(this.add.text(cx, 92, t('hud.paused'), { ...uiText(28, '#ffd34d'), stroke: '#3a1206', strokeThickness: 6 }).setOrigin(0.5));
+    const sec = Math.floor(b.clock.timeMs / 1000);
+    const time = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+    root.add(this.add.text(cx, 130, t('hud.pause.where', { name: b.stage.name, time }), uiText(13, '#b0a890')).setOrigin(0.5));
+    const defs = [
+      { text: t('hud.pause.resume'), run: () => b.resumeFromPause(), confirm: false },
+      { text: t('hud.pause.map'), run: () => b.retreat('map'), confirm: true },
+      { text: t('hud.pause.menu'), run: () => b.retreat('menu'), confirm: true },
+    ];
+    const items = defs.map((d, i) => {
+      const y = 182 + i * 46;
+      const box = this.add.graphics();
+      const label = this.add.text(cx, y, d.text, uiText(16, '#c8bca0')).setOrigin(0.5);
+      const zone = this.add.zone(cx, y, 320, 38).setInteractive({ useHandCursor: true });
+      zone.on('pointerover', () => {
+        const m = this.pauseMenu;
+        if (m && m.sel !== i) {
+          m.sel = i;
+          m.armed = null;
+          this.drawPauseMenu();
+        }
+      });
+      zone.on('pointerdown', () => this.activatePause(i));
+      root.add([box, label, zone]);
+      return { box, label, y, ...d };
+    });
+    const warn = this.add.text(cx, 182 + 3 * 46 - 6, t('hud.pause.confirm'), uiText(13, '#ff8060')).setOrigin(0.5).setVisible(false);
+    const owned = this.add.text(cx, 344, this.ownedSummary(), { ...uiText(12, '#e8dcc0'), align: 'center', wordWrap: { width: 620 } }).setOrigin(0.5, 0);
+    const hint = t('hud.pause.hint', { up: buttonLabel('uiUp'), down: buttonLabel('uiDown'), ok: buttonLabel('uiConfirm'), back: buttonLabel('pause') });
+    root.add([warn, owned, this.add.text(cx, 420, hint, uiText(12, '#8a8270')).setOrigin(0.5)]);
+    this.pauseMenu = { root, items, sel: 0, armed: null, warn };
+    this.drawPauseMenu();
+  }
+
+  private drawPauseMenu(): void {
+    const m = this.pauseMenu;
+    if (!m) return;
+    const x = LOGICAL_WIDTH / 2 - 160;
+    m.items.forEach((it, i) => {
+      const on = i === m.sel;
+      const armed = m.armed === i;
+      it.box
+        .clear()
+        .fillStyle(armed ? 0x4a1410 : on ? 0x3a2a10 : 0x14100a, 0.95)
+        .fillRect(x, it.y - 19, 320, 38)
+        .lineStyle(2, armed ? 0xff6a50 : on ? 0xffd34d : 0x5a4a30, 1)
+        .strokeRect(x, it.y - 19, 320, 38);
+      it.label.setColor(on ? '#ffffff' : '#c8bca0').setText(on ? `▶ ${it.text}` : it.text);
+    });
+    m.warn.setVisible(m.armed !== null);
+  }
+
+  private activatePause(i: number): void {
+    const m = this.pauseMenu;
+    const it = m?.items[i];
+    if (!m || !it) return;
+    m.sel = i;
+    if (it.confirm && m.armed !== i) {
+      m.armed = i;
+      this.drawPauseMenu();
+      return;
+    }
+    it.run();
+  }
+
+  private updatePauseMenu(): void {
+    const m = this.pauseMenu;
+    if (!m) return;
+    const c = this.controls;
+    const n = m.items.length;
+    const step = c.justDown('uiDown') ? 1 : c.justDown('uiUp') ? n - 1 : 0;
+    if (step) {
+      m.sel = (m.sel + step) % n;
+      m.armed = null;
+      this.drawPauseMenu();
+    }
+    if (c.justDown('uiConfirm')) this.activatePause(m.sel);
+    // 패드 B = 계속(키보드 Esc는 전투 쪽 pause가 처리)
+    else if (lastDevice() === 'pad' && c.justDown('uiBack')) this.battle.resumeFromPause();
+  }
+
+  private closePauseMenu(): void {
+    this.pauseMenu?.root.destroy();
+    this.pauseMenu = null;
+  }
+
   /** 일시정지 화면: 지금까지 고른 업그레이드 */
   private ownedSummary(): string {
     const owned = this.battle.progression.owned;
@@ -952,4 +1046,13 @@ export class HudScene extends Phaser.Scene {
     this.objText.setVisible(!b.result && d.bossAt === null);
     if (this.objText.visible) this.objText.setText(t('hud.obj.survive', { lv: boss.trigger.level, time: mmss(boss.trigger.time) }));
   }
+}
+
+interface PauseMenu {
+  root: Phaser.GameObjects.Container;
+  items: { box: Phaser.GameObjects.Graphics; label: Phaser.GameObjects.Text; y: number; text: string; run: () => void; confirm: boolean }[];
+  sel: number;
+  /** 철수 확인 대기 중인 칸(한 번 더 누르면 확정) */
+  armed: number | null;
+  warn: Phaser.GameObjects.Text;
 }

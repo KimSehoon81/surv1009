@@ -20,7 +20,7 @@
       "opFail": "Enemy op failed — weak point exposed!",
       "opCharge": "Enemy op card charging — weak point! Focus fire to cancel"
     },
-    "paused": "Paused\nEsc to resume",
+    "paused": "PAUSED",
     "result": {
       "victory": "{name} captured",
       "defeat": "Fallen",
@@ -77,6 +77,14 @@
       "title": "TREASURE CHEST!",
       "merit": "Merit +{n}",
       "continue": "Enter · click: continue"
+    },
+    "pause": {
+      "where": "{name} · {time} elapsed",
+      "resume": "Resume",
+      "map": "Retreat to the war map",
+      "menu": "Retreat to the main menu",
+      "confirm": "Press again to retreat — merit is halved, as in a defeat",
+      "hint": "{up}{down} select · {ok} confirm · {back} resume"
     }
   },
   "card": {

@@ -1351,6 +1351,15 @@ export class BattleScene extends Phaser.Scene {
   /** 결과 화면: 전투 정지 + 기록·전공 포인트·팁. Enter로 같은 구성 다시 출정 */
   private showResult(victory: boolean): void {
     if (this.result) return;
+    this.settle(victory);
+    this.clock.pause('result');
+    this.bannerMessage = null;
+    this.events.emit('result', this.result);
+    this.audio.playBgm(null);
+  }
+
+  /** 정산(점령 기록·전공·해금·업적 저장) → this.result. 결과 화면과 일시정지 메뉴의 철수가 함께 씀 */
+  private settle(victory: boolean): void {
     const cs = this.cards.state;
     const record: RunRecord = {
       victory,
@@ -1387,10 +1396,6 @@ export class BattleScene extends Phaser.Scene {
       return next;
     });
     this.result = { record, merit, tip: victory ? '' : defeatTip(record, metaData.tips), rate: actualRate(record), unlocked, step, threat, ending };
-    this.clock.pause('result');
-    this.bannerMessage = null;
-    this.events.emit('result', this.result);
-    this.audio.playBgm(null);
   }
 
   /** 다시 출정(같은 구성) */
@@ -1425,6 +1430,20 @@ export class BattleScene extends Phaser.Scene {
     const payload: MapPayload = r ? { lastResult: { stage: this.payload.stage, victory: r.record.victory, merit: r.merit }, focus: this.payload.stage } : { focus: this.payload.stage };
     this.scene.stop(SceneKey.Hud);
     this.scene.start(SceneKey.Map, payload);
+  }
+
+  /** 일시정지 메뉴의 '계속하기' */
+  resumeFromPause(): void {
+    if (this.clock.hasScale('pause')) this.clock.resume('pause');
+  }
+
+  /** 일시정지 메뉴의 철수: 전사와 같이 정산(전공 절반·업적·도감 저장)한 뒤 작전지도나 메인 메뉴로 */
+  retreat(to: 'map' | 'menu'): void {
+    if (!this.result) this.settle(false);
+    this.audio.playBgm(null);
+    if (to === 'map') return this.toMap();
+    this.scene.stop(SceneKey.Hud);
+    this.scene.start(SceneKey.Menu);
   }
 
   private swingGfx: Phaser.GameObjects.Graphics | null = null;
