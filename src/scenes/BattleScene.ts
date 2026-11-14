@@ -237,7 +237,8 @@ export class BattleScene extends Phaser.Scene {
     const step = this.multiStep;
     this.multiStep = 0;
     const c = killCenter(this.multi);
-    this.feel.hit(MULTI.presets[step - 1] ?? '', c.x, c.y - combat.bodyOffsetY - 14, { label: `X${this.multi.count}`, groundY: c.y });
+    // 글자는 피해 숫자 무더기보다 위에(가려지지 않게)
+    this.feel.hit(MULTI.presets[step - 1] ?? '', c.x, c.y - combat.bodyOffsetY - MULTI.labelUpPx, { label: `X${this.multi.count}`, groundY: c.y });
     if (step >= MULTI.stampFrom) this.events.emit('stamp', t('battle.multiKill', { n: this.multi.count }), t('battle.multiKillSub'));
   }
   /** 주변 생활(소·호랑이·개·주민): 폭발이 가까우면 떠나 사라짐 */
