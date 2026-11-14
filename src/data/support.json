@@ -1,0 +1,30 @@
+{
+  "$comment": "전투 지원 기믹(2026-11-14 사용자 요청: 간간이 보급품·우방군이 주인공을 도움). airdrop=수송기가 지나가며 보급 상자를 낙하산으로 떨어뜨림(firstSec 첫 투하, everySec 주기, distance 플레이어에서 떨어지는 거리 px, fallMs 낙하 시간(그동안 착지 지점 표시), lifeMs 착지 뒤 남는 시간(끝 5초 깜빡), radius 줍는 거리, maxActive 동시 상자 수, rewards=가중치로 하나(effects는 카드 효과와 같은 핸들러). squad=우방군 지원 분대가 잠시 함께 싸움(firstSec·everySec, lifeMs 머무는 시간, units 유닛 ID(그림 있는 아군), range 사거리 px, fireMs 사격 간격, damageMul 한 발 피해 = 플레이어 공격력 ×, ring 플레이어 둘레 배치 반지름, enterPx 화면 밖에서 들어오는 거리, speed 이동 px/초).",
+  "airdrop": {
+    "firstSec": 45,
+    "everySec": 70,
+    "distance": [130, 230],
+    "fallMs": 2600,
+    "lifeMs": 30000,
+    "radius": 22,
+    "maxActive": 2,
+    "rewards": [
+      { "id": "medkit", "weight": 3, "effects": [{ "effect": "heal", "params": { "pct": 0.3 } }] },
+      { "id": "ammo", "weight": 3, "effects": [{ "effect": "buff", "params": { "id": "supply_ammo", "stat": "attack", "op": "mul", "value": 0.25, "ms": 20000 } }, { "effect": "tp", "params": { "amount": 15 } }] },
+      { "id": "orders", "weight": 2, "effects": [{ "effect": "giveCard", "params": { "ids": "P04,P10,P13,P08,P06" } }, { "effect": "giveCard", "params": { "ids": "P01,P02,P03" } }] },
+      { "id": "radio", "weight": 2, "effects": [{ "effect": "tp", "params": { "amount": 45 } }] }
+    ]
+  },
+  "squad": {
+    "firstSec": 130,
+    "everySec": 150,
+    "lifeMs": 20000,
+    "units": ["A02", "A03", "A01"],
+    "range": 240,
+    "fireMs": 700,
+    "damageMul": 0.6,
+    "ring": 54,
+    "enterPx": 300,
+    "speed": 170
+  }
+}

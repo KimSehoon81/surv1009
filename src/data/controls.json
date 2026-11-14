@@ -197,6 +197,9 @@
     "levelConfirm": [],
     "sprint": [
       "C"
+    ],
+    "debugSupport": [
+      "F11"
     ]
   },
   "padConfig": {

@@ -48,6 +48,7 @@ import { EnemyAttackSystem } from '../systems/enemyAttacks';
 import { SkillSlots, type CastReject, type SkillDef } from '../core/skills';
 import { damageTakenMult } from '../core/enemyAttack';
 import { runEffect, type Params } from '../systems/effects';
+import { SupportSystem } from '../systems/support';
 import achievementsData from '../data/achievements.json';
 import { addSeen, applyEvent, emptyAchievements, emptyCodex, type AchievementDef, type AchievementState, type Codex, type GameEvent } from '../core/achievements';
 import { prefs, qualityPreset, type Prefs } from '../systems/prefs';
@@ -180,6 +181,7 @@ export class BattleScene extends Phaser.Scene {
   private enemyAttacks!: EnemyAttackSystem;
   /** 카드 효과 실행기(예약·예고 마커 포함) */
   effects!: EffectRunner;
+  support!: SupportSystem;
   /** 조합·고급 스킬 연출 타임라인 */
   timelines!: TimelineSystem;
   /** 지뢰(조합 지뢰 살포, D23 적 지뢰) */
@@ -441,6 +443,21 @@ export class BattleScene extends Phaser.Scene {
       toast: (msg, color) => this.toast(msg, color),
       debuffIds: DEBUFF_IDS,
     });
+    // 전투 지원 기믹: 보급 투하·우방군 분대(data/support.json)
+    this.support?.destroy();
+    this.support = new SupportSystem(this, {
+      rng: rng.fork('support'),
+      player: () => ({ x: this.player.x, y: this.player.y, facing: this.player.facing }),
+      nearestEnemy: (x, y, range) => this.enemies.grid.nearest(x, y, range, (e) => e.alive && !e.hidden && !e.air),
+      damageEnemy: (e, m, dx, dy) => this.damageEnemy(e, m, dx, dy),
+      runEffects: (list) => {
+        for (const fx of list) runEffect(fx.effect, this.effects, fx.params as unknown as Params, 1);
+      },
+      fx: (name, x, y, scale) => this.fx.play(name, x, y, scale),
+      audio: (cue, x, y) => this.audio.play(cue, x, y),
+      toast: (msg, color) => this.toast(msg, color),
+      feel: (preset, x, y) => this.feel.hit(preset, x, y),
+    });
     this.mines = new MineSystem(this, combat.mineCap);
     this.hazards = new HazardSystem(this);
     // 장애물(서울 시가전 등 floor.json obstacles) + 적이 세우는 바리케이드
@@ -578,7 +595,7 @@ export class BattleScene extends Phaser.Scene {
         `xp ${this.run.xp} kills ${this.run.kills} gems ${this.pickups.active} taken ${this.run.damageTaken} blocks ${this.run.blocks}`,
         `feel particles ${this.feel.particles.active}/${this.feel.particles.cap} numbers ${this.feel.numbers.active} combo ${this.feel.combo.count}`,
         `audio ${this.audio.enabled ? `voices ${this.audio.activeVoices} played ${this.audio.played} dropped ${this.audio.dropped}` : 'off'}`,
-        params.debug ? 'J atk K guard L skill U crit O slow F10 char V grenade I god B big-kill N lvl F2 300 foes F3 card F4 combo F5 elite F6 speed F7 slots F8 flip F9 NPC Esc pause' : '',
+        params.debug ? 'J atk K guard L skill U crit O slow F10 char V grenade I god B big-kill N lvl F2 300 foes F3 card F4 combo F5 elite F6 speed F7 slots F8 flip F9 NPC F11 support Esc pause' : '',
       ].filter(Boolean);
     });
 
@@ -712,6 +729,7 @@ export class BattleScene extends Phaser.Scene {
       this.weapons.update(dt, now, p, this.enemies.grid, this.projectiles, this.weaponHooks, this.threatFirst ? isPriorityTarget : undefined, sight);
       this.projectiles.update(dt, this.enemies.grid, this.hooks);
       this.contactDamage(now);
+      this.support.update(now, dt);
       // 경험치 배율(전공 훈장 등)은 주울 때 곱한다
       const gained = this.pickups.update(dt, p.x, p.y, p.stats.magnet, now) * p.stats.xpMul;
       if (gained > 0) {
@@ -1626,6 +1644,10 @@ export class BattleScene extends Phaser.Scene {
         this.skills.addTp(100);
         this.toast(`[debug] Q = ${q.skillId}, E = ${e.skillId}, R = AS08, F = AS10`, '#b0a890');
       }
+    }
+    if (this.controls.justDown('debugSupport')) {
+      this.support.drop(now);
+      this.support.callSquad(now);
     }
     if (this.controls.justDown('debugNpc')) {
       // NPC 차례로(N01 → … → N05) 플레이어 곁에

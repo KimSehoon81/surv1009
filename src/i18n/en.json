@@ -328,5 +328,17 @@
     "title": "Something went wrong — the game stopped",
     "body": "Your progress is saved. If it happens again after reloading, or your save looks wrong, use Settings → 'Restore last good save'.",
     "reload": "Reload"
+  },
+  "support": {
+    "dropIncoming": "Supply drop — go to the cyan marker and grab the crate",
+    "got": "Supplies: {what}",
+    "squadArrive": "Allied support squad arrived — fighting with you for {sec}s",
+    "squadLeave": "Support squad pulling out — good luck!",
+    "reward": {
+      "medkit": "Medkit (heal 30%)",
+      "ammo": "Ammo crate (attack +25% for 20s, TP +15)",
+      "orders": "Orders (2 cards)",
+      "radio": "Radio (TP +45)"
+    }
   }
 }
