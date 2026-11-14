@@ -86,3 +86,61 @@ export function ensureChestTexture(scene: Phaser.Scene): void {
   g.generateTexture(CHEST_KEY, 26, 22);
   g.destroy();
 }
+
+export const MAGNET_KEY = 'magnet_item';
+
+/** 자석(뱀서의 진공청소기): 일반 적이 드물게 떨어뜨림, 주우면 전장의 경험치 별을 모두 끌어옴 */
+export class MagnetDrops {
+  private list: { x: number; y: number; bornMs: number; sprite: Phaser.GameObjects.Image }[] = [];
+
+  constructor(private readonly scene: Phaser.Scene) {
+    ensureMagnetTexture(scene);
+  }
+
+  spawn(x: number, y: number, nowMs: number): void {
+    const sprite = this.scene.add.image(x, y, MAGNET_KEY).setOrigin(0.5, 1).setDepth(Depth.Decal + 4).setScale(1.6);
+    this.scene.tweens.add({ targets: sprite, y: y - 6, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+    this.list.push({ x, y, bornMs: nowMs, sprite });
+  }
+
+  /** 닿았으면 true(그 자석은 없앰) */
+  update(nowMs: number, player: { x: number; y: number }): boolean {
+    let got = false;
+    for (let i = this.list.length - 1; i >= 0; i--) {
+      const m = this.list[i];
+      if (!m) continue;
+      const left = chestData.magnetLifeMs - (nowMs - m.bornMs);
+      if (left <= 0) {
+        m.sprite.destroy();
+        this.list.splice(i, 1);
+        continue;
+      }
+      m.sprite.setVisible(left > 5000 || Math.floor(nowMs / 150) % 2 === 0);
+      if (!got && (player.x - m.x) ** 2 + (player.y - m.y) ** 2 <= chestData.radius ** 2) {
+        got = true;
+        m.sprite.destroy();
+        this.list.splice(i, 1);
+      }
+    }
+    return got;
+  }
+
+  destroy(): void {
+    for (const m of this.list) m.sprite.destroy();
+    this.list = [];
+  }
+}
+
+/** 말굽자석 도트(빨강 몸통 + 은색 끝) */
+function ensureMagnetTexture(scene: Phaser.Scene): void {
+  if (scene.textures.exists(MAGNET_KEY)) return;
+  const g = scene.make.graphics({ x: 0, y: 0 }, false);
+  // 말굽(ㄇ자) 바깥 테두리 → 빨강 몸통 → 밝은 줄 → 은색 끝(다리 사이·아래는 투명)
+  g.fillStyle(0x1a0806, 1).fillRect(0, 0, 18, 9).fillRect(0, 0, 8, 18).fillRect(10, 0, 8, 18);
+  g.fillStyle(0xd83a2a, 1).fillRect(1, 1, 16, 7).fillRect(1, 1, 6, 16).fillRect(11, 1, 6, 16);
+  g.fillStyle(0xff7a5a, 1).fillRect(2, 2, 14, 2);
+  g.fillStyle(0xd8d8e0, 1).fillRect(1, 13, 6, 4).fillRect(11, 13, 6, 4);
+  g.generateTexture(MAGNET_KEY, 18, 18);
+  g.destroy();
+}
+

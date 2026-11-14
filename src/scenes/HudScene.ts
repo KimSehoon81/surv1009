@@ -229,6 +229,7 @@ export class HudScene extends Phaser.Scene {
     this.battle.events.on('achievement', this.onAchievement);
     this.battle.events.on('shop:open', this.onShopOpen);
     this.battle.events.on('chest:open', this.onChestOpen);
+    this.battle.events.on('stamp', this.onStamp);
     this.battle.events.on('boss:judged', this.onBossJudged);
     this.battle.events.on('result', this.onResult);
     this.skillHud = new SkillHud(this, this.battle.skills, () => this.battle.clock.timeMs);
@@ -247,6 +248,7 @@ export class HudScene extends Phaser.Scene {
       this.battle.events.off('achievement', this.onAchievement);
       this.battle.events.off('shop:open', this.onShopOpen);
       this.battle.events.off('chest:open', this.onChestOpen);
+      this.battle.events.off('stamp', this.onStamp);
       this.chest = null;
       this.battle.events.off('guide', this.onGuide);
       this.battle.events.off('boss:judged', this.onBossJudged);
@@ -467,6 +469,16 @@ export class HudScene extends Phaser.Scene {
   } | null = null;
 
   private readonly onChestOpen = (p: { choices: Choice[]; merit: number }) => this.openChest(p.choices, p.merit);
+
+  /** 연속 처치 칭호 도장: 크게 찍혔다가(기울어 튀어나옴) 사라짐 */
+  private readonly onStamp = (title: string, sub: string) => {
+    const x = LOGICAL_WIDTH / 2;
+    const big = this.add.text(x, 196, title, { ...uiText(34, '#ffd34d'), stroke: '#4a0a00', strokeThickness: 8 }).setOrigin(0.5).setAngle(-6).setScale(2.4).setAlpha(0);
+    const small = this.add.text(x, 232, sub, { ...uiText(14, '#ffffff'), stroke: '#2a0a00', strokeThickness: 4 }).setOrigin(0.5).setAlpha(0);
+    this.tweens.add({ targets: big, scale: 1, alpha: 1, duration: 220, ease: 'Back.out' });
+    this.tweens.add({ targets: small, alpha: 1, duration: 200, delay: 150 });
+    this.tweens.add({ targets: [big, small], alpha: 0, y: '-=20', duration: 400, delay: 1300, onComplete: () => (big.destroy(), small.destroy()) });
+  };
 
   private openChest(choices: Choice[], merit: number): void {
     const now = this.time.now;

@@ -159,7 +159,14 @@
     "captured": "{name} captured!",
     "autoQuality": "Low frame rate: effects lowered to '{name}' — change in Settings",
     "safeZone": "Safe zone {sec}s — enemies can't enter the yellow circle",
-    "weakPoint": "WEAK POINT! Focus fire"
+    "weakPoint": "WEAK POINT! Focus fire",
+    "magnet": "Magnet! All XP stars on the field fly to you",
+    "stamp": {
+      "squad": "SQUAD WIPED!",
+      "company": "COMPANY ROUTED!",
+      "battalion": "BATTALION CRUSHED!"
+    },
+    "stampSub": "{n} kill streak — card supply"
   },
   "prep": {
     "deckErr": {

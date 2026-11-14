@@ -159,7 +159,14 @@
     "captured": "{name} 점령!",
     "autoQuality": "화면이 느려 이펙트 품질을 '{name}'(으)로 낮췄습니다 — 설정에서 바꿀 수 있음",
     "safeZone": "안전지대 {sec}초 — 노란 원 안으로 적이 못 들어옴",
-    "weakPoint": "약점! 집중 사격"
+    "weakPoint": "약점! 집중 사격",
+    "magnet": "자석! 전장의 경험치 별을 모두 끌어옴",
+    "stamp": {
+      "squad": "분대 섬멸!",
+      "company": "중대 격파!",
+      "battalion": "대대 궤멸!"
+    },
+    "stampSub": "{n} 연속 처치 — 카드 보급"
   },
   "prep": {
     "deckErr": {

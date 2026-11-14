@@ -50,7 +50,7 @@ import { SkillSlots, type CastReject, type SkillDef } from '../core/skills';
 import { damageTakenMult } from '../core/enemyAttack';
 import { runEffect, type Params } from '../systems/effects';
 import { SupportSystem } from '../systems/support';
-import { ChestSystem } from '../systems/chests';
+import { ChestSystem, MagnetDrops } from '../systems/chests';
 import chestData from '../data/chest.json';
 import { chestCount, dropsChest, type ChestConfig } from '../core/chest';
 import achievementsData from '../data/achievements.json';
@@ -188,6 +188,7 @@ export class BattleScene extends Phaser.Scene {
   effects!: EffectRunner;
   support!: SupportSystem;
   chests!: ChestSystem;
+  magnets!: MagnetDrops;
   /** 보물 상자 열기 연출 중(전투 정지) */
   chestOpen = false;
   /** 조합·고급 스킬 연출 타임라인 */
@@ -465,6 +466,8 @@ export class BattleScene extends Phaser.Scene {
     this.lootRng = rng.fork('loot');
     this.chests?.destroy();
     this.chests = new ChestSystem(this);
+    this.magnets?.destroy();
+    this.magnets = new MagnetDrops(this);
     this.chestOpen = false;
     this.support?.destroy();
     this.support = new SupportSystem(this, {
@@ -762,6 +765,13 @@ export class BattleScene extends Phaser.Scene {
       this.run.xp += gained;
       this.perf.lap('combat');
       const chest = this.chests.update(now, p);
+      if (this.magnets.update(now, p)) {
+        // 자석: 전장의 경험치 별이 한꺼번에 날아옴
+        this.pickups.attractAll();
+        this.audio.play('buff_up');
+        this.feel.hit('card_success', p.x, p.y - combat.bodyOffsetY);
+        this.toast(t('battle.magnet'), '#7fd8ff');
+      }
       if (chest) this.openChest(chest.x, chest.y);
       if (this.progression.pending > 0 && !this.progression.isOpen && !this.chestOpen) this.openLevelUp();
       this.cards.update(dt, time);
@@ -874,6 +884,7 @@ export class BattleScene extends Phaser.Scene {
     this.codex = addSeen(this.codex, 'enemies', e.id);
     if (e.def.tier === 'elite') this.run.eliteKills++;
     if (e !== this.boss && dropsChest(e.def.tier, this.lootRng, chestData as unknown as ChestConfig)) this.chests.spawn(e.x, e.y, this.clock.timeMs);
+    else if (e.def.tier === 'normal' && this.lootRng.next() < chestData.magnetChance) this.magnets.spawn(e.x, e.y, this.clock.timeMs);
     if (e === this.boss) this.capture(e.x, e.y);
     // 방해원 처치: 그 적이 건 방해에서 빠지고, 원인이 모두 죽으면 해제
     for (const d of this.disruptions.removeSource(e.uid)) this.toast(t('battle.disruptCleared', { name: DISRUPTION_NAMES[d.type] ?? d.type }), '#7fd8ff');
@@ -950,6 +961,12 @@ export class BattleScene extends Phaser.Scene {
     this.lastComboCount = n;
     const next = cfg.thresholds[this.comboDrawStep];
     if (next === undefined || n < next) return;
+    // 연속 처치 칭호(분대 섬멸·중대 격파·대대 궤멸): 화면에 크게 찍힘
+    const title = cfg.titles?.[this.comboDrawStep];
+    if (title) {
+      this.events.emit('stamp', t(`battle.stamp.${title}`), t('battle.stampSub', { n: next }));
+      this.audio.play('judge_success');
+    }
     this.comboDrawStep++;
     this.comboDrawTimes = this.comboDrawTimes.filter((t) => now - t < 60_000);
     if (this.comboDrawTimes.length >= cfg.perMinute) return;
