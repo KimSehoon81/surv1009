@@ -2,6 +2,7 @@ import type * as Phaser from 'phaser';
 import { manifest, type Faction, type SheetSpec } from '../assets/manifest';
 import animations from '../data/animations.json';
 import type { AnimRules } from '../core/animState';
+import { buildStride, strideFps, wantsStride } from './stride';
 
 export function animRules(faction: Faction): AnimRules {
   return animations[faction] as AnimRules;
@@ -42,7 +43,10 @@ export function registerUnitAnims(scene: Phaser.Scene, id: string): UnitAnims {
   for (const sheet of sheets) {
     const rule = rules.actions[sheet.action];
     if (!rule) continue;
-    add(sheet.action, sheet, Array.from({ length: sheet.frames }, (_, i) => i), rule.loop, rule.fps);
+    // 이동은 발이 바뀌어 보이게 걸음 프레임으로(그림 파일이 있을 때만)
+    const st = wantsStride(sheet) ? buildStride(scene, sheet) : null;
+    if (st) add(sheet.action, { ...sheet, key: st.key }, Array.from({ length: st.frames }, (_, i) => i), rule.loop, strideFps(sheet.action, rule.fps));
+    else add(sheet.action, sheet, Array.from({ length: sheet.frames }, (_, i) => i), rule.loop, rule.fps);
   }
   const idle = rules.locomotion.idle;
   if (!keys[idle]) {
