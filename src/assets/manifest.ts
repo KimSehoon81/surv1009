@@ -116,6 +116,12 @@ export function createManifest(available: readonly string[]) {
     height: spec.card.height,
   });
 
+  /** 단일 그림(sprites 폴더, 크기는 assets.json sprites 표). 없으면 path null(코드 그림을 그대로 씀) */
+  const sprite = (name: string): ImageSpec => {
+    const [width = 32, height = 32] = ((spec as unknown as { sprites?: Record<string, number[]> }).sprites?.[name] ?? []) as number[];
+    return { kind: 'image', key: `sprite_${name}`, category: 'image', label: name, path: resolve(`sprites/${name}.png`), width, height };
+  };
+
   /** 그 밖의 단일 이미지(이펙트·UI·지도 등). 크기는 자리표시자용 */
   const image = (folder: string, name: string, width: number, height: number): ImageSpec => ({
     kind: 'image',
@@ -183,6 +189,7 @@ export function createManifest(available: readonly string[]) {
     tile,
     card,
     image,
+    sprite,
     fx,
     prop,
     anchor: spec.anchor,

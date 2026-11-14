@@ -283,7 +283,9 @@
     "saveMigrated": "Old save migrated to the new format",
     "restore": "Restore from backup (last good save)",
     "tagline": "1950 — from the Nakdong to the Yalu: hold out and push north through 10 regions",
-    "year": "1950 · THE KOREAN WAR"
+    "year": "1950 · THE KOREAN WAR",
+    "titleEn": "KOREA 1950",
+    "hint": "{up}{down} select   {ok} confirm"
   },
   "settings": {
     "title": "Settings",
@@ -335,7 +337,8 @@
       "skillIcon": "Skill icon",
       "fxSheet": "Effect sheet",
       "propSheet": "Prop sheet",
-      "map": "Campaign map"
+      "map": "Campaign map",
+      "sprite": "sprite"
     },
     "noAlpha": "No alpha channel (background may show)",
     "notAudio": "Non-audio file in the audio folder",
@@ -349,7 +352,8 @@
     "badSkillName": "Skill icon names look like AS01.png",
     "badMapName": "Unknown map file",
     "badFolder": "Unknown folder \"{folder}\"",
-    "root": "(root)"
+    "root": "(root)",
+    "badSpriteName": "Unknown sprite (name not in the assets.json sprites table)"
   },
   "audioGallery": {
     "title": "Sound check — click to play · Shift+click ×10 (first click unlocks audio)",

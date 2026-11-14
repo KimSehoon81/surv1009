@@ -116,5 +116,12 @@
     "walk": 6,
     "run": 6,
     "sprint": 6
+  },
+  "sprites": {
+    "$comment": "단일 그림(public/assets/sprites/<이름>.png) → [가로, 세로] px. 첫 화면 배경(사용자 제공 그림), 코드가 그리던 것을 대신하는 그림(tools/art P5). 파일이 없으면 코드 그림을 그대로 씀",
+    "title_bg": [
+      960,
+      540
+    ]
   }
 }

@@ -36,11 +36,13 @@ export function drawWarBackdrop(scene: Phaser.Scene): void {
   const front = scene.add.graphics();
   title.ridges.forEach((r, i) => {
     // 가장 먼 능선 뒤에서: 연기 기둥(밑동은 앞 능선에 가려짐)·포격 섬광·조명탄·예광탄
-    if (i === 1) {
-      animatePlumes(scene, title.ridges[0]);
-      animateArtillery(scene, title.ridges[0]);
+    const far = title.ridges[0];
+    if (i === 1 && far) {
+      const farY = (x: number) => ridgeY(x, far.base, far.amp, far.seed);
+      animatePlumes(scene, title.plumes.map((pl) => ({ x: pl.x, y: farY(pl.x) + 8, size: pl.size })));
+      animateArtillery(scene, farY);
       animateFlares(scene);
-      animateTracers(scene, title.ridges[0]);
+      animateTracers(scene, farY);
     }
     const gg = i === 0 ? g : front;
     gg.fillStyle(col(r.color), 1);
@@ -112,13 +114,11 @@ function drawFlag(scene: Phaser.Scene, g: Phaser.GameObjects.Graphics): void {
   scene.tweens.add({ targets: f, scaleX: 0.9, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
 }
 
-type Ridge = { base: number; amp: number; seed: number };
 
 /** 산 뒤에서 피어오르는 굵은 연기 기둥: 밑동은 불빛(깜박), 위로 갈수록 커지고 바람 따라 오른쪽으로 흩어짐 */
-function animatePlumes(scene: Phaser.Scene, far: Ridge | undefined): void {
-  if (!far) return;
-  for (const pl of title.plumes) {
-    const by = ridgeY(pl.x, far.base, far.amp, far.seed) + 8;
+function animatePlumes(scene: Phaser.Scene, list: readonly { x: number; y: number; size: number }[]): void {
+  for (const pl of list) {
+    const by = pl.y;
     const glow = scene.add.ellipse(pl.x, by, 46 * pl.size, 20 * pl.size, 0xff7a30, 0.55).setBlendMode(Phaser.BlendModes.ADD);
     scene.tweens.add({ targets: glow, alpha: 0.25, scaleX: 0.85, duration: 260, yoyo: true, repeat: -1, ease: 'Sine.inOut', delay: Phaser.Math.Between(0, 300) });
     // 퍼프를 촘촘히(약 0.25초마다) 겹쳐 올려 끊기지 않는 기둥으로
@@ -145,26 +145,29 @@ function animatePlumes(scene: Phaser.Scene, far: Ridge | undefined): void {
 }
 
 /** 먼 능선의 포격 섬광(번쩍 → 작은 연기) */
-function animateArtillery(scene: Phaser.Scene, far: Ridge | undefined): void {
-  if (!far) return;
+function animateArtillery(scene: Phaser.Scene, ridge: (x: number) => number, skip?: readonly number[], puffs = true): void {
   const [lo = 500, hi = 1500] = title.artilleryMs;
   const fire = () => {
-    const x = Phaser.Math.Between(30, W - 30);
-    const y = ridgeY(x, far.base, far.amp, far.seed) - 2;
+    let x = Phaser.Math.Between(30, W - 30);
+    if (skip && x >= (skip[0] ?? 0) && x <= (skip[1] ?? 0)) x = Phaser.Math.Between(30, skip[0] ?? 30);
+    const y = ridge(x) - 2;
     const flash = scene.add.circle(x, y, Phaser.Math.Between(5, 11), 0xfff0b0, 1).setBlendMode(Phaser.BlendModes.ADD);
     const halo = scene.add.circle(x, y, 26, 0xffa040, 0.35).setBlendMode(Phaser.BlendModes.ADD);
     scene.tweens.add({ targets: [flash, halo], alpha: 0, scale: 1.6, duration: 220, onComplete: () => (flash.destroy(), halo.destroy()) });
-    const puff = scene.add.circle(x, y - 4, 5, 0x3a2c30, 0.6);
-    scene.tweens.add({ targets: puff, y: y - 40, scale: 3, alpha: 0, duration: 2600, onComplete: () => puff.destroy() });
+    if (puffs) {
+      const puff = scene.add.circle(x, y - 4, 5, 0x3a2c30, 0.6);
+      scene.tweens.add({ targets: puff, y: y - 40, scale: 3, alpha: 0, duration: 2600, onComplete: () => puff.destroy() });
+    }
     scene.time.delayedCall(Phaser.Math.Between(lo, hi), fire);
   };
   scene.time.delayedCall(400, fire);
 }
 
 /** 조명탄: 하늘에서 흔들리며 천천히 내려오는 밝은 점(빛무리) */
-function animateFlares(scene: Phaser.Scene): void {
+function animateFlares(scene: Phaser.Scene, ranges?: readonly (readonly number[])[]): void {
   const drop = () => {
-    const x0 = Phaser.Math.Between(80, W - 80);
+    const r = ranges?.[Math.floor(Math.random() * ranges.length)];
+    const x0 = r ? Phaser.Math.Between(r[0] ?? 80, r[1] ?? W - 80) : Phaser.Math.Between(80, W - 80);
     const y0 = Phaser.Math.Between(40, 100);
     const halo = scene.add.circle(x0, y0, 22, 0xfff0b0, 0.22).setBlendMode(Phaser.BlendModes.ADD);
     const core = scene.add.circle(x0, y0, 2.5, 0xffffff, 1);
@@ -188,15 +191,14 @@ function animateFlares(scene: Phaser.Scene): void {
 }
 
 /** 예광탄: 능선에서 능선으로 포물선을 그리며 날아가는 붉은·초록 점선 몇 발 */
-function animateTracers(scene: Phaser.Scene, far: Ridge | undefined): void {
-  if (!far) return;
+function animateTracers(scene: Phaser.Scene, ridge: (x: number) => number): void {
   const [lo = 1100, hi = 2400] = title.tracerMs;
   const burst = () => {
     const fromLeft = Math.random() < 0.5;
     const x1 = fromLeft ? Phaser.Math.Between(20, 300) : Phaser.Math.Between(W - 300, W - 20);
     const x2 = x1 + (fromLeft ? 1 : -1) * Phaser.Math.Between(220, 420);
-    const y1 = ridgeY(x1, far.base, far.amp, far.seed);
-    const y2 = ridgeY(x2, far.base, far.amp, far.seed);
+    const y1 = ridge(x1);
+    const y2 = ridge(x2);
     const h = Phaser.Math.Between(60, 130);
     const color = Math.random() < 0.6 ? 0xff6a40 : 0x9aff70;
     const shots = Phaser.Math.Between(3, 5);
@@ -252,4 +254,156 @@ function animateEmbers(scene: Phaser.Scene): void {
     };
     scene.time.delayedCall(i * 220, go);
   }
+}
+
+// ---------------------------------------------------------------- 그림 배경(2026-11-14, 사용자 제공 노을 전장)
+
+type Bg = typeof title.bg;
+
+/** 첫 화면: 배경 그림(sprites/title_bg.png)이 있으면 그 위에 연출하고 true, 없으면 false(코드 배경을 쓰라는 뜻) */
+export function drawTitleScene(scene: Phaser.Scene): boolean {
+  const bg = title.bg;
+  const key = manifest.sprite(bg.sprite).key;
+  if (!scene.textures.exists(key)) return false;
+  scene.add.image(0, 0, key).setOrigin(0).setDisplaySize(W, H);
+  const pts = bg.ridge as unknown as [number, number][];
+  // 능선 y: 표의 점 사이를 직선으로
+  const ridge = (x: number): number => {
+    for (let i = 1; i < pts.length; i++) {
+      const [x1 = 0, y1 = 0] = pts[i - 1] ?? [];
+      const [x2 = 0, y2 = 0] = pts[i] ?? [];
+      if (x <= x2) return Math.round(y1 + ((y2 - y1) * (x - x1)) / Math.max(1, x2 - x1));
+    }
+    return pts[pts.length - 1]?.[1] ?? H / 2;
+  };
+  animateSmoke(scene, bg.plumes, bg.smoke);
+  animateArtillery(scene, ridge, bg.artillerySkipX, false);
+  animateTracers(scene, ridge);
+  animateFlares(scene, bg.flareX);
+  animateColumn(scene, bg.column);
+  animateFieldBlasts(scene, bg.blasts);
+  animateSquad(scene, bg.squad);
+  animateEmbers(scene);
+  return true;
+}
+
+/** 폐허에서 끊김 없이 오르는 연기 기둥: 퍼프마다 시작 시점을 나눠 처음부터 기둥 모양, 위로 갈수록 커지고 바람에 오른쪽으로 */
+function animateSmoke(scene: Phaser.Scene, list: Bg['plumes'], sm: Bg['smoke']): void {
+  const puffs: { o: Phaser.GameObjects.Arc; x: number; y: number; size: number; phase: number; wob: number }[] = [];
+  for (const pl of list) {
+    // 밑동: 은은한 불빛(작게, 깜박임)
+    const glow = scene.add.ellipse(pl.x, pl.y, 18 * pl.size, 8 * pl.size, 0xff7a30, 0.45).setBlendMode(Phaser.BlendModes.ADD);
+    scene.tweens.add({ targets: glow, alpha: 0.15, duration: 300, yoyo: true, repeat: -1, ease: 'Sine.inOut', delay: Phaser.Math.Between(0, 300) });
+    const n = Math.round(sm.puffs * pl.size);
+    for (let i = 0; i < n; i++) {
+      const color = i % 3 === 0 ? 0x5a4048 : i % 3 === 1 ? 0x3a2a32 : 0x2a2028;
+      puffs.push({ o: scene.add.circle(pl.x, pl.y, 6 * pl.size, color, 0.7), x: pl.x, y: pl.y, size: pl.size, phase: i / n, wob: Math.random() * 6 });
+    }
+  }
+  const tick = () => {
+    const now = scene.time.now;
+    for (const p of puffs) {
+      const k = (now / sm.lifeMs + p.phase) % 1;
+      const x = p.x + sm.drift * p.size * k * k + Math.sin(now / 900 + p.wob) * 3 * k;
+      const y = p.y - sm.rise * p.size * Math.pow(k, 0.8);
+      p.o.setPosition(Math.round(x), Math.round(y)).setScale(0.6 + 2.8 * k).setAlpha(0.75 * (1 - k) * Math.min(1, k * 8));
+    }
+  };
+  tick();
+  scene.events.on(Phaser.Scenes.Events.UPDATE, tick);
+  scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => scene.events.off(Phaser.Scenes.Events.UPDATE, tick));
+}
+
+/** 먼 들판을 줄지어 걷는 실루엣 대열(작게, 역광이라 검붉게) */
+function animateColumn(scene: Phaser.Scene, c: Bg['column']): void {
+  const span = W + 120;
+  for (let i = 0; i < c.count; i++) {
+    const id = c.ids[i % c.ids.length] ?? 'A01';
+    if (!manifest.sheet(id, 'move_slow').path) continue;
+    const key = registerUnitAnims(scene, id).keys.move_slow;
+    if (!key) continue;
+    const s = scene.add.sprite(0, 0, manifest.sheetKey(id, 'move_slow'), 0).setOrigin(manifest.anchor.x, manifest.anchor.y).setScale(c.scale).setTintFill(col(c.color)).setAlpha(0.92);
+    s.play({ key, startFrame: (i * 3) % 6 });
+    s.anims.timeScale = 0.75;
+    const start = 120 + i * c.gap;
+    const ev = { d: 0 };
+    const place = () => s.setPosition(Math.round(((start + ev.d) % span) - 60), c.y + (i % 2));
+    place();
+    scene.tweens.add({ targets: ev, d: span, duration: (span / c.speed) * 1000, repeat: -1, onUpdate: place });
+  }
+}
+
+/** 앞 땅을 걷는 분대: 실제 스프라이트(노을 역광으로 살짝 어둡게), 발밑 그림자·흙먼지, 맨 앞 병사는 작은 태극기 */
+function animateSquad(scene: Phaser.Scene, sq: Bg['squad']): void {
+  const span = W + 160;
+  sq.ids.forEach((id, i) => {
+    if (!manifest.sheet(id, 'move_slow').path) return;
+    const key = registerUnitAnims(scene, id).keys.move_slow;
+    if (!key) return;
+    const shadow = scene.add.ellipse(0, 0, 30, 7, 0x0a0406, 0.45);
+    const s = scene.add.sprite(0, 0, manifest.sheetKey(id, 'move_slow'), 0).setOrigin(manifest.anchor.x, manifest.anchor.y).setTint(col(sq.tint));
+    s.play({ key, startFrame: (i * 2) % 6 });
+    const lead = sq.flagBearer && i === 0;
+    const flag = lead ? scene.add.graphics() : null;
+    // 맨 앞(i = 0)이 가장 오른쪽, 처음부터 화면 안에 줄지어
+    const start = 640 - i * sq.gap;
+    const ev = { d: 0 };
+    let dustAt = 0;
+    const place = () => {
+      const x = Math.round(((start + ev.d + 80) % span) - 80);
+      s.setPosition(x, sq.y);
+      shadow.setPosition(x, sq.y - 1);
+      if (flag) drawMiniFlag(flag, x + 12, sq.y - 84, scene.time.now);
+      const now = scene.time.now;
+      if (now > dustAt) {
+        dustAt = now + 380 + i * 23;
+        const puff = scene.add.circle(x - 8, sq.y - 2, 3, 0x6a4a3a, 0.5);
+        scene.tweens.add({ targets: puff, x: puff.x - 10, y: puff.y - 6, scale: 2.2, alpha: 0, duration: 700, onComplete: () => puff.destroy() });
+      }
+    };
+    place();
+    scene.tweens.add({ targets: ev, d: span, duration: (span / sq.speed) * 1000, repeat: -1, onUpdate: place });
+  });
+}
+
+/** 손에 든 깃대 + 펄럭이는 태극기(흰 바탕·빨강/파랑 태극·네 귀 괘), 두 프레임으로 물결 */
+function drawMiniFlag(g: Phaser.GameObjects.Graphics, x: number, y: number, now: number): void {
+  const w = Math.floor(now / 180) % 2;
+  g.clear();
+  // 깃대(위 꼭지 금색)
+  g.fillStyle(0x1a0a06, 1).fillRect(x - 1, y - 1, 4, 52);
+  g.fillStyle(0xb08a50, 1).fillRect(x, y, 2, 50);
+  g.fillStyle(0xffd34d, 1).fillRect(x - 1, y - 3, 4, 3);
+  // 깃발: 외곽선 → 흰 바탕(물결: 오른쪽 절반이 한 칸 오르내림)
+  g.fillStyle(0x1a0a06, 1).fillRect(x + 2, y + 1, 21, 15);
+  g.fillStyle(0xf4f0e6, 1).fillRect(x + 3, y + 2, 9, 13).fillRect(x + 12, y + 2 + w, 10, 12);
+  // 태극(위 빨강, 아래 파랑)
+  g.fillStyle(0xd83a3a, 1).fillRect(x + 10, y + 5, 5, 3);
+  g.fillStyle(0x2a4ab8, 1).fillRect(x + 10, y + 8, 5, 3);
+  // 괘(네 귀의 검은 줄)
+  g.fillStyle(0x1a1a1a, 1).fillRect(x + 5, y + 4, 3, 1).fillRect(x + 5, y + 12, 3, 1).fillRect(x + 18, y + 4 + w, 3, 1).fillRect(x + 18, y + 12 + w, 3, 1);
+}
+
+/** 먼 들판에 가끔 떨어지는 포탄: 번쩍 → 흙기둥·연기 → 파편 */
+function animateFieldBlasts(scene: Phaser.Scene, b: Bg['blasts']): void {
+  const [lo = 4000, hi = 8000] = b.ms;
+  const boom = () => {
+    let x = Phaser.Math.Between(b.x[0] ?? 40, b.x[1] ?? W - 40);
+    if (x >= (b.skipX[0] ?? 0) && x <= (b.skipX[1] ?? 0)) x = Math.random() < 0.5 ? Phaser.Math.Between(b.x[0] ?? 40, b.skipX[0] ?? 300) : Phaser.Math.Between(b.skipX[1] ?? 660, b.x[1] ?? W - 40);
+    const y = Phaser.Math.Between(b.y[0] ?? 370, b.y[1] ?? 390);
+    const flash = scene.add.circle(x, y - 4, 7, 0xfff0b0, 1).setBlendMode(Phaser.BlendModes.ADD);
+    const halo = scene.add.circle(x, y - 4, 22, 0xff8a30, 0.45).setBlendMode(Phaser.BlendModes.ADD);
+    scene.tweens.add({ targets: [flash, halo], alpha: 0, scale: 1.8, duration: 260, onComplete: () => (flash.destroy(), halo.destroy()) });
+    for (let i = 0; i < 6; i++) {
+      const puff = scene.add.circle(x + Phaser.Math.Between(-4, 4), y - 2, 4, i % 2 ? 0x2c2026 : 0x4a3030, 0.75);
+      scene.tweens.add({ targets: puff, y: y - Phaser.Math.Between(26, 52), x: puff.x + Phaser.Math.Between(4, 18), scale: 2.6, alpha: 0, duration: 2200 + i * 180, ease: 'Quad.out', onComplete: () => puff.destroy() });
+    }
+    for (let i = 0; i < 5; i++) {
+      const bit = scene.add.rectangle(x, y - 4, 2, 2, 0x1a0a08, 1);
+      const vx = Phaser.Math.Between(-30, 30);
+      scene.tweens.add({ targets: bit, x: x + vx, y: y - Phaser.Math.Between(14, 26), duration: 260, yoyo: true, ease: 'Quad.out', onComplete: () => bit.destroy() });
+    }
+    scene.time.delayedCall(Phaser.Math.Between(lo, hi), boom);
+  };
+  scene.time.delayedCall(2200, boom);
 }

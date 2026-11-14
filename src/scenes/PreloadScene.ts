@@ -64,7 +64,12 @@ function battleAssets(): AssetSpec[] {
   // 배경 소품(props.json 전 스테이지)
   const propNames = [...new Set(Object.values(propsData.stages as Record<string, { kinds: { sprite: string }[] }>).flatMap((s) => s.kinds.map((k) => k.sprite)))];
   const props = propNames.map((n) => manifest.prop(n));
-  return [...units, ...extras, ...ui, ...fx, ...skillIcons, ...cards, ...props, ...floorTiles()];
+  // 단일 그림(첫 화면 배경·코드 그림 대체, assets.json sprites): 파일이 있는 것만
+  const sprites = Object.keys((manifest.spec as unknown as { sprites?: Record<string, unknown> }).sprites ?? {})
+    .filter((n) => !n.startsWith('$'))
+    .map((n) => manifest.sprite(n))
+    .filter((s) => s.path !== null);
+  return [...units, ...extras, ...sprites, ...ui, ...fx, ...skillIcons, ...cards, ...props, ...floorTiles()];
 }
 
 export class PreloadScene extends Phaser.Scene {

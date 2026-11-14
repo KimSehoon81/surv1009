@@ -80,6 +80,11 @@ export function checkAsset(relPath: string, info: PngInfo | null): Issue[] {
       const size = sheet(large);
       return [...sizeIssue(info, size, size, folder === 'fx' ? 'fxSheet' : 'propSheet'), ...alphaIssue(info)];
     }
+    case 'sprites': {
+      const size = (spec as unknown as { sprites?: Record<string, number[]> }).sprites?.[name.replace(/\.png$/i, '')];
+      if (!size || name.startsWith('$')) return [{ severity: 'warn', message: t('assets.badSpriteName') }];
+      return [...sizeIssue(info, size[0] ?? 0, size[1] ?? 0, 'sprite'), ...(name === 'title_bg.png' ? [] : alphaIssue(info))];
+    }
     case 'map':
       return name === 'korea_map.png' ? sizeIssue(info, spec.map.width, spec.map.height, 'map') : [{ severity: 'warn', message: t('assets.badMapName') }];
     default:
