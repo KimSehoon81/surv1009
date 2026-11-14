@@ -103,7 +103,10 @@ export class SupportSystem {
       const plane = this.scene.add.sprite(at.x - 520, at.y - 240, fxKey, 0).setDepth(Depth.Player + 20).setScale(1.2);
       this.scene.tweens.add({ targets: plane, x: at.x + 520, y: at.y - 260, duration: 2600, onComplete: () => plane.destroy() });
     }
-    const crate = this.scene.add.image(at.x, at.y - 220, CRATE_KEY).setOrigin(0.5, 1).setDepth(Depth.Player + 10).setScale(AD.crateScale);
+    // 그림(sprites/supply_crate.png, P5)이 있으면 원래 크기, 없으면 코드 도트를 배율로
+    const crateArt = manifest.sprite('supply_crate').key;
+    const hasArt = this.scene.textures.exists(crateArt);
+    const crate = this.scene.add.image(at.x, at.y - 220, hasArt ? crateArt : CRATE_KEY).setOrigin(0.5, 1).setDepth(Depth.Player + 10).setScale(hasArt ? 1 : AD.crateScale);
     const chute = this.scene.textures.exists(fxKey) ? this.scene.add.sprite(at.x, at.y - 240, fxKey, 1).setOrigin(0.5, 1).setDepth(Depth.Player + 10).setScale(0.6) : null;
     const fall = { k: 0 };
     this.scene.tweens.add({

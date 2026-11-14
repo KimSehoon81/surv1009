@@ -7,6 +7,8 @@ import { hashString } from '../core/rng';
 import { chunkSpots, streamAt, streamsNear, type TerrainCfg } from '../core/terrain';
 
 type Palette = (typeof terrainData.palettes)['summer'];
+type DecalKind = 'grass' | 'flowers' | 'leaves' | 'snow' | 'debris';
+const DECALS = terrainData.decals as unknown as Record<DecalKind, Record<string, string[]>>;
 
 export interface FloorConfig extends FloorParams {
   base: string;
@@ -154,7 +156,19 @@ export class Floor {
       }
     }
     const spots = chunkSpots(t, this.numSeed, cx, cy, size);
+    // 그림 데칼(sprites/decal_*.png, P5)이 있으면 그것을, 없으면 아래 코드 도트를
+    const set = t.season;
+    const stamp = (kind: DecalKind, p: { x: number; y: number; v: number }, list?: string): boolean => {
+      const names = DECALS[kind]?.[list ?? set] ?? [];
+      const name = names[Math.floor(p.v * names.length) % Math.max(1, names.length)];
+      const src = name ? this.decal(name) : null;
+      if (!src) return false;
+      ctx.drawImage(src, Math.round(p.x - src.width / 2), Math.round(p.y - src.height / 2));
+      return true;
+    };
+    for (const p of spots.debris) stamp('debris', p, t.debrisSet);
     for (const p of spots.snow) {
+      if (stamp('snow', { ...p, v: p.size > 0.6 ? 0.99 : p.v * 0.66 })) continue;
       // 눈 더미: 납작한 타원을 2px 줄로, 아래 두 줄은 그늘, 반짝이 몇 점
       const rx = 10 + p.size * 26;
       const ry = rx * 0.32;
@@ -166,6 +180,10 @@ export class Floor {
       for (let k = 0; k < 3; k++) box(p.x - rx / 2 + ((p.v * 97 + k * 31) % rx), p.y - ry / 3 + k * 2, 1, 1, '#ffffff');
     }
     for (const p of spots.grass) {
+      if (stamp('grass', p)) {
+        if (p.v > 0.55) stamp('flowers', { x: p.x + 18, y: p.y + 6, v: p.size });
+        continue;
+      }
       // 풀숲: 짧은 풀잎 여러 개(색 3단), 여름엔 들꽃 몇 송이
       const n = 9 + Math.floor(p.size * 12);
       const r = 8 + p.size * 16;
@@ -182,10 +200,22 @@ export class Floor {
       if (pal.flowers.length > 0 && p.v > 0.55) for (let j = 0; j < 3; j++) box(p.x + (rnd() - 0.5) * r * 1.6, p.y + (rnd() - 0.5) * r * 0.8 - 3, 2, 2, pal.flowers[j % pal.flowers.length] ?? '#ffffff');
     }
     for (const p of spots.leaves) {
+      if (stamp('leaves', p)) continue;
       let q = Math.floor(p.v * 1e6) + 7;
       const rnd = () => ((q = (q * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
       for (let j = 0; j < 5 + Math.floor(p.size * 6); j++) box(p.x + (rnd() - 0.5) * 30, p.y + (rnd() - 0.5) * 16, 2, 1, pal.leaves[j % Math.max(1, pal.leaves.length)] ?? '#8a5a2a');
     }
+  }
+
+  private decals = new Map<string, HTMLImageElement | HTMLCanvasElement | null>();
+
+  /** 데칼 그림 원본(없으면 null, 한 번 찾은 결과는 기억) */
+  private decal(name: string): HTMLImageElement | HTMLCanvasElement | null {
+    if (!this.decals.has(name)) {
+      const key = manifest.sprite(name).key;
+      this.decals.set(name, this.scene.textures.exists(key) ? (this.scene.textures.get(key).getSourceImage() as HTMLImageElement | HTMLCanvasElement) : null);
+    }
+    return this.decals.get(name) ?? null;
   }
 
   private createChunk(size: number): Chunk {

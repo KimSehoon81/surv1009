@@ -359,6 +359,107 @@ def critter_prompt(uid, desc, idle, size):
     ])
 
 
+# ---------------------------------------------------------------- 코드 그림 대체(2026-11-14, P5)
+# 게임이 그림 없이 코드로 그려 쓰던 것: 보물 상자·자석·보급 상자, 서울 폐허 장애물, 바닥 데칼(풀숲·들꽃·낙엽·눈 더미·돌·웅덩이·구덩이·전장 잔해).
+# 결과는 public/assets/sprites/<이름>.png(크기 = src/data/assets.json sprites 표). 파일이 있으면 게임이 코드 그림 대신 쓴다.
+# (이름, 가로, 세로, 설명)
+SPRITE_ITEMS = [
+    ("treasure_chest", 48, 40, "closed treasure chest: dark wooden planks, rounded lid, three gold bands, big gold lock plate; front view slightly from above"),
+    ("treasure_chest_open", 48, 48, "the SAME chest with its lid swung open, warm golden light and small sparkles rising from inside (no coins or items visible)"),
+    ("supply_crate", 44, 40, "military airdrop supply crate: olive-drab wooden crate with a stenciled white star, rope cargo net and parachute harness straps on top"),
+    ("magnet_item", 32, 32, "red horseshoe magnet with silver tips and two small white sparkles"),
+]
+RUINS = [
+    ("ruin_1", 112, 100, "collapsed one-story brick house: broken roof beams, half-standing front wall with an empty window, rubble along the base"),
+    ("ruin_2", 128, 120, "burnt-out two-story concrete building shell: scorch marks, empty window holes, bent bars sticking out at the top"),
+    ("ruin_3", 96, 80, "rubble pile: broken bricks, a fallen roof-tile section and splintered timber, one short standing wall stub"),
+    ("ruin_4", 144, 96, "wrecked row of shops: cracked plaster walls, a torn awning frame, sandbags stacked in front, no lettering"),
+]
+DECALS_1 = [
+    ("decal_grass_a", 48, 40, "small clump of green summer grass"),
+    ("decal_grass_b", 48, 40, "wider patch of short green grass with a few lighter blades"),
+    ("decal_grass_tall", 40, 48, "tall green grass tuft with seed heads"),
+    ("decal_flowers_white", 48, 32, "small cluster of white wildflowers in short grass"),
+    ("decal_flowers_mix", 48, 32, "small cluster of yellow and pink wildflowers in short grass"),
+    ("decal_rocks", 40, 28, "three small grey stones half sunk in the soil"),
+    ("decal_puddle", 64, 32, "shallow muddy puddle reflecting a little sky, wet dark rim"),
+    ("decal_crater", 72, 48, "old shell crater: shallow dark pit with a ring of loose earth, no fire"),
+]
+DECALS_2 = [
+    ("decal_grass_autumn", 48, 40, "clump of dry golden-brown autumn grass"),
+    ("decal_leaves_red", 48, 32, "scatter of fallen red and orange maple leaves"),
+    ("decal_leaves_yellow", 48, 32, "scatter of fallen yellow ginkgo and oak leaves"),
+    ("decal_reeds", 40, 48, "small stand of dry silver reeds with feathery tops"),
+    ("decal_frost_grass", 48, 40, "frosted dry grass clump with white rime on the tips"),
+    ("decal_snow_s", 64, 32, "small flat snow patch with soft lumpy edges and a pale blue shadow on its lower edge"),
+    ("decal_snow_l", 96, 40, "larger flat snow drift with lumpy edges, a few grass tips poking through, pale blue shadow"),
+    ("decal_ice", 72, 36, "frozen puddle: pale blue ice with white cracks and a thin snow rim"),
+]
+DECALS_3 = [
+    ("decal_burnt", 64, 40, "scorched black patch of ground with grey ash, no fire"),
+    ("decal_casings", 40, 24, "scatter of small brass shell casings on the ground"),
+    ("decal_planks", 56, 32, "broken wooden crate planks lying on the ground"),
+    ("decal_sandbags", 56, 32, "two or three loose fallen sandbags"),
+    ("decal_tracks", 72, 32, "short section of tank track marks pressed into mud"),
+    ("decal_leaflets", 48, 32, "a few scattered blank paper leaflets (no text)"),
+    ("decal_ammo_box", 40, 32, "empty olive-drab ammunition box with an open lid"),
+    ("decal_bricks", 48, 32, "small scatter of broken red bricks and rubble"),
+]
+
+ITEM_STYLE = STYLE.replace("Chunky heroic proportions (about 3 heads tall), big hands and boots, readable silhouettes, "
+                           "exaggerated hand-animated poses with squash and stretch. ", "")
+
+
+def _sized_listing(items):
+    return "; ".join(f"{i + 1} {name} ({w}x{h}-pixel sprite): {desc}" for i, (name, w, h, desc) in enumerate(items))
+
+
+def sprite_items_prompt():
+    return "\n".join([
+        "Create ONE image with FOUR item sprites for a retro 2D top-down survival game set in the 1950 Korean War.",
+        ITEM_STYLE,
+        "No skulls, no blood, no text or letters. " + ALPHA_SOLID,
+        "CANVAS: 1:1 square split into an invisible grid of 2 columns x 2 rows; one sprite per cell, centered, filling about 70% of the cell. "
+        "Each is drawn as a small pixel sprite of the stated size, enlarged; bold dark outline, 3-4 flat tones, readable at its small size. " + GRID_RULE,
+        "READING ORDER (left to right, top to bottom): " + _sized_listing(SPRITE_ITEMS) + ".",
+    ])
+
+
+def ruins_prompt():
+    return "\n".join([
+        "Create ONE image with FOUR ruined-building obstacle sprites for the city stage (Seoul, 1950) of a retro 2D top-down survival game.",
+        ITEM_STYLE,
+        CONTENT_RULES + " Empty, abandoned buildings only: no people, no bodies.",
+        ALPHA_SOLID,
+        "VIEW: classic 16-bit top-down 3/4 view (seen from the front and above): the ground footprint is the lower part of each sprite, "
+        "walls rise above it; the bottom edge of every ruin is a clean straight ground line with a little rubble, no cast shadow.",
+        "CANVAS: 1:1 square split into an invisible grid of 2 columns x 2 rows; one ruin per cell, centered, its bottom edge on a shared baseline "
+        "8% above the cell bottom, filling about 85% of the cell width. Muted grey-brown brick and concrete colors so units stand out in front. " + GRID_RULE,
+        "READING ORDER (left to right, top to bottom): " + _sized_listing(RUINS) + ".",
+    ])
+
+
+def decals_prompt(items, theme):
+    return "\n".join([
+        f"Create ONE image with EIGHT small ground decals ({theme}) for a retro 2D top-down survival game set in the 1950 Korean War.",
+        ITEM_STYLE.replace("light from the upper left; ", "light from the upper left, very flat lighting; "),
+        "No blood, no bodies, no text. " + ALPHA_SOLID,
+        "VIEW: seen straight down from above (90 degrees), lying flat on the ground like stickers on the battlefield floor; "
+        "no cast shadows, at most a 1-pixel contact edge; medium-dark, low-contrast colors so characters on top stay readable.",
+        "CANVAS: 1:1 square split into an invisible grid of 4 columns x 2 rows; one decal per cell, centered, filling about 75% of the cell, "
+        "irregular natural edges (no square tiles). " + GRID_RULE,
+        "READING ORDER (left to right, top to bottom): " + _sized_listing(items) + ".",
+    ])
+
+
+def sprite_post(items, cols, rows, anchor="center", colors=None):
+    post = {"kind": "grid", "cols": cols, "rows": rows, "names": [n for n, _w, _h, _d in items], "sizes": [[w, h] for _n, w, h, _d in items],
+            "folder": "sprites", "alpha": "hard", "anchor": anchor}
+    if colors:
+        post["colors"] = colors
+    return post
+
+
 # ---------------------------------------------------------------- 바닥 타일
 
 TILE_SETS = [
@@ -757,6 +858,13 @@ def build_items():
         add(f"walk_{uid}", "P4", enemy_walk_prompt(uid, desc, LOOK_RULE), {"kind": "unit", "layout": "enemy_walk", "id": uid, "faction": "enemy", "tag": "S"})
     for uid, desc, idle, size, fit, px in CRITTERS:
         add(f"critter_{uid}", "P4", critter_prompt(uid, desc, idle, size), {"kind": "unit", "layout": "critter", "id": uid, "faction": "critter", "tag": "S", "fit": fit, "px": px})
+
+    # P5: 코드가 그리던 것 대체(보물 상자·자석·보급 상자, 서울 폐허, 바닥 데칼 3장)
+    add("sprites_items", "P5", sprite_items_prompt(), sprite_post(SPRITE_ITEMS, 2, 2))
+    add("sprites_ruins", "P5", ruins_prompt(), sprite_post(RUINS, 2, 2, "bottom", 48))
+    add("decals_1", "P5", decals_prompt(DECALS_1, "summer field"), sprite_post(DECALS_1, 4, 2, colors=32))
+    add("decals_2", "P5", decals_prompt(DECALS_2, "autumn and winter field"), sprite_post(DECALS_2, 4, 2, colors=32))
+    add("decals_3", "P5", decals_prompt(DECALS_3, "battlefield debris"), sprite_post(DECALS_3, 4, 2, colors=32))
 
     for i, it in enumerate(items, 1):
         it["no"] = i

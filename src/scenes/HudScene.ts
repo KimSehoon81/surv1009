@@ -504,7 +504,19 @@ export class HudScene extends Phaser.Scene {
     lid.fillStyle(0xa85e2a, 1).fillRoundedRect(-43, -23, 86, 24, 10);
     lid.fillStyle(0xffd34d, 1).fillRect(-30, -23, 6, 24).fillRect(24, -23, 6, 24).fillRect(-43, -2, 86, 4);
     root.add([body, lid]);
-    this.tweens.add({ targets: lid, y: 130, angle: -14, duration: 380, ease: 'Back.out', delay: 150 });
+    // 그림(sprites/treasure_chest·_open, P5)이 있으면 2배로: 닫힌 상자 → 뚜껑 열리는 순간 열린 상자로 바꾸며 통 튀기
+    const closedKey = manifest.sprite('treasure_chest').key;
+    const openKey = manifest.sprite('treasure_chest_open').key;
+    if (this.textures.exists(closedKey) && this.textures.exists(openKey)) {
+      body.setVisible(false);
+      lid.setVisible(false);
+      const pic = this.add.image(cx, 214, closedKey).setOrigin(0.5, 1).setScale(2);
+      root.add(pic);
+      this.time.delayedCall(150, () => {
+        pic.setTexture(openKey);
+        this.tweens.add({ targets: pic, scaleX: 2.3, scaleY: 1.8, duration: 90, yoyo: true });
+      });
+    } else this.tweens.add({ targets: lid, y: 130, angle: -14, duration: 380, ease: 'Back.out', delay: 150 });
     const title = this.add.text(cx, 64, t('hud.chest.title'), { ...uiText(30, '#ffd34d'), stroke: '#3a1206', strokeThickness: 6 }).setOrigin(0.5).setScale(0.4);
     this.tweens.add({ targets: title, scale: 1, duration: 300, ease: 'Back.out' });
     root.add(title);

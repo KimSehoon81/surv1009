@@ -25,6 +25,10 @@ export interface TerrainCfg {
   grass?: number[];
   snow?: number[];
   leaves?: number[];
+  /** 잔해(돌·웅덩이·구덩이·탄피 등, 그림이 있을 때만) [최소, 최대] */
+  debris?: number[];
+  /** 잔해 목록 이름(terrain.json decals.debris, 없으면 계절) */
+  debrisSet?: string;
   /** 개울을 건널 때 이동 속도 배율 감소(0.25 = −25%) */
   wade?: number;
 }
@@ -74,7 +78,7 @@ export interface Spot {
 }
 
 /** 청크 안 풀숲·눈 더미·낙엽 자리(청크 왼쪽 위 기준 px), 개울 물 위는 뺌 */
-export function chunkSpots(t: TerrainCfg, seed: number, cx: number, cy: number, size: number): { grass: Spot[]; snow: Spot[]; leaves: Spot[] } {
+export function chunkSpots(t: TerrainCfg, seed: number, cx: number, cy: number, size: number): { grass: Spot[]; snow: Spot[]; leaves: Spot[]; debris: Spot[] } {
   const rng = createRng(`${seed}:terrain:${cx}:${cy}`);
   const pick = (r: number[] | undefined): Spot[] => {
     if (!r) return [];
@@ -90,5 +94,9 @@ export function chunkSpots(t: TerrainCfg, seed: number, cx: number, cy: number, 
     }
     return out;
   };
-  return { grass: pick(t.grass), snow: pick(t.snow), leaves: pick(t.leaves) };
+  // 순서를 지켜야 이미 있던 자리(풀숲·눈·낙엽)가 바뀌지 않음: 잔해는 맨 뒤
+  const grass = pick(t.grass);
+  const snow = pick(t.snow);
+  const leaves = pick(t.leaves);
+  return { grass, snow, leaves, debris: pick(t.debris) };
 }

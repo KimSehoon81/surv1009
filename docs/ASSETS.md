@@ -64,6 +64,7 @@ public/assets/
   enemies/  (선택) E01_walk.png  E01_run.png — 6프레임 행군·돌격 / E51~E56 = 겉모습 변형(enemies.json looks)
   npcs/     N01_idle.png  N01_talk.png  N01_give.png
   critters/ W01_walk.png  W01_idle.png  W01_run.png — 주변 생활(소·호랑이·개·주민, 6프레임), 없으면 코드 도트
+  sprites/  title_bg.png(960×540 첫 화면 배경) · treasure_chest · supply_crate · magnet_item · ruin_1~4 · decal_* — 단일 그림, 크기는 src/data/assets.json sprites 표(tools/art P5), 없으면 코드 그림
   tiles/    T01.png ~ T20.png
   props/    tree_leaf_L  tree_pine_L  tree_dead_L  tree_snow_L  burnt_truck_L
             grass  reed  bush  flag  drum_fire  wire  sandbag  rock  smoke_col (.png, 앞 6칸 루프 — 풀·억새는 5·6번째 칸이 밟힘 프레임)

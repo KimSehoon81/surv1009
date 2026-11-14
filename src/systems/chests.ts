@@ -2,6 +2,13 @@
 import * as Phaser from 'phaser';
 import chestData from '../data/chest.json';
 import { Depth } from '../config/depth';
+import { manifest } from '../assets/manifest';
+
+/** 그림(sprites/treasure_chest.png 등, tools/art P5)이 있으면 그것을 원래 크기로, 없으면 코드 도트를 배율로 */
+const art = (scene: Phaser.Scene, name: string): string | null => {
+  const key = manifest.sprite(name).key;
+  return scene.textures.exists(key) ? key : null;
+};
 
 export const CHEST_KEY = 'treasure_chest';
 
@@ -31,8 +38,9 @@ export class ChestSystem {
 
   /** 쓰러진 자리에 상자(살짝 튀어 오르며 등장) */
   spawn(x: number, y: number, nowMs: number): void {
-    const sprite = this.scene.add.image(x, y, CHEST_KEY).setOrigin(0.5, 1).setDepth(Depth.Decal + 4).setScale(0);
-    this.scene.tweens.add({ targets: sprite, scale: chestData.scale, duration: 260, ease: 'Back.out' });
+    const pic = art(this.scene, 'treasure_chest');
+    const sprite = this.scene.add.image(x, y, pic ?? CHEST_KEY).setOrigin(0.5, 1).setDepth(Depth.Decal + 4).setScale(0);
+    this.scene.tweens.add({ targets: sprite, scale: pic ? 1 : chestData.scale, duration: 260, ease: 'Back.out' });
     this.list.push({ x, y, bornMs: nowMs, sprite });
   }
 
@@ -98,7 +106,8 @@ export class MagnetDrops {
   }
 
   spawn(x: number, y: number, nowMs: number): void {
-    const sprite = this.scene.add.image(x, y, MAGNET_KEY).setOrigin(0.5, 1).setDepth(Depth.Decal + 4).setScale(1.6);
+    const pic = art(this.scene, 'magnet_item');
+    const sprite = this.scene.add.image(x, y, pic ?? MAGNET_KEY).setOrigin(0.5, 1).setDepth(Depth.Decal + 4).setScale(pic ? 1 : 1.6);
     this.scene.tweens.add({ targets: sprite, y: y - 6, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
     this.list.push({ x, y, bornMs: nowMs, sprite });
   }

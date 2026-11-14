@@ -1,5 +1,5 @@
 {
-  "$comment": "바닥 지형 무늬(2026-11-14, 사용자 요청 '개울·풀밭·계절 눈밭'). 그림 타일(floor.json) 위에 코드로 그림(core/terrain + systems/floor). 계절은 1950년 전선 이동에 맞춤: 낙동강~대전 여름, 강원~황해 가을, 평안 늦가을(첫눈), 평양·압록강 겨울(개울이 얼어 건너도 느려지지 않음). streams: spacing 개울 간격(출정 자리는 두 개울 한가운데), amp·wavelength 굽이, width 폭, dir v = 남북으로 흐름. grass·snow·leaves = 512px 청크당 [최소, 최대] 개수. wade = 물을 건널 때 이동 속도 감소(그리스군 산악병처럼 지형 감속 면역이면 무시).",
+  "$comment": "바닥 지형 무늬(2026-11-14, 사용자 요청 '개울·풀밭·계절 눈밭'). 그림 타일(floor.json) 위에 코드로 그림(core/terrain + systems/floor). 계절은 1950년 전선 이동에 맞춤: 낙동강~대전 여름, 강원~황해 가을, 평안 늦가을(첫눈), 평양·압록강 겨울(개울이 얼어 건너도 느려지지 않음). streams: spacing 개울 간격(출정 자리는 두 개울 한가운데), amp·wavelength 굽이, width 폭, dir v = 남북으로 흐름. grass·snow·leaves = 512px 청크당 [최소, 최대] 개수. wade = 물을 건널 때 이동 속도 감소(그리스군 산악병처럼 지형 감속 면역이면 무시). decals(2026-11-14): 그림(sprites/decal_*.png, tools/art P5)이 있으면 코드 도트 대신 계절·종류별로 골라 찍음. debris = 청크당 잔해(돌·웅덩이·포탄 구덩이·탄피·널빤지·궤도 자국 등) 수, 그림이 있을 때만. debrisSet = 잔해 목록 이름(서울은 city).",
   "stages": {
     "S1": {
       "season": "summer",
@@ -16,7 +16,11 @@
         7,
         13
       ],
-      "wade": 0.25
+      "wade": 0.25,
+      "debris": [
+        1,
+        3
+      ]
     },
     "S2": {
       "season": "summer",
@@ -33,7 +37,11 @@
         8,
         15
       ],
-      "wade": 0.25
+      "wade": 0.25,
+      "debris": [
+        1,
+        3
+      ]
     },
     "S3": {
       "season": "summer",
@@ -50,7 +58,11 @@
         7,
         13
       ],
-      "wade": 0.25
+      "wade": 0.25,
+      "debris": [
+        1,
+        3
+      ]
     },
     "S4": {
       "season": "autumn",
@@ -72,7 +84,11 @@
         6,
         12
       ],
-      "wade": 0.25
+      "wade": 0.25,
+      "debris": [
+        1,
+        3
+      ]
     },
     "S5": {
       "season": "autumn",
@@ -93,7 +109,11 @@
         3,
         6
       ],
-      "wade": 0.25
+      "wade": 0.25,
+      "debris": [
+        1,
+        3
+      ]
     },
     "S6": {
       "season": "autumn",
@@ -104,7 +124,12 @@
       "leaves": [
         2,
         5
-      ]
+      ],
+      "debris": [
+        3,
+        6
+      ],
+      "debrisSet": "city"
     },
     "S7": {
       "season": "autumn",
@@ -125,7 +150,11 @@
         3,
         6
       ],
-      "wade": 0.25
+      "wade": 0.25,
+      "debris": [
+        1,
+        3
+      ]
     },
     "S8": {
       "season": "late",
@@ -150,7 +179,11 @@
         1,
         3
       ],
-      "wade": 0.25
+      "wade": 0.25,
+      "debris": [
+        1,
+        3
+      ]
     },
     "S9": {
       "season": "winter",
@@ -171,6 +204,10 @@
       "snow": [
         5,
         9
+      ],
+      "debris": [
+        1,
+        3
       ]
     },
     "S10": {
@@ -192,6 +229,10 @@
       "snow": [
         7,
         11
+      ],
+      "debris": [
+        1,
+        3
       ]
     }
   },
@@ -280,6 +321,93 @@
       "ice": "#b4d0de",
       "iceEdge": "#e4eef4",
       "iceCrack": "#ffffff"
+    }
+  },
+  "decals": {
+    "grass": {
+      "summer": [
+        "decal_grass_a",
+        "decal_grass_b",
+        "decal_grass_tall"
+      ],
+      "autumn": [
+        "decal_grass_autumn",
+        "decal_reeds",
+        "decal_grass_autumn"
+      ],
+      "late": [
+        "decal_grass_autumn",
+        "decal_frost_grass"
+      ],
+      "winter": [
+        "decal_frost_grass"
+      ]
+    },
+    "flowers": {
+      "summer": [
+        "decal_flowers_white",
+        "decal_flowers_mix"
+      ]
+    },
+    "leaves": {
+      "autumn": [
+        "decal_leaves_red",
+        "decal_leaves_yellow"
+      ],
+      "late": [
+        "decal_leaves_red"
+      ]
+    },
+    "snow": {
+      "late": [
+        "decal_snow_s"
+      ],
+      "winter": [
+        "decal_snow_s",
+        "decal_snow_l",
+        "decal_ice"
+      ]
+    },
+    "debris": {
+      "summer": [
+        "decal_rocks",
+        "decal_puddle",
+        "decal_crater",
+        "decal_casings",
+        "decal_planks",
+        "decal_tracks"
+      ],
+      "autumn": [
+        "decal_rocks",
+        "decal_crater",
+        "decal_casings",
+        "decal_sandbags",
+        "decal_leaflets",
+        "decal_tracks",
+        "decal_burnt"
+      ],
+      "late": [
+        "decal_rocks",
+        "decal_crater",
+        "decal_ammo_box",
+        "decal_tracks",
+        "decal_burnt"
+      ],
+      "winter": [
+        "decal_rocks",
+        "decal_crater",
+        "decal_ice",
+        "decal_ammo_box",
+        "decal_casings"
+      ],
+      "city": [
+        "decal_bricks",
+        "decal_planks",
+        "decal_leaflets",
+        "decal_burnt",
+        "decal_casings",
+        "decal_sandbags"
+      ]
     }
   }
 }

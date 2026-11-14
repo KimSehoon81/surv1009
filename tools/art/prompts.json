@@ -3016,5 +3016,269 @@
    "px": 56
   },
   "no": 187
+ },
+ {
+  "name": "sprites_items",
+  "phase": "P5",
+  "size": "1024x1024",
+  "transparent": true,
+  "prompt": "Create ONE image with FOUR item sprites for a retro 2D top-down survival game set in the 1950 Korean War.\nART STYLE: hand-pixeled 16-bit arcade sprite art in the spirit of late-1990s 2D run-and-gun games. It must look like a LOW-RESOLUTION sprite enlarged with nearest-neighbor: every art pixel is a crisp, uniform square block (about 2x2 image pixels), aligned to one pixel grid across the whole image. 1-pixel dark-brown outline (#2A1A10) around every shape; cel shading with 3-4 flat tones per material; light from the upper left; small bright highlights; limited palette of about 32 colors for the whole sheet. Forbidden: anti-aliasing, soft gradients, blur, glow bloom, painterly texture, 3D render, photo, text, letters, numbers, logos, watermark, signature.\nNo skulls, no blood, no text or letters. BACKGROUND: real transparent background (PNG alpha), never a painted checkerboard, no floor, no cast ground shadow. If true transparency is impossible, use one flat pure magenta #FF00FF background instead.\nCANVAS: 1:1 square split into an invisible grid of 2 columns x 2 rows; one sprite per cell, centered, filling about 70% of the cell. Each is drawn as a small pixel sprite of the stated size, enlarged; bold dark outline, 3-4 flat tones, readable at its small size. All rows and columns are exactly equal in size and evenly spaced; leave a clear empty gap between neighboring drawings. The grid is invisible: no grid lines, borders, numbers or labels anywhere.\nREADING ORDER (left to right, top to bottom): 1 treasure_chest (48x40-pixel sprite): closed treasure chest: dark wooden planks, rounded lid, three gold bands, big gold lock plate; front view slightly from above; 2 treasure_chest_open (48x48-pixel sprite): the SAME chest with its lid swung open, warm golden light and small sparkles rising from inside (no coins or items visible); 3 supply_crate (44x40-pixel sprite): military airdrop supply crate: olive-drab wooden crate with a stenciled white star, rope cargo net and parachute harness straps on top; 4 magnet_item (32x32-pixel sprite): red horseshoe magnet with silver tips and two small white sparkles.",
+  "post": {
+   "kind": "grid",
+   "cols": 2,
+   "rows": 2,
+   "names": [
+    "treasure_chest",
+    "treasure_chest_open",
+    "supply_crate",
+    "magnet_item"
+   ],
+   "sizes": [
+    [
+     48,
+     40
+    ],
+    [
+     48,
+     48
+    ],
+    [
+     44,
+     40
+    ],
+    [
+     32,
+     32
+    ]
+   ],
+   "folder": "sprites",
+   "alpha": "hard",
+   "anchor": "center"
+  },
+  "no": 188
+ },
+ {
+  "name": "sprites_ruins",
+  "phase": "P5",
+  "size": "1024x1024",
+  "transparent": true,
+  "prompt": "Create ONE image with FOUR ruined-building obstacle sprites for the city stage (Seoul, 1950) of a retro 2D top-down survival game.\nART STYLE: hand-pixeled 16-bit arcade sprite art in the spirit of late-1990s 2D run-and-gun games. It must look like a LOW-RESOLUTION sprite enlarged with nearest-neighbor: every art pixel is a crisp, uniform square block (about 2x2 image pixels), aligned to one pixel grid across the whole image. 1-pixel dark-brown outline (#2A1A10) around every shape; cel shading with 3-4 flat tones per material; light from the upper left; small bright highlights; limited palette of about 32 colors for the whole sheet. Forbidden: anti-aliasing, soft gradients, blur, glow bloom, painterly texture, 3D render, photo, text, letters, numbers, logos, watermark, signature.\nCONTENT RULES: no blood, gore, wounds or corpses (hits are white flashes, sparks and dust); no civilian harm; no real people; factions are shown only by uniform, gear and small flag patches, never by caricatured faces or ethnicity; respectful, heroic arcade tone. Empty, abandoned buildings only: no people, no bodies.\nBACKGROUND: real transparent background (PNG alpha), never a painted checkerboard, no floor, no cast ground shadow. If true transparency is impossible, use one flat pure magenta #FF00FF background instead.\nVIEW: classic 16-bit top-down 3/4 view (seen from the front and above): the ground footprint is the lower part of each sprite, walls rise above it; the bottom edge of every ruin is a clean straight ground line with a little rubble, no cast shadow.\nCANVAS: 1:1 square split into an invisible grid of 2 columns x 2 rows; one ruin per cell, centered, its bottom edge on a shared baseline 8% above the cell bottom, filling about 85% of the cell width. Muted grey-brown brick and concrete colors so units stand out in front. All rows and columns are exactly equal in size and evenly spaced; leave a clear empty gap between neighboring drawings. The grid is invisible: no grid lines, borders, numbers or labels anywhere.\nREADING ORDER (left to right, top to bottom): 1 ruin_1 (112x100-pixel sprite): collapsed one-story brick house: broken roof beams, half-standing front wall with an empty window, rubble along the base; 2 ruin_2 (128x120-pixel sprite): burnt-out two-story concrete building shell: scorch marks, empty window holes, bent bars sticking out at the top; 3 ruin_3 (96x80-pixel sprite): rubble pile: broken bricks, a fallen roof-tile section and splintered timber, one short standing wall stub; 4 ruin_4 (144x96-pixel sprite): wrecked row of shops: cracked plaster walls, a torn awning frame, sandbags stacked in front, no lettering.",
+  "post": {
+   "kind": "grid",
+   "cols": 2,
+   "rows": 2,
+   "names": [
+    "ruin_1",
+    "ruin_2",
+    "ruin_3",
+    "ruin_4"
+   ],
+   "sizes": [
+    [
+     112,
+     100
+    ],
+    [
+     128,
+     120
+    ],
+    [
+     96,
+     80
+    ],
+    [
+     144,
+     96
+    ]
+   ],
+   "folder": "sprites",
+   "alpha": "hard",
+   "anchor": "bottom",
+   "colors": 48
+  },
+  "no": 189
+ },
+ {
+  "name": "decals_1",
+  "phase": "P5",
+  "size": "1024x1024",
+  "transparent": true,
+  "prompt": "Create ONE image with EIGHT small ground decals (summer field) for a retro 2D top-down survival game set in the 1950 Korean War.\nART STYLE: hand-pixeled 16-bit arcade sprite art in the spirit of late-1990s 2D run-and-gun games. It must look like a LOW-RESOLUTION sprite enlarged with nearest-neighbor: every art pixel is a crisp, uniform square block (about 2x2 image pixels), aligned to one pixel grid across the whole image. 1-pixel dark-brown outline (#2A1A10) around every shape; cel shading with 3-4 flat tones per material; light from the upper left, very flat lighting; small bright highlights; limited palette of about 32 colors for the whole sheet. Forbidden: anti-aliasing, soft gradients, blur, glow bloom, painterly texture, 3D render, photo, text, letters, numbers, logos, watermark, signature.\nNo blood, no bodies, no text. BACKGROUND: real transparent background (PNG alpha), never a painted checkerboard, no floor, no cast ground shadow. If true transparency is impossible, use one flat pure magenta #FF00FF background instead.\nVIEW: seen straight down from above (90 degrees), lying flat on the ground like stickers on the battlefield floor; no cast shadows, at most a 1-pixel contact edge; medium-dark, low-contrast colors so characters on top stay readable.\nCANVAS: 1:1 square split into an invisible grid of 4 columns x 2 rows; one decal per cell, centered, filling about 75% of the cell, irregular natural edges (no square tiles). All rows and columns are exactly equal in size and evenly spaced; leave a clear empty gap between neighboring drawings. The grid is invisible: no grid lines, borders, numbers or labels anywhere.\nREADING ORDER (left to right, top to bottom): 1 decal_grass_a (48x40-pixel sprite): small clump of green summer grass; 2 decal_grass_b (48x40-pixel sprite): wider patch of short green grass with a few lighter blades; 3 decal_grass_tall (40x48-pixel sprite): tall green grass tuft with seed heads; 4 decal_flowers_white (48x32-pixel sprite): small cluster of white wildflowers in short grass; 5 decal_flowers_mix (48x32-pixel sprite): small cluster of yellow and pink wildflowers in short grass; 6 decal_rocks (40x28-pixel sprite): three small grey stones half sunk in the soil; 7 decal_puddle (64x32-pixel sprite): shallow muddy puddle reflecting a little sky, wet dark rim; 8 decal_crater (72x48-pixel sprite): old shell crater: shallow dark pit with a ring of loose earth, no fire.",
+  "post": {
+   "kind": "grid",
+   "cols": 4,
+   "rows": 2,
+   "names": [
+    "decal_grass_a",
+    "decal_grass_b",
+    "decal_grass_tall",
+    "decal_flowers_white",
+    "decal_flowers_mix",
+    "decal_rocks",
+    "decal_puddle",
+    "decal_crater"
+   ],
+   "sizes": [
+    [
+     48,
+     40
+    ],
+    [
+     48,
+     40
+    ],
+    [
+     40,
+     48
+    ],
+    [
+     48,
+     32
+    ],
+    [
+     48,
+     32
+    ],
+    [
+     40,
+     28
+    ],
+    [
+     64,
+     32
+    ],
+    [
+     72,
+     48
+    ]
+   ],
+   "folder": "sprites",
+   "alpha": "hard",
+   "anchor": "center",
+   "colors": 32
+  },
+  "no": 190
+ },
+ {
+  "name": "decals_2",
+  "phase": "P5",
+  "size": "1024x1024",
+  "transparent": true,
+  "prompt": "Create ONE image with EIGHT small ground decals (autumn and winter field) for a retro 2D top-down survival game set in the 1950 Korean War.\nART STYLE: hand-pixeled 16-bit arcade sprite art in the spirit of late-1990s 2D run-and-gun games. It must look like a LOW-RESOLUTION sprite enlarged with nearest-neighbor: every art pixel is a crisp, uniform square block (about 2x2 image pixels), aligned to one pixel grid across the whole image. 1-pixel dark-brown outline (#2A1A10) around every shape; cel shading with 3-4 flat tones per material; light from the upper left, very flat lighting; small bright highlights; limited palette of about 32 colors for the whole sheet. Forbidden: anti-aliasing, soft gradients, blur, glow bloom, painterly texture, 3D render, photo, text, letters, numbers, logos, watermark, signature.\nNo blood, no bodies, no text. BACKGROUND: real transparent background (PNG alpha), never a painted checkerboard, no floor, no cast ground shadow. If true transparency is impossible, use one flat pure magenta #FF00FF background instead.\nVIEW: seen straight down from above (90 degrees), lying flat on the ground like stickers on the battlefield floor; no cast shadows, at most a 1-pixel contact edge; medium-dark, low-contrast colors so characters on top stay readable.\nCANVAS: 1:1 square split into an invisible grid of 4 columns x 2 rows; one decal per cell, centered, filling about 75% of the cell, irregular natural edges (no square tiles). All rows and columns are exactly equal in size and evenly spaced; leave a clear empty gap between neighboring drawings. The grid is invisible: no grid lines, borders, numbers or labels anywhere.\nREADING ORDER (left to right, top to bottom): 1 decal_grass_autumn (48x40-pixel sprite): clump of dry golden-brown autumn grass; 2 decal_leaves_red (48x32-pixel sprite): scatter of fallen red and orange maple leaves; 3 decal_leaves_yellow (48x32-pixel sprite): scatter of fallen yellow ginkgo and oak leaves; 4 decal_reeds (40x48-pixel sprite): small stand of dry silver reeds with feathery tops; 5 decal_frost_grass (48x40-pixel sprite): frosted dry grass clump with white rime on the tips; 6 decal_snow_s (64x32-pixel sprite): small flat snow patch with soft lumpy edges and a pale blue shadow on its lower edge; 7 decal_snow_l (96x40-pixel sprite): larger flat snow drift with lumpy edges, a few grass tips poking through, pale blue shadow; 8 decal_ice (72x36-pixel sprite): frozen puddle: pale blue ice with white cracks and a thin snow rim.",
+  "post": {
+   "kind": "grid",
+   "cols": 4,
+   "rows": 2,
+   "names": [
+    "decal_grass_autumn",
+    "decal_leaves_red",
+    "decal_leaves_yellow",
+    "decal_reeds",
+    "decal_frost_grass",
+    "decal_snow_s",
+    "decal_snow_l",
+    "decal_ice"
+   ],
+   "sizes": [
+    [
+     48,
+     40
+    ],
+    [
+     48,
+     32
+    ],
+    [
+     48,
+     32
+    ],
+    [
+     40,
+     48
+    ],
+    [
+     48,
+     40
+    ],
+    [
+     64,
+     32
+    ],
+    [
+     96,
+     40
+    ],
+    [
+     72,
+     36
+    ]
+   ],
+   "folder": "sprites",
+   "alpha": "hard",
+   "anchor": "center",
+   "colors": 32
+  },
+  "no": 191
+ },
+ {
+  "name": "decals_3",
+  "phase": "P5",
+  "size": "1024x1024",
+  "transparent": true,
+  "prompt": "Create ONE image with EIGHT small ground decals (battlefield debris) for a retro 2D top-down survival game set in the 1950 Korean War.\nART STYLE: hand-pixeled 16-bit arcade sprite art in the spirit of late-1990s 2D run-and-gun games. It must look like a LOW-RESOLUTION sprite enlarged with nearest-neighbor: every art pixel is a crisp, uniform square block (about 2x2 image pixels), aligned to one pixel grid across the whole image. 1-pixel dark-brown outline (#2A1A10) around every shape; cel shading with 3-4 flat tones per material; light from the upper left, very flat lighting; small bright highlights; limited palette of about 32 colors for the whole sheet. Forbidden: anti-aliasing, soft gradients, blur, glow bloom, painterly texture, 3D render, photo, text, letters, numbers, logos, watermark, signature.\nNo blood, no bodies, no text. BACKGROUND: real transparent background (PNG alpha), never a painted checkerboard, no floor, no cast ground shadow. If true transparency is impossible, use one flat pure magenta #FF00FF background instead.\nVIEW: seen straight down from above (90 degrees), lying flat on the ground like stickers on the battlefield floor; no cast shadows, at most a 1-pixel contact edge; medium-dark, low-contrast colors so characters on top stay readable.\nCANVAS: 1:1 square split into an invisible grid of 4 columns x 2 rows; one decal per cell, centered, filling about 75% of the cell, irregular natural edges (no square tiles). All rows and columns are exactly equal in size and evenly spaced; leave a clear empty gap between neighboring drawings. The grid is invisible: no grid lines, borders, numbers or labels anywhere.\nREADING ORDER (left to right, top to bottom): 1 decal_burnt (64x40-pixel sprite): scorched black patch of ground with grey ash, no fire; 2 decal_casings (40x24-pixel sprite): scatter of small brass shell casings on the ground; 3 decal_planks (56x32-pixel sprite): broken wooden crate planks lying on the ground; 4 decal_sandbags (56x32-pixel sprite): two or three loose fallen sandbags; 5 decal_tracks (72x32-pixel sprite): short section of tank track marks pressed into mud; 6 decal_leaflets (48x32-pixel sprite): a few scattered blank paper leaflets (no text); 7 decal_ammo_box (40x32-pixel sprite): empty olive-drab ammunition box with an open lid; 8 decal_bricks (48x32-pixel sprite): small scatter of broken red bricks and rubble.",
+  "post": {
+   "kind": "grid",
+   "cols": 4,
+   "rows": 2,
+   "names": [
+    "decal_burnt",
+    "decal_casings",
+    "decal_planks",
+    "decal_sandbags",
+    "decal_tracks",
+    "decal_leaflets",
+    "decal_ammo_box",
+    "decal_bricks"
+   ],
+   "sizes": [
+    [
+     64,
+     40
+    ],
+    [
+     40,
+     24
+    ],
+    [
+     56,
+     32
+    ],
+    [
+     56,
+     32
+    ],
+    [
+     72,
+     32
+    ],
+    [
+     48,
+     32
+    ],
+    [
+     40,
+     32
+    ],
+    [
+     48,
+     32
+    ]
+   ],
+   "folder": "sprites",
+   "alpha": "hard",
+   "anchor": "center",
+   "colors": 32
+  },
+  "no": 192
  }
 ]

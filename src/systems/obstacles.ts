@@ -1,6 +1,7 @@
 // 장애물(D32): 청크마다 시드로 놓는 폐허 건물(정적) + 적이 세우는 바리케이드(수명·체력). 충돌 판정은 core/obstacles.
 import type * as Phaser from 'phaser';
 import { Depth } from '../config/depth';
+import { manifest } from '../assets/manifest';
 import { chunkObstacles, pointInRect, resolveCircle, segmentHitsRect, type ObstacleLayout, type Rect } from '../core/obstacles';
 
 export interface ObstacleConfig extends ObstacleLayout {
@@ -9,11 +10,13 @@ export interface ObstacleConfig extends ObstacleLayout {
   colors: { body: string; top: string; edge: string };
   /** 윗면 두께 px(입체감) */
   topPx: number;
+  /** 폐허 그림(sprites/ruin_*.png)과 발판 높이 px. 모두 있으면 장애물 크기를 그림에 맞춤 */
+  ruins?: { sprite: string; foot: number }[];
 }
 
 interface Placed {
   rect: Rect;
-  gfx: Phaser.GameObjects.Graphics;
+  gfx: Phaser.GameObjects.Graphics | Phaser.GameObjects.Image;
   barricade: boolean;
 }
 
@@ -26,11 +29,22 @@ export class ObstacleSystem {
   /** 장애물이 하나라도 있는지(없으면 시야 검사를 건너뜀) */
   any = false;
 
+  /** 폐허 그림 키(그림이 모두 있을 때만) */
+  private readonly ruinKeys: string[] = [];
+  private readonly layout: ObstacleConfig | null;
+
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly cfg: ObstacleConfig | null,
     private readonly seed: string,
-  ) {}
+  ) {
+    const ruins = cfg?.ruins ?? [];
+    const specs = ruins.map((r) => manifest.sprite(r.sprite));
+    if (cfg && ruins.length > 0 && specs.every((s) => scene.textures.exists(s.key))) {
+      this.ruinKeys = specs.map((s) => s.key);
+      this.layout = { ...cfg, sizes: ruins.map((r, i) => [Math.max(16, (specs[i]?.width ?? 64) - 8), r.foot]) };
+    } else this.layout = cfg;
+  }
 
   get count(): number {
     let n = this.barricades.length;
@@ -40,7 +54,7 @@ export class ObstacleSystem {
 
   /** 화면 주변 청크 만들기·먼 청크 버리기, 수명 다한 바리케이드 치우기, 깊이 정렬 */
   update(cam: Phaser.Cameras.Scene2D.Camera, nowMs: number): void {
-    const c = this.cfg;
+    const c = this.layout;
     if (c) {
       const x0 = Math.floor(cam.scrollX / c.chunkPx) - 1;
       const y0 = Math.floor(cam.scrollY / c.chunkPx) - 1;
@@ -74,6 +88,9 @@ export class ObstacleSystem {
 
   private place(r: Rect, barricade: boolean): Placed {
     const c = this.cfg;
+    // 폐허 그림: 발판(충돌 사각형) 아래 가운데에 맞춰 세움
+    const ruin = !barricade && r.look !== undefined ? this.ruinKeys[r.look] : undefined;
+    if (ruin) return { rect: r, gfx: this.scene.add.image(r.x + r.w / 2, r.y + r.h, ruin).setOrigin(0.5, 1), barricade };
     const g = this.scene.add.graphics();
     const body = barricade ? 0x6a5030 : hex(c?.colors.body ?? '#4a443c');
     const top = barricade ? 0x8a6a40 : hex(c?.colors.top ?? '#6a6258');

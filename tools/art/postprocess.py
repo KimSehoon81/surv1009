@@ -576,8 +576,10 @@ def _cover(cell, w, h):
 
 
 def process_grid(img, post, out_root, report):
-    """아이콘·오버레이·카드 일러스트: cols x rows 격자, 칸마다 하나의 이미지"""
-    w, h = post["w"], post["h"]
+    """아이콘·오버레이·카드 일러스트: cols x rows 격자, 칸마다 하나의 이미지.
+    sizes(선택) = 칸마다 [가로, 세로], anchor = center | bottom(아래 맞춤: 폐허처럼 바닥선이 있는 그림), colors = 팔레트 색 수"""
+    w, h = post.get("w", 0), post.get("h", 0)
+    sizes = post.get("sizes")
     mode = post.get("alpha", "hard")
     fill = post.get("fill", "contain")
     # 꽉 찬 그림(일러스트·오버레이)은 균등 분할, 투명 배경 아이콘은 빈 곳을 따라 자르고 조각 정리
@@ -587,9 +589,11 @@ def process_grid(img, post, out_root, report):
         smart, removed = extract_cells(img, post["cols"], post["rows"])
         if removed:
             report["info"].append(f"이웃 칸에서 넘어온 조각 {removed}개 제거")
-    pal = PALETTE["card"] if mode == "none" else PALETTE["overlay"] if mode == "steps" else PALETTE["icon"]
+    pal = post.get("colors") or (PALETTE["card"] if mode == "none" else PALETTE["overlay"] if mode == "steps" else PALETTE["icon"])
     outs = []
     for i, name in enumerate(post["names"]):
+        if sizes:
+            w, h = sizes[i]
         r, c = divmod(i, post["cols"])
         cell = smart[r][c] if smart else crop(img, boxes[r][c])
         if fill == "stretch":
@@ -604,7 +608,8 @@ def process_grid(img, post, out_root, report):
             s = min((w - 2) / part.shape[1], (h - 2) / part.shape[0])
             out = np.zeros((h, w, 4), np.uint8)
             small = resize(part, part.shape[1] * s, part.shape[0] * s)
-            paste(out, small, (w - small.shape[1]) // 2, (h - small.shape[0]) // 2)
+            oy = h - small.shape[0] if post.get("anchor") == "bottom" else (h - small.shape[0]) // 2
+            paste(out, small, (w - small.shape[1]) // 2, oy)
         out = quantize(harden_alpha(out, mode), pal)
         if mode == "none":
             sr = seam_ratio(out)

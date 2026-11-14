@@ -122,6 +122,134 @@
     "title_bg": [
       960,
       540
+    ],
+    "treasure_chest": [
+      48,
+      40
+    ],
+    "treasure_chest_open": [
+      48,
+      48
+    ],
+    "supply_crate": [
+      44,
+      40
+    ],
+    "magnet_item": [
+      32,
+      32
+    ],
+    "ruin_1": [
+      112,
+      100
+    ],
+    "ruin_2": [
+      128,
+      120
+    ],
+    "ruin_3": [
+      96,
+      80
+    ],
+    "ruin_4": [
+      144,
+      96
+    ],
+    "decal_grass_a": [
+      48,
+      40
+    ],
+    "decal_grass_b": [
+      48,
+      40
+    ],
+    "decal_grass_tall": [
+      40,
+      48
+    ],
+    "decal_flowers_white": [
+      48,
+      32
+    ],
+    "decal_flowers_mix": [
+      48,
+      32
+    ],
+    "decal_rocks": [
+      40,
+      28
+    ],
+    "decal_puddle": [
+      64,
+      32
+    ],
+    "decal_crater": [
+      72,
+      48
+    ],
+    "decal_grass_autumn": [
+      48,
+      40
+    ],
+    "decal_leaves_red": [
+      48,
+      32
+    ],
+    "decal_leaves_yellow": [
+      48,
+      32
+    ],
+    "decal_reeds": [
+      40,
+      48
+    ],
+    "decal_frost_grass": [
+      48,
+      40
+    ],
+    "decal_snow_s": [
+      64,
+      32
+    ],
+    "decal_snow_l": [
+      96,
+      40
+    ],
+    "decal_ice": [
+      72,
+      36
+    ],
+    "decal_burnt": [
+      64,
+      40
+    ],
+    "decal_casings": [
+      40,
+      24
+    ],
+    "decal_planks": [
+      56,
+      32
+    ],
+    "decal_sandbags": [
+      56,
+      32
+    ],
+    "decal_tracks": [
+      72,
+      32
+    ],
+    "decal_leaflets": [
+      48,
+      32
+    ],
+    "decal_ammo_box": [
+      40,
+      32
+    ],
+    "decal_bricks": [
+      48,
+      32
     ]
   }
 }

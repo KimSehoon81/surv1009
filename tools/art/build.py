@@ -15,7 +15,7 @@ sys.path.insert(0, HERE)
 
 from catalog import build_items  # noqa: E402
 
-MD_GUIDE = """# 압록강 서바이벌 — 그래픽 자동 생성 (112장)
+MD_GUIDE = """# 압록강 서바이벌 — 그래픽 자동 생성 ({TOTAL}장, P1~P5)
 
 **처음 한 번**
 1. OpenAI API 키(`sk-...`)를 준비합니다. 왼쪽 열쇠 아이콘(보안 비밀)에 이름 `OPENAI_API_KEY`로 넣어 두면 매번 붙여넣지 않아도 됩니다(없으면 실행 중 입력칸이 뜹니다).
@@ -32,13 +32,13 @@ MD_GUIDE = """# 압록강 서바이벌 — 그래픽 자동 생성 (112장)
 
 **되돌리기**: 다시 만든 그림이 예전보다 나쁘면 Drive `amnok_art/raw/history`의 이전 파일을 `raw/<항목 이름>.png`로 복사하고 `CONVERT_ONLY`로 실행합니다.
 
-**단계**: `P1`(스테이지 1) → `P2`(스테이지 1~5) → `P3`(나머지), `P4`(2026-11 추가 23장: 다리가 번갈아 나오는 걷기·달리기·질주 시트, 적 외형 변형 6종, 소·호랑이·진돗개·마을 주민). 필요한 것부터 만들어 비용을 나눠 쓸 수 있습니다.
+**단계**: `P1`(스테이지 1) → `P2`(스테이지 1~5) → `P3`(나머지), `P4`(2026-11 추가 23장: 다리가 번갈아 나오는 걷기·달리기·질주 시트, 적 외형 변형 6종, 소·호랑이·진돗개·마을 주민), `P5`(5장 → 32개: 코드가 그리던 보물 상자·자석·보급 상자, 서울 폐허, 바닥 데칼). 필요한 것부터 만들어 비용을 나눠 쓸 수 있습니다.
 """
 
 CELL_SETTINGS = '''#@title 1) 설정 { display-mode: "form" }
 #@markdown 체크하면 새로 만들지 않고, 이미 만든 원본(Drive의 raw)을 최신 변환 규칙으로 다시 변환만 함(API 키·비용 불필요)
 CONVERT_ONLY = False  #@param {type:"boolean"}
-PHASE = "P1"  #@param ["P1", "P2", "P3", "P4", "ALL"]
+PHASE = "P1"  #@param ["P1", "P2", "P3", "P4", "P5", "ALL"]
 #@markdown 특정 항목만 만들 때(쉼표 구분, 예: ally_A01,enemy_E01). 비우면 PHASE 전체
 ONLY = ""  #@param {type:"string"}
 #@markdown 이번 실행에서 새로 만들 최대 장수. 처음엔 1로 시험, 0이면 제한 없음
@@ -391,7 +391,7 @@ def main():
     assert "'''" not in data_json
     data_cell = ('#@title 3) 프롬프트 데이터 (건드리지 마세요) { display-mode: "form" }\n'
                  f"PROMPTS = json.loads(r'''{data_json}''')\n"
-                 'print(len(PROMPTS), "개 항목:", {p: sum(1 for it in PROMPTS if it["phase"] == p) for p in ("P1", "P2", "P3", "P4")})\n')
+                 'print(len(PROMPTS), "개 항목:", {p: sum(1 for it in PROMPTS if it["phase"] == p) for p in ("P1", "P2", "P3", "P4", "P5")})\n')
 
     nb = {
         "nbformat": 4,
@@ -399,7 +399,7 @@ def main():
         "metadata": {"colab": {"provenance": [], "toc_visible": False}, "kernelspec": {"name": "python3", "display_name": "Python 3"},
                      "language_info": {"name": "python"}},
         "cells": [
-            cell(MD_GUIDE, "markdown"),
+            cell(MD_GUIDE.replace("{TOTAL}", str(len(items))), "markdown"),
             cell(CELL_SETTINGS),
             cell(CELL_SETUP),
             cell(data_cell),
@@ -413,7 +413,7 @@ def main():
     with open(os.path.join(HERE, "generate_images.ipynb"), "w", encoding="utf-8") as f:
         json.dump(nb, f, ensure_ascii=False, indent=1)
 
-    phases = {p: sum(1 for it in items if it["phase"] == p) for p in ("P1", "P2", "P3", "P4")}
+    phases = {p: sum(1 for it in items if it["phase"] == p) for p in ("P1", "P2", "P3", "P4", "P5")}
     longest = max(items, key=lambda it: len(it["prompt"]))
     print(f"항목 {len(items)}개 {phases}, 가장 긴 프롬프트 {longest['name']} {len(longest['prompt'])}자")
 

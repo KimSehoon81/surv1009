@@ -9,6 +9,8 @@ export interface Rect {
   h: number;
   /** 부서지는 장애물(바리케이드)의 남은 체력, 없으면 부서지지 않음 */
   hp?: number;
+  /** 폐허 그림 번호(ObstacleLayout.sizes에서 고른 것) */
+  look?: number;
   /** 사라지는 시각(전투 시계 ms), 없으면 영구 */
   untilMs?: number;
 }
@@ -114,6 +116,8 @@ export interface ObstacleLayout {
   clear: number;
   /** 장애물 사이 최소 틈(px) — 끼어 갇히지 않게 */
   gap: number;
+  /** 폐허 그림 발판 [가로, 세로] 목록: 있으면 w·h 범위 대신 이 중에서(그림이 늘어나지 않게) */
+  sizes?: readonly (readonly number[])[];
 }
 
 /** 청크(cx, cy)의 장애물: 같은 시드·청크면 늘 같은 배치(바닥 무늬처럼 스트리밍) */
@@ -123,11 +127,13 @@ export function chunkObstacles(cx: number, cy: number, chunkPx: number, L: Obsta
   const n = lo + Math.floor(rng.next() * (hi - lo + 1));
   const out: Rect[] = [];
   for (let i = 0; i < n * 4 && out.length < n; i++) {
-    const w = L.w[0]! + rng.next() * ((L.w[1] ?? L.w[0]!) - L.w[0]!);
-    const h = L.h[0]! + rng.next() * ((L.h[1] ?? L.h[0]!) - L.h[0]!);
+    const look = L.sizes && L.sizes.length > 0 ? Math.floor(rng.next() * L.sizes.length) : undefined;
+    const pick = look !== undefined ? L.sizes?.[look] : undefined;
+    const w = pick ? (pick[0] ?? 64) : L.w[0]! + rng.next() * ((L.w[1] ?? L.w[0]!) - L.w[0]!);
+    const h = pick ? (pick[1] ?? 48) : L.h[0]! + rng.next() * ((L.h[1] ?? L.h[0]!) - L.h[0]!);
     const x = cx * chunkPx + rng.next() * (chunkPx - w);
     const y = cy * chunkPx + rng.next() * (chunkPx - h);
-    const r: Rect = { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) };
+    const r: Rect = { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h), ...(look !== undefined ? { look } : {}) };
     // 원점 근처 비움, 서로 gap 이상 떨어짐
     if (pushOut(0, 0, L.clear, r)) continue;
     if (out.some((o) => r.x < o.x + o.w + L.gap && o.x < r.x + r.w + L.gap && r.y < o.y + o.h + L.gap && o.y < r.y + r.h + L.gap)) continue;
