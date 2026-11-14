@@ -830,6 +830,31 @@
           "duty": 0.5
         }
       ]
+    },
+    "dash": {
+      "variants": 2,
+      "vary": 0.05,
+      "layers": [
+        {
+          "wave": "noise",
+          "freq": 2400,
+          "freqEnd": 700,
+          "attackMs": 8,
+          "holdMs": 40,
+          "releaseMs": 180,
+          "curve": 2,
+          "volume": 0.7,
+          "lowpassHz": 3200
+        },
+        {
+          "wave": "triangle",
+          "freq": 220,
+          "freqEnd": 440,
+          "releaseMs": 120,
+          "curve": 2,
+          "volume": 0.25
+        }
+      ]
     }
   },
   "cues": {
@@ -1297,6 +1322,19 @@
       "cooldownMs": 150,
       "maxVoices": 1,
       "priority": 2,
+      "center": true
+    },
+    "dash": {
+      "src": "dash",
+      "bus": "sfx",
+      "vol": 0.35,
+      "pitchSt": [
+        0,
+        1
+      ],
+      "cooldownMs": 200,
+      "maxVoices": 1,
+      "priority": 4,
       "center": true
     }
   },

@@ -136,6 +136,7 @@
       "down": "아래로",
       "left": "왼쪽",
       "right": "오른쪽",
+      "sprint": "질주",
       "skillQ": "고급 스킬 Q",
       "skillE": "고급 스킬 E",
       "skillR": "고급 스킬 R",
@@ -173,7 +174,8 @@
       "levelPick1",
       "levelPick2",
       "levelPick3",
-      "levelPick4"
+      "levelPick4",
+      "sprint"
     ]
   },
   "quality": {

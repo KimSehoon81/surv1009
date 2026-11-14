@@ -46,7 +46,8 @@
       "quality.names.normal": "Normal",
       "quality.names.low": "Low",
       "tabs.0.options.9.label": "Restore last good save",
-      "tabs.0.options.9.hint": "If your save looks wrong: go back to the good save from just before the last overwrite (press Enter twice)"
+      "tabs.0.options.9.hint": "If your save looks wrong: go back to the good save from just before the last overwrite (press Enter twice)",
+      "keys.remappable.sprint": "Sprint"
     },
     "guide": {
       "tips.move": "Move with {move} — firing is automatic",
@@ -56,7 +57,8 @@
       "tips.skillReady": "TP is full — press {skill} for your skill",
       "tips.firstSeal": "{seal} submits with a seal = guaranteed success",
       "tips.firstMinus": "Minus card: alone it is discarded for OP 3, inside a combo it is a gamble",
-      "tips.firstDisruption": "Disruptions fade with time or when their source is killed; Comms Restore clears them at once"
+      "tips.firstDisruption": "Disruptions fade with time or when their source is killed; Comms Restore clears them at once",
+      "tips.sprint": "{sprint}: 1-second sprint — briefly invulnerable, break out of encirclement"
     },
     "meta": {
       "tips.boss": "Focus fire during the boss's 3-second op-card charge to cancel it and expose a weak point",

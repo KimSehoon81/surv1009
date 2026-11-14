@@ -85,7 +85,8 @@ export class HudScene extends Phaser.Scene {
         .replace(/\{submit\}/g, buttonLabel('cardSubmit'))
         .replace(/\{seal\}/g, sealLabel())
         .replace(/\{skill\}/g, buttonLabel('skillQ'))
-        .replace(/\{move\}/g, lastDevice() === 'pad' ? t('buttons.leftStick') : 'WASD'),
+        .replace(/\{move\}/g, lastDevice() === 'pad' ? t('buttons.leftStick') : 'WASD')
+        .replace(/\{sprint\}/g, buttonLabel('sprint')),
     );
   private readonly onWarn = (msg: string, inSec: number, kind?: string) => {
     this.warn = { msg, untilMs: this.battle.clock.timeMs + inSec * 1000, boss: kind === 'boss' };
@@ -207,6 +208,7 @@ export class HudScene extends Phaser.Scene {
     this.bossInfo = this.add.text(LOGICAL_WIDTH / 2, 142, '', { ...textStyle(12, '#ffe14d'), stroke: '#1a1410', strokeThickness: 3 }).setOrigin(0.5).setVisible(false);
     this.hpBar = this.add.graphics();
     this.add.bitmapText(12, 28, PIXEL_FONT, 'HP', 7).setLetterSpacing(-1).setScale(2);
+    this.sprintLabel = this.add.text(64, 40, '', { ...uiText(11, '#7fd8ff'), stroke: '#0a0604', strokeThickness: 3 });
     this.guideText = this.add
       .text(LOGICAL_WIDTH / 2, 120, '', { ...textStyle(14, '#ffe14d'), backgroundColor: '#000000c0', padding: { x: 10, y: 5 } })
       .setOrigin(0.5)
@@ -414,6 +416,8 @@ export class HudScene extends Phaser.Scene {
   }
 
   /** 좌상단 체력(Lv·경험치 아래) */
+  private sprintLabel!: Phaser.GameObjects.Text;
+
   private drawHp(): void {
     const p = this.battle.player;
     const g = this.hpBar.clear();
@@ -424,6 +428,14 @@ export class HudScene extends Phaser.Scene {
     g.fillStyle(0x1a1410, 0.9).fillRect(x - 1, y - 1, w + 2, 8);
     g.fillStyle(0x5a2020, 1).fillRect(x, y, w, 6);
     g.fillStyle(k > 0.3 ? 0x6fd06f : 0xff5040, 1).fillRect(x, y, Math.round(w * k), 6);
+    // 질주 게이지(체력 아래): 차오르는 동안 흐린 청록, 준비되면 밝게 깜빡
+    const s = this.battle.sprintGauge;
+    const sx = x + 64;
+    const sy = y + 12;
+    const ready = s >= 1;
+    g.fillStyle(0x1a1410, 0.9).fillRect(sx - 1, sy - 1, 82, 6);
+    g.fillStyle(ready ? 0x7fd8ff : 0x3a6a80, ready ? 0.75 + 0.25 * Math.abs(Math.sin(this.time.now / 220)) : 1).fillRect(sx, sy, Math.round(80 * s), 4);
+    this.sprintLabel.setText(t('hud.sprint', { key: buttonLabel('sprint') })).setAlpha(ready ? 1 : 0.6);
   }
 
   /** 가이드 팁 한 줄씩(대기열) */

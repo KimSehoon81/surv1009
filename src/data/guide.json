@@ -1,5 +1,5 @@
 {
-  "$comment": "첫 플레이 가이드(PRD §5.2 v0.2). tips=상황 ID → 한 줄 문구(나중 i18n 대상), 처음 그 상황이 생길 때 한 번만. moveAtSec=이동 팁 시각, firstCardAtSec=첫 카드 팁 시각. practicePair=첫 판 첫 손패에 넣는 공군+정보 짝(정밀 폭격), 이 카드가 들어간 첫 제출은 확정 성공(연습). showMs=팁 표시 시간. 이미 그 행동을 했으면(카드 제출·Q 사용) 팁을 건너뜀, 레벨업 창이 열린 동안은 팁을 미룸. 저장 키: guide(enabled·seen), profile.firstRunDone stageIntroMs(단순성 점검)=전투 시작 때 지역·목표 배너 표시 시간(매 판, 안내 설정과 무관). 문구의 {move}·{submit}·{seal}·{skill}은 HUD가 지금 장치(키보드·패드)의 버튼 이름으로 바꿈(D43).",
+  "$comment": "첫 플레이 가이드(PRD §5.2 v0.2). tips=상황 ID → 한 줄 문구(나중 i18n 대상), 처음 그 상황이 생길 때 한 번만. moveAtSec=이동 팁 시각, firstCardAtSec=첫 카드 팁 시각. practicePair=첫 판 첫 손패에 넣는 공군+정보 짝(정밀 폭격), 이 카드가 들어간 첫 제출은 확정 성공(연습). showMs=팁 표시 시간. 이미 그 행동을 했으면(카드 제출·Q 사용) 팁을 건너뜀, 레벨업 창이 열린 동안은 팁을 미룸. 저장 키: guide(enabled·seen), profile.firstRunDone stageIntroMs(단순성 점검)=전투 시작 때 지역·목표 배너 표시 시간(매 판, 안내 설정과 무관). 문구의 {move}·{submit}·{seal}·{skill}은 HUD가 지금 장치(키보드·패드)의 버튼 이름으로 바꿈(D43). sprintAtSec·sprint(2026-11-14)=질주 안내 시각·문구({sprint}는 지금 장치의 질주 버튼).",
   "moveAtSec": 5,
   "firstCardAtSec": 12,
   "showMs": 4500,
@@ -15,7 +15,9 @@
     "skillReady": "TP가 찼다 — {skill}로 고급 스킬 발동",
     "firstSeal": "{seal}로 인장 걸고 제출 = 확정 성공",
     "firstMinus": "마이너스 카드: 단독으로 내면 OP 3으로 폐기, 조합에 끼우면 무리수",
-    "firstDisruption": "방해는 시간이 지나거나 원인 적을 처치하면 걷힘, 통신 복구 카드로 즉시 해제"
+    "firstDisruption": "방해는 시간이 지나거나 원인 적을 처치하면 걷힘, 통신 복구 카드로 즉시 해제",
+    "sprint": "{sprint}로 1초 질주 — 처음 잠깐 무적, 포위를 뚫을 때"
   },
-  "stageIntroMs": 4000
+  "stageIntroMs": 4000,
+  "sprintAtSec": 40
 }

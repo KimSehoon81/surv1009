@@ -59,7 +59,8 @@
     "intro": "{n}/10  {region} · {name}\n보스를 격파하면 점령 — Lv {lv} 또는 {time}에 출현",
     "obj": {
       "survive": "목표: 버티며 성장 → 보스 격파 (Lv {lv} 또는 {time} 출현)"
-    }
+    },
+    "sprint": "{key} 질주"
   },
   "card": {
     "reject": {

@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import floorData from '../data/floor.json';
 import spawnData from '../data/spawn.json';
 import combat from '../data/combat.json';
+import { createSprint, sprinting, sprintMul, sprintReady, trySprint, type SprintConfig } from '../core/sprint';
 import feelData from '../data/feel.json';
 import levels from '../data/levels.json';
 import upgradesData from '../data/upgrades.json';
@@ -212,6 +213,10 @@ export class BattleScene extends Phaser.Scene {
   /** 주기 공중 지원(A29): 다음 실행 시각 */
   private nextPeriodicMs = 0;
   private modalClosedFrame = -1;
+  /** 질주(C·패드 왼쪽 스틱): 상태와 먼지·잔상 다음 시각 */
+  sprint = createSprint();
+  private sprintFxAt = 0;
+  private sprintGhostAt = 0;
   private lastInterceptToastMs = -Infinity;
   private debugComboIndex = 0;
   private debugSetIndex = 0;
@@ -573,7 +578,7 @@ export class BattleScene extends Phaser.Scene {
         `xp ${this.run.xp} kills ${this.run.kills} gems ${this.pickups.active} taken ${this.run.damageTaken} blocks ${this.run.blocks}`,
         `feel particles ${this.feel.particles.active}/${this.feel.particles.cap} numbers ${this.feel.numbers.active} combo ${this.feel.combo.count}`,
         `audio ${this.audio.enabled ? `voices ${this.audio.activeVoices} played ${this.audio.played} dropped ${this.audio.dropped}` : 'off'}`,
-        params.debug ? 'J atk K guard L skill U crit O slow C char V grenade I god B big-kill N lvl F2 300 foes F3 card F4 combo F5 elite F6 speed F7 slots F8 flip F9 NPC Esc pause' : '',
+        params.debug ? 'J atk K guard L skill U crit O slow F10 char V grenade I god B big-kill N lvl F2 300 foes F3 card F4 combo F5 elite F6 speed F7 slots F8 flip F9 NPC Esc pause' : '',
       ].filter(Boolean);
     });
 
@@ -685,6 +690,7 @@ export class BattleScene extends Phaser.Scene {
     this.perf.start();
     this.autoQuality(delta);
 
+    this.sprintTick(now);
     p.update(this.controls, dt, now, scale);
     const cam = this.cameras.main;
     // 장애물: 화면 주변 청크 준비 → 플레이어 밀어내기(벽 따라 미끄러짐은 이동 입력이 이어지며 자연히)
@@ -1220,6 +1226,7 @@ export class BattleScene extends Phaser.Scene {
     const t = now / 1000;
     const hand = this.cards.state.hand;
     if (t >= guideData.moveAtSec) this.tip('move');
+    if (t >= guideData.sprintAtSec) this.tip('sprint');
     if (t >= guideData.firstCardAtSec && hand.length > 0) {
       if (this.cards.state.stats.submits > 0) this.guide.skip('firstCard');
       else this.tip('firstCard');
@@ -1535,6 +1542,42 @@ export class BattleScene extends Phaser.Scene {
       c.submit(false, this.time.now);
     }
     if (now >= params.autoSec * 1000) this.defeat();
+  }
+
+  /** 질주: 1초 빨리 달리기(처음 잠깐 무적), 먼지·잔상, 재사용 대기(combat.json sprint) */
+  private sprintTick(now: number): void {
+    const cfg = combat.sprint as SprintConfig;
+    const p = this.player;
+    const free = !this.run.defeated && !this.run.captured && !this.clock.hasScale('pause') && !this.progression.isOpen && !this.modalOpen;
+    if (this.controls.justDown('sprint') && free) {
+      const r = trySprint(this.sprint, now, cfg);
+      if (r.ok) {
+        this.sprint = r.state;
+        p.invulnUntilMs = Math.max(p.invulnUntilMs, now + cfg.invulnMs);
+        this.audio.play('dash');
+        this.guide.skip('sprint');
+        this.sprintFxAt = now;
+        this.sprintGhostAt = now;
+      } else this.audio.play('skill_denied');
+    }
+    p.sprintMul = sprintMul(this.sprint, now, cfg);
+    if (!sprinting(this.sprint, now, cfg) || !p.isMoving) return;
+    if (now >= this.sprintFxAt) {
+      this.sprintFxAt = now + combat.sprint.dustEveryMs;
+      this.fx.play('dust', p.x - p.facing * 10, p.y - 4, 0.45);
+    }
+    if (now >= this.sprintGhostAt) {
+      // 잔상: 지금 프레임을 반투명 파랑으로 남겨 사라지게
+      this.sprintGhostAt = now + combat.sprint.ghostEveryMs;
+      const s = p.sprite;
+      const ghost = this.add.image(s.x, s.y, s.texture.key, s.frame.name).setOrigin(s.originX, s.originY).setFlipX(s.flipX).setTint(0x7fd8ff).setAlpha(0.45).setDepth(Depth.Player - 1);
+      this.tweens.add({ targets: ghost, alpha: 0, duration: combat.sprint.ghostMs, onComplete: () => ghost.destroy() });
+    }
+  }
+
+  /** HUD 질주 게이지(0~1, 1 = 준비됨) */
+  get sprintGauge(): number {
+    return sprintReady(this.sprint, this.clock.timeMs, combat.sprint as SprintConfig);
   }
 
   pickUpgrade(index: number): void {

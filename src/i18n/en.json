@@ -59,7 +59,8 @@
     "intro": "{n}/10  {region} · {name}\nDefeat the boss to capture — it appears at Lv {lv} or {time}",
     "obj": {
       "survive": "Goal: grow, then beat the boss (Lv {lv} or {time})"
-    }
+    },
+    "sprint": "{key} Sprint"
   },
   "card": {
     "reject": {

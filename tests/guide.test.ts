@@ -21,8 +21,8 @@ const hand = (ids: string[]) => {
 };
 
 describe('첫 플레이 가이드', () => {
-  it('PRD §5.2의 팁 8개, 상황마다 처음 한 번만, 저장으로 넘김', () => {
-    expect(Object.keys(guideData.tips)).toHaveLength(8);
+  it('PRD §5.2의 팁 8개 + 질주 안내 1개, 상황마다 처음 한 번만, 저장으로 넘김', () => {
+    expect(Object.keys(guideData.tips)).toHaveLength(9);
     let saved: GuideState | null = null;
     const g = new Guide(guideData.tips, { enabled: true, seen: [] }, (s) => (saved = s));
     expect(g.trigger('move')).toBe(guideData.tips.move);
@@ -30,7 +30,7 @@ describe('첫 플레이 가이드', () => {
     expect(saved).toEqual({ enabled: true, seen: ['move'] });
     const again = new Guide(guideData.tips, saved as unknown as GuideState, () => undefined);
     expect(again.trigger('move')).toBeNull();
-    expect(again.progress).toEqual({ seen: 1, total: 8 });
+    expect(again.progress).toEqual({ seen: 1, total: 9 });
   });
 
   it('이미 스스로 한 행동은 팁 없이 본 것으로(뒤늦은 안내 없음)', () => {
