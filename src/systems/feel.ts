@@ -90,6 +90,8 @@ export interface HitOptions {
   dirY?: number;
   /** 데미지 숫자 */
   amount?: number;
+  /** 숫자 대신 띄울 글자(다중 처치 X5 등) */
+  label?: string;
   /** 연출 기준점의 지면 좌표 y(입자·데칼용). 없으면 y */
   groundY?: number;
 }
@@ -221,7 +223,7 @@ export class Feel {
       const mul = KB_BY_TIER[opt.target.tier] ?? 1;
       startKnockback(opt.target.kb, dirX, dirY, p.knockbackPx * mul, p.knockbackMs);
     }
-    if (p.number && visible) this.numbers.show(p.number, x, y - 6, opt.amount, opt.target);
+    if (p.number && visible) this.numbers.show(p.number, x, y - 6, opt.label ?? opt.amount, opt.target);
     if (full) {
       if (p.sparks) this.particles.emit('spark', x, groundY, p.sparks, height, -dirX, -dirY);
       if (p.smoke) this.particles.emit('smoke', x, groundY, p.smoke, height);

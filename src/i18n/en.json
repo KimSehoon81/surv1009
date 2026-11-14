@@ -87,6 +87,10 @@
       "menu": "Retreat to the main menu",
       "confirm": "Press again to retreat — merit is halved, as in a defeat",
       "hint": "{up}{down} select · {ok} confirm · {back} resume"
+    },
+    "op": {
+      "success": "OPERATION SUCCESS!",
+      "fail": "Operation failed"
     }
   },
   "card": {
@@ -181,7 +185,9 @@
       "company": "COMPANY ROUTED!",
       "battalion": "BATTALION CRUSHED!"
     },
-    "stampSub": "{n} kill streak — card supply"
+    "stampSub": "{n} kill streak — card supply",
+    "multiKill": "MASS KILL ×{n}",
+    "multiKillSub": "Swept them all at once!"
   },
   "prep": {
     "deckErr": {

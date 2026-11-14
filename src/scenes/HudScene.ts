@@ -18,6 +18,7 @@ import { loadProfile } from '../systems/save';
 import guideData from '../data/guide.json';
 import skillsData from '../data/skills.json';
 import cardsData from '../data/cards.json';
+import combosData from '../data/combos.json';
 import enemiesData from '../data/enemies.json';
 import type { Enemy } from '../entities/Enemy';
 import { SkillHud } from '../ui/skillHud';
@@ -126,6 +127,47 @@ export class HudScene extends Phaser.Scene {
     this.achBusyUntil = time + 2600;
   }
 
+  /** 스킬 이름표(컷인 없는 스킬): 왼쪽에서 미끄러져 들어오는 청색 판 + 아이콘·이름, 0.9초 */
+  private readonly onSkillCast = (ev: { name: string; icon: string; key: string }) => {
+    const y = 150;
+    const root = this.add.container(-260, y).setDepth(1090);
+    const label = this.add.text(52, 0, ev.name, { ...uiText(20, '#ffffff'), stroke: '#06202c', strokeThickness: 4 }).setOrigin(0, 0.5);
+    const w = Math.round(label.width) + 70;
+    const g = this.add.graphics();
+    g.fillStyle(0x06141c, 0.9).fillRect(0, -20, w, 40);
+    g.fillStyle(0x7fd8ff, 1).fillRect(0, -20, w, 2).fillRect(0, 18, w, 2).fillRect(w, -20, 4, 40);
+    g.fillStyle(0x2a88b8, 1).fillRect(w + 6, -20, 3, 40).fillRect(w + 11, -20, 2, 40);
+    root.add(g);
+    const iconKey = manifest.image('skills', ev.icon, 32, 32).key;
+    if (this.textures.exists(iconKey)) root.add(this.add.image(26, 0, iconKey));
+    root.add(label);
+    if (ev.key) root.add(this.add.text(w - 8, -10, ev.key, uiText(11, '#7fd8ff')).setOrigin(1, 0.5));
+    this.tweens.add({ targets: root, x: 0, duration: 140, ease: 'Cubic.Out' });
+    this.tweens.add({ targets: root, x: -w - 30, alpha: 0, delay: 900, duration: 200, ease: 'Cubic.In', onComplete: () => root.destroy() });
+  };
+
+  /** 작전 판정 도장: 성공은 금색으로 크게 튀어나오고(작전 이름), 실패는 회색으로 짧게 흔들림 */
+  private readonly onOpResult = (ev: { success: boolean; combo: string | null; card: string | null }) => {
+    const x = LOGICAL_WIDTH / 2;
+    const y = 196;
+    if (!ev.success) {
+      const fail = this.add.text(x, y, t('hud.op.fail'), { ...uiText(20, '#b8b0a0'), stroke: '#1a1410', strokeThickness: 5 }).setOrigin(0.5).setDepth(1080);
+      this.takeStampSlot([fail]);
+      this.tweens.add({ targets: fail, x: x + 4, duration: 40, yoyo: true, repeat: 3 });
+      this.tweens.add({ targets: fail, alpha: 0, y: y + 10, delay: 520, duration: 260, onComplete: () => fail.destroy() });
+      return;
+    }
+    const name = ev.combo
+      ? ((combosData.combos as { id: string; name: string }[]).find((c) => c.id === ev.combo)?.name ?? '')
+      : ((cardsData.cards as Record<string, { name: string }>)[ev.card ?? '']?.name ?? '');
+    const big = this.add.text(x, y, t('hud.op.success'), { ...uiText(30, '#ffd34d'), stroke: '#4a2a00', strokeThickness: 7 }).setOrigin(0.5).setDepth(1080).setScale(2.2).setAlpha(0);
+    const sub = this.add.text(x, y + 30, name, { ...uiText(16, '#fff4c0'), stroke: '#2a1400', strokeThickness: 4 }).setOrigin(0.5).setDepth(1080).setAlpha(0);
+    this.takeStampSlot([big, sub]);
+    this.tweens.add({ targets: big, scale: 1, alpha: 1, duration: 160, ease: 'Back.out' });
+    this.tweens.add({ targets: sub, alpha: 1, duration: 140, delay: 120 });
+    this.tweens.add({ targets: [big, sub], alpha: 0, y: '-=14', delay: 780, duration: 260, onComplete: () => (big.destroy(), sub.destroy()) });
+  };
+
   /** 컷인(F 궁극기): 0.3초 동안 화면 가운데 띠 + 스킬 이름이 실시간으로 지나감 */
   private readonly onCutIn = (name: string) => {
     const ms = skillsData.cutInMs;
@@ -169,6 +211,8 @@ export class HudScene extends Phaser.Scene {
     this.resultPanel = null;
     this.resultMap = null;
     this.pauseMenu = null;
+    this.lowHpGfx = null;
+    this.stampObjs = [];
     this.levelUp = null;
     this.warn = null;
     this.shop = null;
@@ -226,6 +270,8 @@ export class HudScene extends Phaser.Scene {
     this.battle.events.on('warn', this.onWarn);
     this.battle.events.on('boss:spawn', this.onBossSpawn);
     this.battle.events.on('cutin', this.onCutIn);
+    this.battle.events.on('skill:cast', this.onSkillCast);
+    this.battle.events.on('op:result', this.onOpResult);
     this.battle.events.on('achievement', this.onAchievement);
     this.battle.events.on('shop:open', this.onShopOpen);
     this.battle.events.on('chest:open', this.onChestOpen);
@@ -245,6 +291,8 @@ export class HudScene extends Phaser.Scene {
       this.battle.events.off('warn', this.onWarn);
       this.battle.events.off('boss:spawn', this.onBossSpawn);
       this.battle.events.off('cutin', this.onCutIn);
+      this.battle.events.off('skill:cast', this.onSkillCast);
+      this.battle.events.off('op:result', this.onOpResult);
       this.battle.events.off('achievement', this.onAchievement);
       this.battle.events.off('shop:open', this.onShopOpen);
       this.battle.events.off('chest:open', this.onChestOpen);
@@ -285,6 +333,7 @@ export class HudScene extends Phaser.Scene {
 
     this.skillHud.update();
     this.drawHp();
+    this.drawLowHp(time);
     this.drawGuide(time);
     this.drawWarn(time);
     this.drawBoss(time);
@@ -477,10 +526,21 @@ export class HudScene extends Phaser.Scene {
   private readonly onChestOpen = (p: { choices: Choice[]; merit: number }) => this.openChest(p.choices, p.merit);
 
   /** 연속 처치 칭호 도장: 크게 찍혔다가(기울어 튀어나옴) 사라짐 */
+  /** 화면 가운데 도장 자리는 하나(콤보 칭호·다중 처치·작전 판정): 새 도장이 오면 앞의 것을 바로 치움 */
+  private stampObjs: Phaser.GameObjects.Text[] = [];
+  private takeStampSlot(objs: Phaser.GameObjects.Text[]): void {
+    for (const o of this.stampObjs) {
+      this.tweens.killTweensOf(o);
+      o.destroy();
+    }
+    this.stampObjs = objs;
+  }
+
   private readonly onStamp = (title: string, sub: string) => {
     const x = LOGICAL_WIDTH / 2;
     const big = this.add.text(x, 196, title, { ...uiText(34, '#ffd34d'), stroke: '#4a0a00', strokeThickness: 8 }).setOrigin(0.5).setAngle(-6).setScale(2.4).setAlpha(0);
     const small = this.add.text(x, 232, sub, { ...uiText(14, '#ffffff'), stroke: '#2a0a00', strokeThickness: 4 }).setOrigin(0.5).setAlpha(0);
+    this.takeStampSlot([big, small]);
     this.tweens.add({ targets: big, scale: 1, alpha: 1, duration: 220, ease: 'Back.out' });
     this.tweens.add({ targets: small, alpha: 1, duration: 200, delay: 150 });
     this.tweens.add({ targets: [big, small], alpha: 0, y: '-=20', duration: 400, delay: 1300, onComplete: () => (big.destroy(), small.destroy()) });
@@ -602,6 +662,32 @@ export class HudScene extends Phaser.Scene {
 
   /** 좌상단 체력(Lv·경험치 아래) */
   private sprintLabel!: Phaser.GameObjects.Text;
+
+  private lowHpGfx: Phaser.GameObjects.Graphics | null = null;
+
+  /** 체력이 낮으면 화면 가장자리가 붉게 맥박(위험을 숫자보다 먼저 느끼게). 점멸 강도 설정을 따름 */
+  private drawLowHp(time: number): void {
+    const b = this.battle;
+    const p = b.player;
+    const L = feelData.lowHp;
+    const on = p.hp > 0 && p.hp / p.maxHp < L.ratio && !b.result && !b.run.captured && b.feel.intensity.flash > 0;
+    if (!on) {
+      this.lowHpGfx?.setVisible(false);
+      return;
+    }
+    this.lowHpGfx ??= this.add.graphics().setDepth(-2);
+    const g = this.lowHpGfx.setVisible(true).clear();
+    // 체력이 낮을수록 빠르고 진하게
+    const danger = 1 - p.hp / p.maxHp / L.ratio;
+    const pulse = 0.5 + 0.5 * Math.sin(time / (L.pulseMs * (1 - 0.4 * danger)) * Math.PI * 2);
+    const a = ((L.alpha[0] ?? 0.1) + ((L.alpha[1] ?? 0.4) - (L.alpha[0] ?? 0.1)) * pulse) * b.feel.intensity.flash;
+    const col = parseColor(L.color);
+    for (let i = 0; i < 3; i++) {
+      const t = Math.round((L.edgePx * (3 - i)) / 3) * 2;
+      g.fillStyle(col, a / 3);
+      g.fillRect(0, 0, LOGICAL_WIDTH, t).fillRect(0, LOGICAL_HEIGHT - t, LOGICAL_WIDTH, t).fillRect(0, t, t, LOGICAL_HEIGHT - 2 * t).fillRect(LOGICAL_WIDTH - t, t, t, LOGICAL_HEIGHT - 2 * t);
+    }
+  }
 
   private drawHp(): void {
     const p = this.battle.player;

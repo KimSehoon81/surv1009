@@ -53,6 +53,8 @@ import { damageTakenMult } from '../core/enemyAttack';
 import { runEffect, type Params } from '../systems/effects';
 import { SupportSystem } from '../systems/support';
 import { AmbientSystem } from '../systems/ambient';
+import { KillGhosts } from '../systems/killGhosts';
+import { killCenter, newMultiKill, registerKill } from '../core/multiKill';
 import terrainData from '../data/terrain.json';
 import { hashString } from '../core/rng';
 import { inStream, type TerrainCfg } from '../core/terrain';
@@ -130,6 +132,7 @@ const HIT = { blockK: combat.blockK, blockReduction: combat.blockReduction, maxB
 
 /** 전투 씬: 플레이어·적·무기·투사체·경험치·피격·전사. 시간은 전부 전투 시계(clock) 기준 */
 const WEB = webJson as unknown as WebData;
+const MULTI = feelData.multiKill;
 /** 결과 화면의 숙련(성장 지도) 줄 */
 export interface Mastery {
   gain: number;
@@ -208,6 +211,20 @@ export class BattleScene extends Phaser.Scene {
   private terrain: TerrainCfg | undefined;
   private terrainSeed = 0;
   private wadeUntil = -Infinity;
+  /** 처치 잔상(맞은 방향으로 날아가며 사라짐)과 다중 처치 묶음 */
+  private ghosts!: KillGhosts;
+  private multi = newMultiKill();
+  private killDir = { x: 0, y: 0 };
+  private multiStep = 0;
+
+  /** 이번 프레임에 닿은 가장 높은 다중 처치 단계의 연출(묶음 가운데, 'X12' 표시, 큰 단계는 HUD 도장) */
+  private flushMultiKill(): void {
+    const step = this.multiStep;
+    this.multiStep = 0;
+    const c = killCenter(this.multi);
+    this.feel.hit(MULTI.presets[step - 1] ?? '', c.x, c.y - combat.bodyOffsetY - 14, { label: `X${this.multi.count}`, groundY: c.y });
+    if (step >= MULTI.stampFrom) this.events.emit('stamp', t('battle.multiKill', { n: this.multi.count }), t('battle.multiKillSub'));
+  }
   /** 주변 생활(소·호랑이·개·주민): 폭발이 가까우면 떠나 사라짐 */
   ambient!: AmbientSystem;
   /** 보물 상자 열기 연출 중(전투 정지) */
@@ -374,7 +391,8 @@ export class BattleScene extends Phaser.Scene {
         holdCards: () => (battle.effects?.canClearDisruption() ? [] : CARD_DATA.rules.holdWithoutDisruption ?? []),
         onResult: (success, judged) => {
           battle.onJudged(success, judged);
-          battle.feel.hit(success ? 'card_success' : 'card_fail', battle.player.x, battle.player.y - combat.bodyOffsetY);
+          battle.feel.hit(success ? 'card_success' : 'card_fail', battle.player.x, battle.player.y - combat.bodyOffsetY, { groundY: battle.player.y });
+          battle.events.emit('op:result', { success, combo: judged?.combo ?? null, card: judged?.cards[0]?.id ?? null });
           if (!success) battle.tip('firstFail');
         },
         onEffect: (ev) => {
@@ -491,6 +509,10 @@ export class BattleScene extends Phaser.Scene {
     this.chests = new ChestSystem(this);
     this.magnets?.destroy();
     this.magnets = new MagnetDrops(this);
+    this.ghosts?.destroy();
+    this.ghosts = new KillGhosts(this);
+    this.multi = newMultiKill();
+    this.multiStep = 0;
     this.ambient?.destroy();
     this.ambient = new AmbientSystem(this, this.payload.stage, `${params.seed ?? 'run'}:${this.payload.stage}`);
     this.chestOpen = false;
@@ -798,6 +820,8 @@ export class BattleScene extends Phaser.Scene {
       this.run.xp += gained;
       this.perf.lap('combat');
       const chest = this.chests.update(now, p);
+      this.ghosts.update(now);
+      if (this.multiStep > 0) this.flushMultiKill();
       this.ambient.update(now, dt, p, this.cameras.main);
       // 개울 건너기: 물 위면 잠깐 느려짐(지형 감속 태그라 산악병 등 면역이면 무시), 언 개울은 그대로
       const tr = this.terrain;
@@ -902,6 +926,8 @@ export class BattleScene extends Phaser.Scene {
     this.fireTriggers(res.crit ? 'crit' : 'hit', e.x, e.y);
     if (res.crit) this.fireTriggers('hit', e.x, e.y);
     if (e.hp <= 0) {
+      this.killDir.x = dirX;
+      this.killDir.y = dirY;
       this.finishEnemy(e);
       return;
     }
@@ -916,6 +942,15 @@ export class BattleScene extends Phaser.Scene {
     this.pickups.drop(e.x, e.y, e.def.xp, this.clock.timeMs);
     this.feel.kill(tier, e.x, e.y - combat.bodyOffsetY, { groundY: e.y });
     this.feel.forget(e.sprite);
+    // 잔상: 맞은 방향으로 튕겨 날아가며 사라짐(일반 적, 화면 안에서만)
+    const now = this.clock.timeMs;
+    if (KillGhosts.wants(tier) && this.cameras.main.worldView.contains(e.x, e.y)) this.ghosts.launch(e.sprite, this.killDir.x, this.killDir.y, now);
+    this.killDir.x = 0;
+    this.killDir.y = 0;
+    // 다중 처치: 짧은 시간에 이어진 처치가 단계에 닿으면 묶음 가운데에서 한 번 더 터뜨림
+    // (한 프레임에 여러 단계를 넘으면 가장 높은 단계만, 프레임 끝에 한 번: flushMultiKill)
+    const step = registerKill(this.multi, now, e.x, e.y, MULTI);
+    if (step > this.multiStep) this.multiStep = step;
     this.enemies.kill(e);
     this.run.kills++;
     this.fireTriggers('kill', e.x, e.y);
@@ -1117,6 +1152,9 @@ export class BattleScene extends Phaser.Scene {
     }
     this.timelines.play(r.def.timeline as string, this.player.stats.allyPower);
     this.player.trigger('skill', now);
+    // 발동 순간: 발밑 충격 고리·방사 줄기·청색 섬광(feel.json skill_cast), 컷인 없는 스킬은 HUD 이름표
+    this.feel.hit(r.def.cutIn ? 'skill_cast_big' : 'skill_cast', this.player.x, this.player.y - combat.bodyOffsetY, { groundY: this.player.y });
+    if (!r.def.cutIn) this.events.emit('skill:cast', { name: r.def.name, icon: r.def.icon ?? '', key: this.skills.slots[i]?.key ?? '' });
     this.achEvent({ type: 'skill', id: this.skills.slots[i]?.skillId ?? '' });
     this.run.skillsUsed++;
     this.toast(`${r.def.name}!`, '#7fd8ff');
@@ -1809,6 +1847,8 @@ export class BattleScene extends Phaser.Scene {
     if (!this.progression.choose(index, this.upgradeTarget)) return;
     this.audio.play('select');
     this.clock.resume('levelup');
+    // 강화 순간: 금빛 고리와 피어오르는 빛(강해졌다는 느낌)
+    this.feel.hit('power_up', this.player.x, this.player.y - combat.bodyOffsetY, { groundY: this.player.y });
     this.events.emit('levelupClosed');
   }
 
