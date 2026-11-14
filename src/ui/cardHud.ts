@@ -15,13 +15,14 @@ const COL = Object.fromEntries(Object.entries(cardUi.colors).map(([k, v]) => [k,
 const FLIP = cardUi.flipMs;
 import { prefs } from '../systems/prefs';
 import { t } from '../i18n';
+import { uiText } from './text';
 import { lastDevice } from '../systems/pad';
 import { buttonLabel } from './buttons';
 /** 거부 사유 → i18n card.reject.* (없으면 사유 그대로) */
 const rejectText = (reason: string): string => (reason ? t(`card.reject.${reason}`) : '');
 
 const text = (scene: Phaser.Scene, size: number, color = '#ffffff') =>
-  scene.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: `${size}px`, color, resolution: 2 });
+  scene.add.text(0, 0, '', uiText(size, color));
 
 const comboName = (id: string | null | undefined) => CARD_DATA.combos.find((c) => c.id === id)?.name ?? '';
 const cardName = (id: string) => CARD_DATA.cards[id]?.name ?? id;

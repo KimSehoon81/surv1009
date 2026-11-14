@@ -5,8 +5,9 @@ import { AudioSystem, fromFile, type VolumeSettings } from '../systems/audio';
 import { LOGICAL_WIDTH } from '../config/display';
 import { SceneKey } from './keys';
 import { t } from '../i18n';
+import { uiText } from '../ui/text';
 
-const style = (size: number, color = '#e8dcc0'): Phaser.Types.GameObjects.Text.TextStyle => ({ fontFamily: 'monospace', fontSize: `${size}px`, color, resolution: 2 });
+const style = (size: number, color = '#e8dcc0'): Phaser.Types.GameObjects.Text.TextStyle => uiText(size, color);
 
 /**
  * 소리 검수 화면(?gallery=audio): 소리마다 버튼(클릭 = 재생, Shift+클릭 = 10번 연타로 보이스 상한·쿨다운 시험),

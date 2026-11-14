@@ -16,3 +16,9 @@
 | 범위 | 출처 | 라이선스 | 생성 도구 | 날짜 |
 | --- | --- | --- | --- | --- |
 | `public/assets/` 유닛·카드·이펙트·UI | 사용자 제작(AI 생성 파이프라인) | 프로젝트 소유 | `tools/art` Colab 노트북(이미지 생성 API) | 2026-10-10~ |
+
+## 글꼴
+
+| 이름 | 출처 | 라이선스 | 날짜 |
+| --- | --- | --- | --- |
+| 갈무리(Galmuri11·Galmuri14, `public/fonts`) | Lee Minseo(quiple), npm `galmuri` 2.40.3 | SIL OFL 1.1(`public/fonts/Galmuri-OFL.txt`) | 2026-11-14 |

@@ -38,12 +38,7 @@ const BOSS_INTRO = feelData.bossIntro;
 const SHOP_ITEMS = shopData.items as ShopItem[];
 const SHOP_REJECT: Record<string, string> = { soldOut: 'hud.shop.soldOut', merit: 'hud.shop.noMerit', unknown: 'hud.shop.unknown' };
 
-const textStyle = (size: number, color = '#ffffff'): Phaser.Types.GameObjects.Text.TextStyle => ({
-  fontFamily: 'monospace',
-  fontSize: `${size}px`,
-  color,
-  resolution: 2,
-});
+const textStyle = (size: number, color = '#ffffff'): Phaser.Types.GameObjects.Text.TextStyle => uiText(size, color);
 
 /**
  * 전투 위에 겹쳐 도는 화면 고정 UI(PRD §11). 전투 카메라의 줌 펀치·흔들림을 받지 않는다.
