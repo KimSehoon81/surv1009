@@ -107,6 +107,43 @@ export class Progression {
     return out;
   }
 
+  private apply(c: Choice, target: UpgradeTarget): void {
+    const d = c.def;
+    if (d.addWeapon) target.addWeapon(d.addWeapon);
+    if (c.mods.length > 0) {
+      if (d.target === 'player') target.addPlayerMods(c.mods);
+      else if (d.target.startsWith('weapon:')) target.addWeaponMods(d.target.slice('weapon:'.length), c.mods);
+    }
+    if (d.heal) target.heal(d.heal);
+    if (d.pullAll) target.pullAll();
+    if (!c.fallback) this.owned[d.id] = (this.owned[d.id] ?? 0) + 1;
+    this.history.push({ id: d.id, rarity: c.rarity });
+  }
+
+  /**
+   * 보물 상자(2026-11-14): 레벨업 창 없이 n개를 하나씩 바로 뽑아 적용(희귀 이상 가중 rarePlusBonus).
+   * 하나 받을 때마다 보유 수가 바뀌므로 매번 다시 뽑는다(최대 단계 넘김 없음). 레벨업 대기열·전술 칸은 그대로
+   */
+  grant(n: number, target: UpgradeTarget, rarePlusBonus = 0): Choice[] {
+    const got: Choice[] = [];
+    const normal = this.cfg.upgrades.filter((d) => d.kind !== 'tactical' && d.kind !== 'card');
+    for (let i = 0; i < n; i++) {
+      const ctx: RollContext = {
+        count: 1,
+        luck: target.luck,
+        rarePlusBonus: rarePlusBonus + (target.rarePlus ?? 0),
+        valueMultiplier: 1,
+        owned: { ...this.owned },
+        weapons: [...target.weapons],
+      };
+      const c = rollChoices(normal, this.cfg.fallbacks, this.cfg.rarity, ctx, this.rng)[0];
+      if (!c) break;
+      this.apply(c, target);
+      got.push(c);
+    }
+    return got;
+  }
+
   /** 같은 보정으로 다시 뽑기. 횟수가 없으면 false */
   reroll(): boolean {
     if (!this.isOpen || !this.openCtx || this.rerolls <= 0) return false;
@@ -119,16 +156,7 @@ export class Progression {
   choose(index: number, target: UpgradeTarget): Choice | null {
     const c = this.choices?.[index];
     if (!c) return null;
-    const d = c.def;
-    if (d.addWeapon) target.addWeapon(d.addWeapon);
-    if (c.mods.length > 0) {
-      if (d.target === 'player') target.addPlayerMods(c.mods);
-      else if (d.target.startsWith('weapon:')) target.addWeaponMods(d.target.slice('weapon:'.length), c.mods);
-    }
-    if (d.heal) target.heal(d.heal);
-    if (d.pullAll) target.pullAll();
-    if (!c.fallback) this.owned[d.id] = (this.owned[d.id] ?? 0) + 1;
-    this.history.push({ id: d.id, rarity: c.rarity });
+    this.apply(c, target);
     this.pending--;
     // 전술 선택지가 붙은 창을 닫으면(무엇을 골랐든) 슬롯 1개 소모
     if (this.tacticalSlots > 0) this.tacticalSlots--;

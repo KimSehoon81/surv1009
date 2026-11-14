@@ -125,6 +125,20 @@ describe('레벨업 흐름', () => {
   };
   const cfg = { xp: XP, rarity: RARITY, upgrades: DEFS, fallbacks: FALLBACKS, rerolls: 1 };
 
+  it('보물 상자 grant: 창 없이 n개 바로 적용, 레벨업 대기열은 그대로, 최대 단계는 넘지 않음', () => {
+    const p = new Progression(cfg, createRng('chest'));
+    const { t, log } = makeTarget();
+    const got = p.grant(3, t, 0.2);
+    expect(got).toHaveLength(3);
+    expect(p.pending).toBe(0);
+    expect(p.isOpen).toBe(false);
+    expect(p.history).toHaveLength(3);
+    expect(log.length).toBeGreaterThanOrEqual(3);
+    // 많이 받아도 보유 단계는 maxLevel 이하
+    p.grant(60, t);
+    for (const d of DEFS) expect(p.owned[d.id] ?? 0, d.id).toBeLessThanOrEqual(d.maxLevel);
+  });
+
   it('여러 레벨이 쌓이면 하나씩 차례로 열린다', () => {
     const p = new Progression(cfg, createRng('p'));
     const { t } = makeTarget();

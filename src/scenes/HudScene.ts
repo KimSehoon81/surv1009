@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import feelData from '../data/feel.json';
 import levels from '../data/levels.json';
 import upgradesData from '../data/upgrades.json';
+import chestData from '../data/chest.json';
 import { manifest } from '../assets/manifest';
 import { parseColor } from '../core/feel';
 import { describe as describeUpgrade, type Choice } from '../core/upgrades';
@@ -227,6 +228,7 @@ export class HudScene extends Phaser.Scene {
     this.battle.events.on('cutin', this.onCutIn);
     this.battle.events.on('achievement', this.onAchievement);
     this.battle.events.on('shop:open', this.onShopOpen);
+    this.battle.events.on('chest:open', this.onChestOpen);
     this.battle.events.on('boss:judged', this.onBossJudged);
     this.battle.events.on('result', this.onResult);
     this.skillHud = new SkillHud(this, this.battle.skills, () => this.battle.clock.timeMs);
@@ -244,6 +246,8 @@ export class HudScene extends Phaser.Scene {
       this.battle.events.off('cutin', this.onCutIn);
       this.battle.events.off('achievement', this.onAchievement);
       this.battle.events.off('shop:open', this.onShopOpen);
+      this.battle.events.off('chest:open', this.onChestOpen);
+      this.chest = null;
       this.battle.events.off('guide', this.onGuide);
       this.battle.events.off('boss:judged', this.onBossJudged);
       this.battle.events.off('result', this.onResult);
@@ -291,6 +295,7 @@ export class HudScene extends Phaser.Scene {
       else if (enter) b.redeploy();
       else if (toMap) b.toMap();
     } else if (this.shop) this.updateShop();
+    else if (this.chest) this.updateChest(time);
     else if (this.levelUp) this.updateLevelUp(time);
     else this.cardHud.update(time);
     this.controls.endFrame();
@@ -448,6 +453,122 @@ export class HudScene extends Phaser.Scene {
   }
 
   private readonly poiLabels: Phaser.GameObjects.Text[] = [];
+
+  /** 보물 상자 열기(뱀서식): 빛살·금화·뚜껑 → 슬롯 아이콘이 돌다 하나씩 멈춤 → 계속 */
+  private chest: {
+    root: Phaser.GameObjects.Container;
+    rays: Phaser.GameObjects.Graphics;
+    lid: Phaser.GameObjects.Graphics;
+    slots: { icon: Phaser.GameObjects.Image; frame: Phaser.GameObjects.Graphics; name: Phaser.GameObjects.Text; stopAt: number; stopped: boolean; choice: Choice; x: number }[];
+    startReal: number;
+    nextTick: number;
+    prompt: Phaser.GameObjects.Text;
+    done: boolean;
+  } | null = null;
+
+  private readonly onChestOpen = (p: { choices: Choice[]; merit: number }) => this.openChest(p.choices, p.merit);
+
+  private openChest(choices: Choice[], merit: number): void {
+    const now = this.time.now;
+    const root = this.add.container(0, 0).setDepth(50);
+    root.add(this.add.rectangle(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT, 0x08040a, 0.82).setOrigin(0));
+    const rays = this.add.graphics();
+    root.add(rays);
+    const cx = LOGICAL_WIDTH / 2;
+    // 상자 몸통(큰 도트) + 열리는 뚜껑
+    const body = this.add.graphics({ x: cx, y: 190 });
+    body.fillStyle(0x1a0e06, 1).fillRect(-46, -20, 92, 46);
+    body.fillStyle(0x8a4e22, 1).fillRect(-43, -17, 86, 40);
+    body.fillStyle(0xffd34d, 1).fillRect(-43, -17, 86, 5).fillRect(-30, -17, 6, 40).fillRect(24, -17, 6, 40).fillRect(-43, 18, 86, 5);
+    body.fillStyle(0xfff4c0, 1).fillRect(-6, -14, 12, 12);
+    const lid = this.add.graphics({ x: cx, y: 172 });
+    lid.fillStyle(0x1a0e06, 1).fillRoundedRect(-46, -26, 92, 30, 12);
+    lid.fillStyle(0xa85e2a, 1).fillRoundedRect(-43, -23, 86, 24, 10);
+    lid.fillStyle(0xffd34d, 1).fillRect(-30, -23, 6, 24).fillRect(24, -23, 6, 24).fillRect(-43, -2, 86, 4);
+    root.add([body, lid]);
+    this.tweens.add({ targets: lid, y: 130, angle: -14, duration: 380, ease: 'Back.out', delay: 150 });
+    const title = this.add.text(cx, 64, t('hud.chest.title'), { ...uiText(30, '#ffd34d'), stroke: '#3a1206', strokeThickness: 6 }).setOrigin(0.5).setScale(0.4);
+    this.tweens.add({ targets: title, scale: 1, duration: 300, ease: 'Back.out' });
+    root.add(title);
+    // 금화 튀기
+    for (let i = 0; i < 26; i++) {
+      const coin = this.add.rectangle(cx, 180, 4, 4, i % 3 ? 0xffd34d : 0xfff4c0);
+      root.add(coin);
+      const a = -Math.PI / 2 + (Math.random() - 0.5) * 1.6;
+      const sp = 110 + Math.random() * 120;
+      this.tweens.add({ targets: coin, x: cx + Math.cos(a) * sp, y: 180 + Math.sin(a) * sp + 60, alpha: 0, duration: 900 + Math.random() * 400, ease: 'Quad.out', delay: 200 });
+    }
+    // 슬롯: 받을 개수만큼 가로로
+    const n = Math.max(1, choices.length);
+    const gap = 112;
+    const x0 = cx - ((n - 1) * gap) / 2;
+    const icons = (upgradesData.upgrades as { icon: string }[]).map((u) => manifest.image('ui', u.icon, 32, 32).key).filter((k) => this.textures.exists(k));
+    const slots = choices.map((c, i) => {
+      const x = x0 + i * gap;
+      const frame = this.add.graphics();
+      frame.fillStyle(0x140c0a, 0.95).fillRect(x - 44, 262, 88, 88).lineStyle(2, 0x6a5a3a, 1).strokeRect(x - 44, 262, 88, 88);
+      const icon = this.add.image(x, 306, icons[i % Math.max(1, icons.length)] ?? '__DEFAULT').setScale(2);
+      const name = this.add.text(x, 360, '', { ...uiText(12, '#ffffff'), align: 'center', wordWrap: { width: 108 }, stroke: '#0a0604', strokeThickness: 3 }).setOrigin(0.5, 0);
+      root.add([frame, icon, name]);
+      return { icon, frame, name, stopAt: now + chestData.spinMs + i * chestData.stopGapMs, stopped: false, choice: c, x };
+    });
+    const prompt = this.add.text(cx, 470, '', { ...uiText(13, '#f4e4c8'), stroke: '#0a0604', strokeThickness: 3 }).setOrigin(0.5);
+    root.add(prompt);
+    root.add(this.add.text(cx, 228, t('hud.chest.merit', { n: merit }), { ...uiText(13, '#ffd34d'), stroke: '#0a0604', strokeThickness: 3 }).setOrigin(0.5));
+    this.chest = { root, rays, lid, slots, startReal: now, nextTick: now, prompt, done: false };
+  }
+
+  private stopSlot(s: { icon: Phaser.GameObjects.Image; frame: Phaser.GameObjects.Graphics; name: Phaser.GameObjects.Text; stopped: boolean; choice: Choice; x: number }): void {
+    s.stopped = true;
+    const c = s.choice;
+    const rc = RARITY.colors[c.rarity as keyof typeof RARITY.colors] ?? '#ffffff';
+    s.icon.setTexture(manifest.image('ui', c.def.icon, 32, 32).key).setScale(2.6);
+    this.tweens.add({ targets: s.icon, scale: 2, duration: 200, ease: 'Back.out' });
+    s.frame.clear().fillStyle(0x140c0a, 0.95).fillRect(s.x - 44, 262, 88, 88).lineStyle(3, parseColor(rc), 1).strokeRect(s.x - 44, 262, 88, 88);
+    s.name.setText(`${c.def.name}\n${describeUpgrade(c.def, c.mods)}`).setColor(rc);
+    this.battle.audio.play(c.rarity === 'common' ? 'select' : 'judge_success');
+  }
+
+  private updateChest(time: number): void {
+    const ch = this.chest;
+    if (!ch) return;
+    // 빛살: 상자 뒤에서 천천히 도는 금빛 부채꼴
+    const g = ch.rays.clear();
+    const cx = LOGICAL_WIDTH / 2;
+    const rot = (time - ch.startReal) / 1400;
+    for (let k = 0; k < 12; k++) {
+      const a = rot + (k * Math.PI * 2) / 12;
+      g.fillStyle(0xffd34d, 0.08).fillTriangle(cx, 175, cx + Math.cos(a) * 420, 175 + Math.sin(a) * 420, cx + Math.cos(a + 0.12) * 420, 175 + Math.sin(a + 0.12) * 420);
+    }
+    const icons = (upgradesData.upgrades as { icon: string }[]).map((u) => manifest.image('ui', u.icon, 32, 32).key).filter((k) => this.textures.exists(k));
+    const spinning = ch.slots.filter((s) => !s.stopped);
+    if (time >= ch.nextTick && spinning.length > 0 && icons.length > 0) {
+      ch.nextTick = time + chestData.tickMs;
+      for (const s of spinning) s.icon.setTexture(icons[Math.floor(Math.random() * icons.length)] ?? '__DEFAULT');
+      this.battle.audio.play('card_select');
+    }
+    for (const s of spinning) if (time >= s.stopAt) this.stopSlot(s);
+    const pressed = this.controls.justDown('uiConfirm') || this.controls.justDown('redeploy') || this.controls.justDown('cardSubmit') || this.controls.justDown('levelConfirm') || this.chestClicked;
+    this.chestClicked = false;
+    if (!ch.done && ch.slots.every((s) => s.stopped)) {
+      ch.done = true;
+      ch.prompt.setText(t('hud.chest.continue'));
+      this.battle.audio.play('judge_success');
+      ch.root.list[0]?.setInteractive().on('pointerdown', () => (this.chestClicked = true));
+    }
+    if (pressed) {
+      // 도는 중에 누르면 바로 모두 멈춤(성급한 사람용), 다 멈췄으면 닫기
+      if (!ch.done) {
+        for (const s of ch.slots) if (!s.stopped) this.stopSlot(s);
+      } else {
+        ch.root.destroy();
+        this.chest = null;
+        this.battle.closeChest();
+      }
+    }
+  }
+
+  private chestClicked = false;
 
   /** 좌상단 체력(Lv·경험치 아래) */
   private sprintLabel!: Phaser.GameObjects.Text;

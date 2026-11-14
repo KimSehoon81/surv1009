@@ -67,6 +67,11 @@
       "chest": "상자",
       "npc": "NPC",
       "boss": "보스"
+    },
+    "chest": {
+      "title": "보물 상자!",
+      "merit": "전공 +{n}",
+      "continue": "Enter · 클릭: 계속"
     }
   },
   "card": {

@@ -67,6 +67,11 @@
       "chest": "Chest",
       "npc": "NPC",
       "boss": "Boss"
+    },
+    "chest": {
+      "title": "TREASURE CHEST!",
+      "merit": "Merit +{n}",
+      "continue": "Enter · click: continue"
     }
   },
   "card": {

@@ -50,6 +50,9 @@ import { SkillSlots, type CastReject, type SkillDef } from '../core/skills';
 import { damageTakenMult } from '../core/enemyAttack';
 import { runEffect, type Params } from '../systems/effects';
 import { SupportSystem } from '../systems/support';
+import { ChestSystem } from '../systems/chests';
+import chestData from '../data/chest.json';
+import { chestCount, dropsChest, type ChestConfig } from '../core/chest';
 import achievementsData from '../data/achievements.json';
 import { addSeen, applyEvent, emptyAchievements, emptyCodex, type AchievementDef, type AchievementState, type Codex, type GameEvent } from '../core/achievements';
 import { prefs, qualityPreset, type Prefs } from '../systems/prefs';
@@ -184,6 +187,9 @@ export class BattleScene extends Phaser.Scene {
   /** 카드 효과 실행기(예약·예고 마커 포함) */
   effects!: EffectRunner;
   support!: SupportSystem;
+  chests!: ChestSystem;
+  /** 보물 상자 열기 연출 중(전투 정지) */
+  chestOpen = false;
   /** 조합·고급 스킬 연출 타임라인 */
   timelines!: TimelineSystem;
   /** 지뢰(조합 지뢰 살포, D23 적 지뢰) */
@@ -226,6 +232,7 @@ export class BattleScene extends Phaser.Scene {
   private sprinters = new Map<Enemy, { ghostAt: number; started: boolean }>();
   private sprintGfx!: Phaser.GameObjects.Graphics;
   private sprintRng!: Rng;
+  private lootRng!: Rng;
   private lastInterceptToastMs = -Infinity;
   private debugComboIndex = 0;
   private debugSetIndex = 0;
@@ -455,6 +462,10 @@ export class BattleScene extends Phaser.Scene {
     this.sprinters.clear();
     this.sprintGfx = this.add.graphics().setDepth(Depth.Player + 3);
     this.sprintRng = rng.fork('enemySprint');
+    this.lootRng = rng.fork('loot');
+    this.chests?.destroy();
+    this.chests = new ChestSystem(this);
+    this.chestOpen = false;
     this.support?.destroy();
     this.support = new SupportSystem(this, {
       rng: rng.fork('support'),
@@ -750,7 +761,9 @@ export class BattleScene extends Phaser.Scene {
       }
       this.run.xp += gained;
       this.perf.lap('combat');
-      if (this.progression.pending > 0 && !this.progression.isOpen) this.openLevelUp();
+      const chest = this.chests.update(now, p);
+      if (chest) this.openChest(chest.x, chest.y);
+      if (this.progression.pending > 0 && !this.progression.isOpen && !this.chestOpen) this.openLevelUp();
       this.cards.update(dt, time);
       this.skillInput(now);
       this.perf.lap('cards');
@@ -860,6 +873,7 @@ export class BattleScene extends Phaser.Scene {
     this.achEvent({ type: 'kill', tier: e.def.tier, enemy: e.id });
     this.codex = addSeen(this.codex, 'enemies', e.id);
     if (e.def.tier === 'elite') this.run.eliteKills++;
+    if (e !== this.boss && dropsChest(e.def.tier, this.lootRng, chestData as unknown as ChestConfig)) this.chests.spawn(e.x, e.y, this.clock.timeMs);
     if (e === this.boss) this.capture(e.x, e.y);
     // 방해원 처치: 그 적이 건 방해에서 빠지고, 원인이 모두 죽으면 해제
     for (const d of this.disruptions.removeSource(e.uid)) this.toast(t('battle.disruptCleared', { name: DISRUPTION_NAMES[d.type] ?? d.type }), '#7fd8ff');
@@ -1182,6 +1196,7 @@ export class BattleScene extends Phaser.Scene {
     };
     if (this.supply) add(this.supply.x, this.supply.y, 'supply');
     for (const c of this.support.crateSpots()) add(c.x, c.y, 'airdrop');
+    for (const c of this.chests.spots()) add(c.x, c.y, 'chest');
     for (const n of this.npcs.waiting()) add(n.x, n.y, 'npc');
     if (this.boss?.alive) add(this.boss.x, this.boss.y - 40, 'boss');
     return out;
@@ -1411,7 +1426,7 @@ export class BattleScene extends Phaser.Scene {
 
   /** 작전판·상점 창이 열려 있음(전투 정지, 카드·스킬 입력 막음) */
   get modalOpen(): boolean {
-    return this.opsOpen || this.shopOpen;
+    return this.opsOpen || this.shopOpen || this.chestOpen;
   }
 
   /** 전공 상점(N03): 전투를 멈추고 HUD가 창을 그린다 */
@@ -1555,6 +1570,32 @@ export class BattleScene extends Phaser.Scene {
 
   canOpenBoard(): boolean {
     return !this.run.defeated && !this.progression.isOpen && !this.clock.hasScale('pause') && !this.shopOpen;
+  }
+
+  /**
+   * 보물 상자(뱀서식 핵심 보상): 전투를 멈추고 업그레이드 n개(1·3·5)를 바로 적용 + 전공, HUD가 슬롯 연출로 보여 줌.
+   * 닫기는 HUD가 closeChest로
+   */
+  private openChest(x: number, y: number): void {
+    const cfg = chestData as unknown as ChestConfig & { rarePlusBonus: number; merit: number };
+    const n = chestCount(this.lootRng, cfg);
+    const got = this.progression.grant(n, this.upgradeTarget, cfg.rarePlusBonus);
+    updateProfile((d) => {
+      d.merit += cfg.merit;
+    });
+    this.chestOpen = true;
+    this.clock.pause('chest');
+    this.feel.hit('card_success', x, y - 10);
+    this.audio.play('levelup');
+    this.achEvent({ type: 'chest', count: n });
+    this.events.emit('chest:open', { choices: got, merit: cfg.merit });
+  }
+
+  closeChest(): void {
+    if (!this.chestOpen) return;
+    this.chestOpen = false;
+    this.clock.resume('chest');
+    this.modalClosedFrame = this.game.loop.frame;
   }
 
   /** 레벨업 창 열기: 전투 시계만 멈추고(HUD는 계속) 선택지를 HUD로 보낸다 */
