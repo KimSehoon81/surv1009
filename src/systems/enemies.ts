@@ -12,6 +12,10 @@ import { Depth } from '../config/depth';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { Enemy, MAX_ENEMY_RADIUS, isEnemyId, type EnemyId } from '../entities/Enemy';
 import enemyData from '../data/enemies.json';
+import combatData from '../data/combat.json';
+import { enemySprintMul, type EnemySprintConfig } from '../core/enemySprint';
+
+const SPRINT = combatData.enemySprint as unknown as EnemySprintConfig;
 
 /** 종류별 동시 상한(enemies.json maxAlive): 거리를 두는 원거리 적이 판이 길수록 쌓이지 않게 */
 const TYPE_CAP: Partial<Record<string, number>> = Object.fromEntries(
@@ -163,7 +167,7 @@ export class EnemySystem {
         // 빙판 가속(E46, 지형): 계속 움직이면 최대 max배까지, 멈추거나 경직되면 처음부터
         const ice = (e.def as { iceAccel?: { max: number; perSec: number } }).iceAccel;
         if (ice) e.iceMul = mode === 'free' && (dir.x !== 0 || dir.y !== 0) ? Math.min(ice.max, e.iceMul + (ice.perSec * dtMs) / 1000) : 1;
-        const speed = mode === 'dash' ? (e.attacks[e.atk.index]?.speed ?? e.speed) : e.speed * e.iceMul;
+        const speed = mode === 'dash' ? (e.attacks[e.atk.index]?.speed ?? e.speed) : e.speed * e.iceMul * enemySprintMul(e.sprintAtMs, nowMs, SPRINT);
         e.contactMult = mode === 'dash' ? (e.attacks[e.atk.index]?.damage ?? 1) : 1;
         const d = (speed * dtMs) / 1000;
         e.setPosition(e.x + dir.x * d, e.y + dir.y * d);

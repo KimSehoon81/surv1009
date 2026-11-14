@@ -48,6 +48,8 @@ export class Enemy implements Agent {
   readonly kb: Knockback = createKnockback();
   /** 국소 정지(일반 타격 2프레임): 이 시각(전투 시계)까지 넉백·애니메이션이 멈춤 */
   freezeUntilMs = 0;
+  /** 질주 시작 시각(전투 시계 ms, core/enemySprint). 그 전 windupMs는 예고 */
+  sprintAtMs = -Infinity;
   /** 공격 부품(data attacks)과 단계 상태 */
   attacks: readonly AttackSpec[] = [];
   atk: AttackState = createAttackState([], Math.random);
@@ -121,6 +123,7 @@ export class Enemy implements Agent {
     this.stunUntilMs = 0;
     this.kb.ms = 0;
     this.freezeUntilMs = 0;
+    this.sprintAtMs = -Infinity;
     this.anims = anims;
     this.anim = createAnimState(anims.rules, nowMs);
     this.lastKey = '';

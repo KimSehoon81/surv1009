@@ -3,6 +3,7 @@ import floorData from '../data/floor.json';
 import spawnData from '../data/spawn.json';
 import combat from '../data/combat.json';
 import { createSprint, sprinting, sprintMul, sprintReady, trySprint, type SprintConfig } from '../core/sprint';
+import { canSprint, enemySprintPhase, nextSprintSec, pickSprinters, type EnemySprintConfig } from '../core/enemySprint';
 import feelData from '../data/feel.json';
 import levels from '../data/levels.json';
 import upgradesData from '../data/upgrades.json';
@@ -220,6 +221,11 @@ export class BattleScene extends Phaser.Scene {
   sprint = createSprint();
   private sprintFxAt = 0;
   private sprintGhostAt = 0;
+  /** 적 질주: 다음 시각(초)·질주 중인 적·잔상 시각·예고 그림 */
+  private nextEnemySprintSec = 0;
+  private sprinters = new Map<Enemy, { ghostAt: number; started: boolean }>();
+  private sprintGfx!: Phaser.GameObjects.Graphics;
+  private sprintRng!: Rng;
   private lastInterceptToastMs = -Infinity;
   private debugComboIndex = 0;
   private debugSetIndex = 0;
@@ -445,6 +451,10 @@ export class BattleScene extends Phaser.Scene {
       debuffIds: DEBUFF_IDS,
     });
     // 전투 지원 기믹: 보급 투하·우방군 분대(data/support.json)
+    this.nextEnemySprintSec = (combat.enemySprint as unknown as EnemySprintConfig).firstSec;
+    this.sprinters.clear();
+    this.sprintGfx = this.add.graphics().setDepth(Depth.Player + 3);
+    this.sprintRng = rng.fork('enemySprint');
     this.support?.destroy();
     this.support = new SupportSystem(this, {
       rng: rng.fork('support'),
@@ -709,6 +719,7 @@ export class BattleScene extends Phaser.Scene {
     this.autoQuality(delta);
 
     this.sprintTick(now);
+    this.enemySprintTick(now);
     p.update(this.controls, dt, now, scale);
     const cam = this.cameras.main;
     // 장애물: 화면 주변 청크 준비 → 플레이어 밀어내기(벽 따라 미끄러짐은 이동 입력이 이어지며 자연히)
@@ -1599,6 +1610,52 @@ export class BattleScene extends Phaser.Scene {
       const s = p.sprite;
       const ghost = this.add.image(s.x, s.y, s.texture.key, s.frame.name).setOrigin(s.originX, s.originY).setFlipX(s.flipX).setTint(0x7fd8ff).setAlpha(0.45).setDepth(Depth.Player - 1);
       this.tweens.add({ targets: ghost, alpha: 0, duration: combat.sprint.ghostMs, onComplete: () => ghost.destroy() });
+    }
+  }
+
+  /** 적 질주: 아주 가끔 화면 안 돌격형 적 몇이 웅크렸다가('!' 예고) 짧게 빨리 달림(붉은 잔상) */
+  private enemySprintTick(now: number): void {
+    const cfg = combat.enemySprint as unknown as EnemySprintConfig;
+    const g = this.sprintGfx.clear();
+    const sec = now / 1000;
+    const busy = this.run.defeated || this.run.captured || this.clock.hasScale('pause');
+    if (!busy && sec >= this.nextEnemySprintSec) {
+      this.nextEnemySprintSec = nextSprintSec(sec, this.sprintRng, cfg);
+      const v = this.cameras.main.worldView;
+      const cands = this.enemies.pool.active.filter((e) => e.alive && !e.hidden && v.contains(e.x, e.y) && !this.sprinters.has(e) && canSprint(e.def as never, cfg));
+      for (const e of pickSprinters(cands, this.sprintRng, cfg)) {
+        e.sprintAtMs = now + cfg.windupMs;
+        this.sprinters.set(e, { ghostAt: 0, started: false });
+      }
+    }
+    for (const [e, st] of this.sprinters) {
+      const phase = e.alive ? enemySprintPhase(e.sprintAtMs, now, cfg) : 'none';
+      if (phase === 'none') {
+        e.sprite.clearTint();
+        this.sprinters.delete(e);
+        continue;
+      }
+      const head = e.y - e.sprite.displayHeight * 0.62;
+      if (phase === 'windup') {
+        // 예고: 붉게 깜박 + 머리 위 붉은 '!'
+        if (Math.floor(now / 90) % 2 === 0) e.sprite.setTint(0xff7060);
+        else e.sprite.clearTint();
+        g.fillStyle(0x1a0806, 1).fillRect(e.x - 3, head - 1, 7, 15);
+        g.fillStyle(0xff4030, 1).fillRect(e.x - 2, head, 5, 8).fillRect(e.x - 2, head + 10, 5, 3);
+        continue;
+      }
+      if (!st.started) {
+        st.started = true;
+        e.sprite.clearTint();
+        this.fx.play('dust', e.x, e.y - 4, 0.45);
+        this.audio.play('dash', e.x, e.y);
+      }
+      if (now >= st.ghostAt) {
+        st.ghostAt = now + combat.enemySprint.ghostEveryMs;
+        const s = e.sprite;
+        const ghost = this.add.image(s.x, s.y, s.texture.key, s.frame.name).setOrigin(s.originX, s.originY).setFlipX(s.flipX).setTint(0xff5040).setAlpha(0.4).setDepth(s.depth - 1);
+        this.tweens.add({ targets: ghost, alpha: 0, duration: 240, onComplete: () => ghost.destroy() });
+      }
     }
   }
 

@@ -1,5 +1,5 @@
 {
-  "$comment": "전투 공통 수치. playerRadius=플레이어 충돌 반지름(px), bodyOffsetY=발 기준점에서 몸통(조준·명중 지점)까지 위로 거리(px). 방어 확률 = 방어력/(방어력+blockK), 최대 maxBlockChance, 방어 성공 시 피해 −blockReduction(PRD §4.3: −50%). enemyHitStunMs=적 피격 경직(PRD §4.3: 0.15초). pickupCap=경험치 별 동시 상한(넘으면 오래된 것끼리 병합). muzzleOffsetX/Y=발 기준점에서 총구 끝까지(px, 오른쪽 볼 때, A01~A03 공격 프레임 실측 평균). bulletLifeSlack=총알 수명 여유(사거리÷속도×배수), contactSlackPx=접촉 판정 여유, invulnBlinkMs/Alpha=무적 깜빡임 주기·알파, magnetMaxSpeedMul/MinSpeedMul=자석 흡수 최고·최저 속도(pullSpeed 배수) mineCap=동시 지뢰 상한(넘으면 오래된 것부터 제거). minTelegraphMs=적 공격 예고 최소 시간(PRD §6.4: 0.6초). defeatResultMs=전사 후 결과 화면까지(ms), captureSlowmo=보스 처치 점령 슬로모, captureResultMs=점령 후 결과 화면까지(실시간 ms). pickupAutoAttractMs=떨어진 지 이만큼 지난 경험치 별은 거리와 상관없이 날아옴(D16 밸런스: 회피 중심 플레이도 레벨이 오르게). armor=캐릭터 armorType별 받는 피해 배율(공격 종류별: normal 일반, antiTank 대전차포 D23). intercept=방공 적(antiAir)이 화면에 있을 때 항공 타임라인(intercept: true)의 피해 이벤트가 chance 확률로 공중 폭발(피해 ×damageMul, altitude px 위에서 cue) — PRD 밖 수치(E23 방공포병, D25). sprint(2026-11-14 질주)=키 한 번에 durationMs 동안 이동 ×speedMul(끝 easeOutMs는 부드럽게 원래대로), 처음 invulnMs 무적(포위 뚫기), cooldownMs 재사용 대기, dustEveryMs마다 발밑 먼지·ghostEveryMs마다 잔상(ghostMs 동안 사라짐). PRD 밖 기믹(사용자 요청).",
+  "$comment": "전투 공통 수치. playerRadius=플레이어 충돌 반지름(px), bodyOffsetY=발 기준점에서 몸통(조준·명중 지점)까지 위로 거리(px). 방어 확률 = 방어력/(방어력+blockK), 최대 maxBlockChance, 방어 성공 시 피해 −blockReduction(PRD §4.3: −50%). enemyHitStunMs=적 피격 경직(PRD §4.3: 0.15초). pickupCap=경험치 별 동시 상한(넘으면 오래된 것끼리 병합). muzzleOffsetX/Y=발 기준점에서 총구 끝까지(px, 오른쪽 볼 때, A01~A03 공격 프레임 실측 평균). bulletLifeSlack=총알 수명 여유(사거리÷속도×배수), contactSlackPx=접촉 판정 여유, invulnBlinkMs/Alpha=무적 깜빡임 주기·알파, magnetMaxSpeedMul/MinSpeedMul=자석 흡수 최고·최저 속도(pullSpeed 배수) mineCap=동시 지뢰 상한(넘으면 오래된 것부터 제거). minTelegraphMs=적 공격 예고 최소 시간(PRD §6.4: 0.6초). defeatResultMs=전사 후 결과 화면까지(ms), captureSlowmo=보스 처치 점령 슬로모, captureResultMs=점령 후 결과 화면까지(실시간 ms). pickupAutoAttractMs=떨어진 지 이만큼 지난 경험치 별은 거리와 상관없이 날아옴(D16 밸런스: 회피 중심 플레이도 레벨이 오르게). armor=캐릭터 armorType별 받는 피해 배율(공격 종류별: normal 일반, antiTank 대전차포 D23). intercept=방공 적(antiAir)이 화면에 있을 때 항공 타임라인(intercept: true)의 피해 이벤트가 chance 확률로 공중 폭발(피해 ×damageMul, altitude px 위에서 cue) — PRD 밖 수치(E23 방공포병, D25). sprint(2026-11-14 질주)=키 한 번에 durationMs 동안 이동 ×speedMul(끝 easeOutMs는 부드럽게 원래대로), 처음 invulnMs 무적(포위 뚫기), cooldownMs 재사용 대기, dustEveryMs마다 발밑 먼지·ghostEveryMs마다 잔상(ghostMs 동안 사라짐). PRD 밖 기믹(사용자 요청). enemySprint(2026-11-14 적 질주)=firstSec 이후 everySec(±jitter)마다 화면 안 돌격형(behaviors) 일반 적(tiers) count[최소,최대]명이 windupMs 동안 웅크리고(속도 ×windupMul, 머리 위 붉은 '!') durationMs 동안 ×speedMul로 달림(끝 easeOutMs는 부드럽게, 붉은 잔상 ghostEveryMs).",
   "playerRadius": 14,
   "bodyOffsetY": 28,
   "muzzleOffsetX": 40,
@@ -52,5 +52,28 @@
     "dustEveryMs": 70,
     "ghostEveryMs": 90,
     "ghostMs": 260
+  },
+  "enemySprint": {
+    "firstSec": 60,
+    "everySec": 9,
+    "jitter": 0.35,
+    "count": [
+      1,
+      3
+    ],
+    "windupMs": 450,
+    "durationMs": 1000,
+    "speedMul": 2.4,
+    "windupMul": 0.2,
+    "easeOutMs": 250,
+    "ghostEveryMs": 90,
+    "tiers": [
+      "normal"
+    ],
+    "behaviors": [
+      "chase",
+      "flank",
+      "zigzag"
+    ]
   }
 }
