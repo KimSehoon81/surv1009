@@ -1,17 +1,74 @@
 {
-  "$comment": "첫 화면 연출(2026-11-14, ui/warBackdrop): 노을 하늘 띠·해·산 능선 3겹·연기 기둥·폭격기 지나감·참호(모래주머니·철조망)·태극기·능선을 걷는 병사 실루엣·불씨. marchers=걷는 병사 유닛 ID(그림 있는 아군), marchSpeed=px/초, marchGap=간격 px, planeEverySec=폭격기 주기, embers=불씨 수, smokeColumns=연기 기둥 x 위치(논리 px).",
-  "sky": ["#140c26", "#22113a", "#3a1640", "#5c1c3c", "#8a2a34", "#b8422c", "#dc6a30", "#f09a44"],
-  "sun": { "x": 700, "y": 318, "r": 74, "color": "#ffb45a", "stripe": "#c8502a" },
+  "$comment": "첫 화면 연출(2026-11-14, ui/warBackdrop): 노을 하늘 띠·해·산 능선 3겹·참호(모래주머니·철조망)·태극기·능선을 걷는 병사 실루엣·불씨. 전장 표현(비행기는 위에서 본 그림이라 옆으로 나는 게 어색해 뺌): plumes=산 뒤에서 오르는 연기 기둥(x, 크기) + 밑동 불빛, artilleryMs=먼 능선 포격 섬광 간격[최소, 최대], flareEverySec=조명탄 주기, tracerMs=예광탄 연사 간격. marchers=걷는 병사 유닛 ID, marchSpeed=px/초, marchGap=간격 px, embers=불씨 수.",
+  "sky": [
+    "#140c26",
+    "#22113a",
+    "#3a1640",
+    "#5c1c3c",
+    "#8a2a34",
+    "#b8422c",
+    "#dc6a30",
+    "#f09a44"
+  ],
+  "sun": {
+    "x": 700,
+    "y": 318,
+    "r": 74,
+    "color": "#ffb45a",
+    "stripe": "#c8502a"
+  },
   "ridges": [
-    { "base": 336, "amp": 70, "seed": 3, "color": "#4c2040" },
-    { "base": 366, "amp": 52, "seed": 11, "color": "#30152a" },
-    { "base": 404, "amp": 34, "seed": 23, "color": "#1c0e18" }
+    {
+      "base": 336,
+      "amp": 70,
+      "seed": 3,
+      "color": "#4c2040"
+    },
+    {
+      "base": 366,
+      "amp": 52,
+      "seed": 11,
+      "color": "#30152a"
+    },
+    {
+      "base": 404,
+      "amp": 34,
+      "seed": 23,
+      "color": "#1c0e18"
+    }
   ],
   "ground": "#120a0e",
-  "marchers": ["A01", "A02", "A03", "A01", "A02"],
+  "marchers": [
+    "A01",
+    "A02",
+    "A03",
+    "A01",
+    "A02"
+  ],
   "marchSpeed": 26,
   "marchGap": 64,
-  "planeEverySec": 13,
   "embers": 34,
-  "smokeColumns": [180, 410, 820]
+  "plumes": [
+    {
+      "x": 150,
+      "size": 1.0
+    },
+    {
+      "x": 420,
+      "size": 1.35
+    },
+    {
+      "x": 760,
+      "size": 1.15
+    }
+  ],
+  "artilleryMs": [
+    500,
+    1500
+  ],
+  "flareEverySec": 3.2,
+  "tracerMs": [
+    1100,
+    2400
+  ]
 }

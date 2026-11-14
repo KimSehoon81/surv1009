@@ -1,4 +1,4 @@
-// 첫 화면 배경(6·25 전장의 노을): 하늘 띠·해·산 능선·연기·폭격기·참호·태극기·걷는 병사 실루엣·불씨. 수치는 data/title.json
+// 첫 화면 배경(6·25 전장의 노을): 하늘 띠·해·산 능선·연기 기둥·포격 섬광·조명탄·예광탄·참호·태극기·걷는 병사·불씨. 수치는 data/title.json
 import * as Phaser from 'phaser';
 import title from '../data/title.json';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
@@ -35,7 +35,13 @@ export function drawWarBackdrop(scene: Phaser.Scene): void {
   // 산 능선 3겹(먼 것부터). 연기는 가장 먼 능선 바로 앞(뒤 능선들에 아래가 가려짐)
   const front = scene.add.graphics();
   title.ridges.forEach((r, i) => {
-    if (i === 1) animateSmoke(scene);
+    // 가장 먼 능선 뒤에서: 연기 기둥(밑동은 앞 능선에 가려짐)·포격 섬광·조명탄·예광탄
+    if (i === 1) {
+      animatePlumes(scene, title.ridges[0]);
+      animateArtillery(scene, title.ridges[0]);
+      animateFlares(scene);
+      animateTracers(scene, title.ridges[0]);
+    }
     const gg = i === 0 ? g : front;
     gg.fillStyle(col(r.color), 1);
     const pts: Phaser.Types.Math.Vector2Like[] = [{ x: 0, y: H }];
@@ -54,7 +60,6 @@ export function drawWarBackdrop(scene: Phaser.Scene): void {
   gnd.lineStyle(1, 0x6a2a24, 1).strokePoints(gp.slice(1, -1), false);
   drawTrench(gnd);
   drawFlag(scene, gnd);
-  animatePlane(scene);
   animateMarchers(scene);
   animateEmbers(scene);
 }
@@ -107,30 +112,113 @@ function drawFlag(scene: Phaser.Scene, g: Phaser.GameObjects.Graphics): void {
   scene.tweens.add({ targets: f, scaleX: 0.9, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
 }
 
-function animateSmoke(scene: Phaser.Scene): void {
-  for (const sx of title.smokeColumns) {
-    for (let i = 0; i < 10; i++) {
-      const puff = scene.add.circle(sx, 340, 5 + (i % 4) * 2, 0x3a2a30, 0.35);
+type Ridge = { base: number; amp: number; seed: number };
+
+/** 산 뒤에서 피어오르는 굵은 연기 기둥: 밑동은 불빛(깜박), 위로 갈수록 커지고 바람 따라 오른쪽으로 흩어짐 */
+function animatePlumes(scene: Phaser.Scene, far: Ridge | undefined): void {
+  if (!far) return;
+  for (const pl of title.plumes) {
+    const by = ridgeY(pl.x, far.base, far.amp, far.seed) + 8;
+    const glow = scene.add.ellipse(pl.x, by, 46 * pl.size, 20 * pl.size, 0xff7a30, 0.55).setBlendMode(Phaser.BlendModes.ADD);
+    scene.tweens.add({ targets: glow, alpha: 0.25, scaleX: 0.85, duration: 260, yoyo: true, repeat: -1, ease: 'Sine.inOut', delay: Phaser.Math.Between(0, 300) });
+    // 퍼프를 촘촘히(약 0.25초마다) 겹쳐 올려 끊기지 않는 기둥으로
+    const life = 9500;
+    const n = Math.round(38 * pl.size);
+    for (let i = 0; i < n; i++) {
+      const puff = scene.add.circle(pl.x, by, 9 * pl.size, i % 4 === 0 ? 0x553a3a : i % 2 ? 0x2c2228 : 0x3a2c30, 0.6);
       const rise = () => {
-        puff.setPosition(sx + Phaser.Math.Between(-3, 3), 330).setScale(0.7).setAlpha(0.45);
-        scene.tweens.add({ targets: puff, y: 150 + Phaser.Math.Between(-20, 20), x: sx + 70 + Phaser.Math.Between(-15, 15), scale: 3.2, alpha: 0, duration: 11000, onComplete: rise });
+        puff.setPosition(pl.x + Phaser.Math.Between(-6, 6), by + 4).setScale(0.7).setAlpha(0.7);
+        scene.tweens.add({
+          targets: puff,
+          y: by - Phaser.Math.Between(210, 250) * pl.size,
+          x: pl.x + Phaser.Math.Between(70, 110) * pl.size,
+          scale: 3.6 + Math.random() * 0.8,
+          alpha: 0,
+          duration: life + Phaser.Math.Between(-600, 600),
+          ease: 'Quad.in',
+          onComplete: rise,
+        });
       };
-      scene.time.delayedCall(i * 1100, rise);
+      scene.time.delayedCall((i * life) / n, rise);
     }
   }
 }
 
-function animatePlane(scene: Phaser.Scene): void {
-  const key = manifest.fx('bomber').key;
-  if (!scene.textures.exists(key)) return;
-  const fly = () => {
-    const y = Phaser.Math.Between(70, 150);
-    // 역광 실루엣
-    const p = scene.add.image(-80, y, key, 0).setScale(0.32).setTint(0x2a1828).setAlpha(0.9);
-    scene.tweens.add({ targets: p, x: W + 80, y: y - 20, duration: 9000, onComplete: () => p.destroy() });
+/** 먼 능선의 포격 섬광(번쩍 → 작은 연기) */
+function animateArtillery(scene: Phaser.Scene, far: Ridge | undefined): void {
+  if (!far) return;
+  const [lo = 500, hi = 1500] = title.artilleryMs;
+  const fire = () => {
+    const x = Phaser.Math.Between(30, W - 30);
+    const y = ridgeY(x, far.base, far.amp, far.seed) - 2;
+    const flash = scene.add.circle(x, y, Phaser.Math.Between(5, 11), 0xfff0b0, 1).setBlendMode(Phaser.BlendModes.ADD);
+    const halo = scene.add.circle(x, y, 26, 0xffa040, 0.35).setBlendMode(Phaser.BlendModes.ADD);
+    scene.tweens.add({ targets: [flash, halo], alpha: 0, scale: 1.6, duration: 220, onComplete: () => (flash.destroy(), halo.destroy()) });
+    const puff = scene.add.circle(x, y - 4, 5, 0x3a2c30, 0.6);
+    scene.tweens.add({ targets: puff, y: y - 40, scale: 3, alpha: 0, duration: 2600, onComplete: () => puff.destroy() });
+    scene.time.delayedCall(Phaser.Math.Between(lo, hi), fire);
   };
-  scene.time.delayedCall(1200, fly);
-  scene.time.addEvent({ delay: title.planeEverySec * 1000, loop: true, callback: fly });
+  scene.time.delayedCall(400, fire);
+}
+
+/** 조명탄: 하늘에서 흔들리며 천천히 내려오는 밝은 점(빛무리) */
+function animateFlares(scene: Phaser.Scene): void {
+  const drop = () => {
+    const x0 = Phaser.Math.Between(80, W - 80);
+    const y0 = Phaser.Math.Between(40, 100);
+    const halo = scene.add.circle(x0, y0, 22, 0xfff0b0, 0.22).setBlendMode(Phaser.BlendModes.ADD);
+    const core = scene.add.circle(x0, y0, 2.5, 0xffffff, 1);
+    const st = { k: 0 };
+    scene.tweens.add({
+      targets: st,
+      k: 1,
+      duration: 7500,
+      onUpdate: () => {
+        const x = x0 + Math.sin(st.k * 9) * 6;
+        const y = y0 + st.k * 170;
+        const a = st.k < 0.8 ? 1 : (1 - st.k) / 0.2;
+        core.setPosition(x, y).setAlpha(a);
+        halo.setPosition(x, y).setAlpha(0.22 * a * (0.8 + 0.2 * Math.sin(st.k * 60)));
+      },
+      onComplete: () => (core.destroy(), halo.destroy()),
+    });
+  };
+  scene.time.delayedCall(900, drop);
+  scene.time.addEvent({ delay: title.flareEverySec * 1000, loop: true, callback: drop });
+}
+
+/** 예광탄: 능선에서 능선으로 포물선을 그리며 날아가는 붉은·초록 점선 몇 발 */
+function animateTracers(scene: Phaser.Scene, far: Ridge | undefined): void {
+  if (!far) return;
+  const [lo = 1100, hi = 2400] = title.tracerMs;
+  const burst = () => {
+    const fromLeft = Math.random() < 0.5;
+    const x1 = fromLeft ? Phaser.Math.Between(20, 300) : Phaser.Math.Between(W - 300, W - 20);
+    const x2 = x1 + (fromLeft ? 1 : -1) * Phaser.Math.Between(220, 420);
+    const y1 = ridgeY(x1, far.base, far.amp, far.seed);
+    const y2 = ridgeY(x2, far.base, far.amp, far.seed);
+    const h = Phaser.Math.Between(60, 130);
+    const color = Math.random() < 0.6 ? 0xff6a40 : 0x9aff70;
+    const shots = Phaser.Math.Between(3, 5);
+    for (let i = 0; i < shots; i++) {
+      const dot = scene.add.rectangle(x1, y1, 4, 2, color, 1).setBlendMode(Phaser.BlendModes.ADD);
+      const st = { k: 0 };
+      scene.tweens.add({
+        targets: st,
+        k: 1,
+        delay: i * 110,
+        duration: 900,
+        onUpdate: () => {
+          const x = x1 + (x2 - x1) * st.k;
+          const y = y1 + (y2 - y1) * st.k - Math.sin(st.k * Math.PI) * h;
+          dot.setPosition(x, y).setRotation(Math.atan2(y2 - y1 - Math.cos(st.k * Math.PI) * Math.PI * h, x2 - x1));
+        },
+        onComplete: () => dot.destroy(),
+      });
+    }
+    scene.time.delayedCall(Phaser.Math.Between(lo, hi), burst);
+  };
+  scene.time.delayedCall(1500, burst);
 }
 
 /** 앞 능선을 걸어가는 병사 실루엣(걸음 프레임, 역광이라 어둡게) */
