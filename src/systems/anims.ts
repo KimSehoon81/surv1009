@@ -40,13 +40,24 @@ export function registerUnitAnims(scene: Phaser.Scene, id: string): UnitAnims {
     keys[action] = key;
     frames[action] = frameList.length;
   };
+  // 새로 그린 이동 시트(walk·run)가 있으면 예전 이동 동작 대신 그것을 재생(aliases), 그 동작의 걸음 합성은 건너뜀
+  const aliases = (animations as { aliases?: Partial<Record<Faction, Record<string, string>>> }).aliases?.[faction] ?? {};
+  const drawn = new Set(sheets.filter((s) => s.path !== null).map((s) => s.action));
   for (const sheet of sheets) {
     const rule = rules.actions[sheet.action];
     if (!rule) continue;
+    const alt = aliases[sheet.action];
     // 이동은 발이 바뀌어 보이게 걸음 프레임으로(그림 파일이 있을 때만)
-    const st = wantsStride(sheet) ? buildStride(scene, sheet) : null;
+    const st = wantsStride(sheet) && !(alt && drawn.has(alt)) ? buildStride(scene, sheet) : null;
     if (st) add(sheet.action, { ...sheet, key: st.key }, Array.from({ length: st.frames }, (_, i) => i), rule.loop, strideFps(sheet.action, rule.fps));
     else add(sheet.action, sheet, Array.from({ length: sheet.frames }, (_, i) => i), rule.loop, rule.fps);
+  }
+  for (const [action, to] of Object.entries(aliases)) {
+    const k = keys[to];
+    if (k && drawn.has(to)) {
+      keys[action] = k;
+      frames[action] = frames[to] ?? frames[action] ?? 1;
+    }
   }
   const idle = rules.locomotion.idle;
   if (!keys[idle]) {

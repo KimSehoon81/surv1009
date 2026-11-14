@@ -11,6 +11,7 @@ const FACTION_COLOR: Record<Faction, { body: string; dark: string; light: string
   ally: { body: '#2fae9c', dark: '#1d6f64', light: '#8fe3d6' }, // 아군 청록
   enemy: { body: '#c4473b', dark: '#7c2a22', light: '#f0958a' }, // 적 붉은색
   npc: { body: '#d6ae45', dark: '#8a6c22', light: '#f3dc96' }, // 중립 황색
+  critter: { body: '#a88a5a', dark: '#6a5232', light: '#e0c89a' }, // 주변 생활 흙색
 };
 
 type Ctx = CanvasRenderingContext2D;

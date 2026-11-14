@@ -148,14 +148,19 @@ export class Enemy implements Agent {
     this.applyAnim();
   }
 
-  updateAnim(moving: boolean, nowMs: number, timeScale: number): void {
+  updateAnim(moving: boolean, nowMs: number, timeScale: number, sprinting = false): void {
     this.anim = updateAnimState(this.anim, this.anims.rules, { moving, speedRatio: 1 }, nowMs);
+    this.sprinting = sprinting;
     this.applyAnim();
     this.sprite.anims.timeScale = timeScale;
   }
 
+  /** 질주 중(이동 시트 run이 있으면 그것) */
+  private sprinting = false;
+
   private applyAnim(): void {
-    const key = this.anims.keys[this.anim.current];
+    const run = this.sprinting && this.anim.current === 'move' ? this.anims.keys.run : undefined;
+    const key = run ?? this.anims.keys[this.anim.current];
     if (!key) return;
     if (key !== this.lastKey || this.anim.startedMs !== this.lastStart) {
       this.sprite.play(key);

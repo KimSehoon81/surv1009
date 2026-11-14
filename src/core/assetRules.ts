@@ -19,7 +19,7 @@ export interface PngInfo {
 
 type Faction = keyof typeof spec.folders;
 const FACTION_BY_FOLDER = Object.fromEntries(Object.entries(spec.folders).map(([f, d]) => [d, f as Faction])) as Record<string, Faction>;
-const UNIT_FILE = /^([AEN]\d{2})_([a-z_]+?)(_L)?\.png$/;
+const UNIT_FILE = /^([AENW]\d{2})_([a-z_]+?)(_L)?\.png$/;
 
 function sizeIssue(info: PngInfo, w: number, h: number, what: string): Issue[] {
   return info.width === w && info.height === h

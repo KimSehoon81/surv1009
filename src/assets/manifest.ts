@@ -5,7 +5,7 @@
 import spec from '../data/assets.json';
 import availableList from './available.json';
 
-export type Faction = 'ally' | 'enemy' | 'npc';
+export type Faction = 'ally' | 'enemy' | 'npc' | 'critter';
 
 export interface SheetSpec {
   kind: 'sheet';
@@ -48,7 +48,7 @@ export interface FxSpec {
 
 export type AssetSpec = SheetSpec | ImageSpec | FxSpec;
 
-const UNIT_ID = /^[AEN]\d{2}$/;
+const UNIT_ID = /^[AENW]\d{2}$/;
 const ASSET_ROOT = 'assets/';
 
 export function createManifest(available: readonly string[]) {
@@ -78,7 +78,8 @@ export function createManifest(available: readonly string[]) {
       faction,
       path: largePath ?? normalPath,
       frameSize: large ? spec.sheet.frameLarge : spec.sheet.frame,
-      frames: spec.sheet.frames[faction],
+      // 동작별 프레임 수(새 이동 시트 6프레임)가 진영 기본값보다 우선
+      frames: (spec as { actionFrames?: Record<string, number> }).actionFrames?.[action] ?? spec.sheet.frames[faction],
       cols: spec.sheet.cols,
       rows: spec.sheet.rows,
       large,

@@ -11,6 +11,7 @@ import feelData from '../data/feel.json';
 import weaponData from '../data/weapons.json';
 import upgradesData from '../data/upgrades.json';
 import { manifest, type AssetSpec } from '../assets/manifest';
+import ambientData from '../data/ambient.json';
 import { ensureTextures, queueAssets } from '../systems/assetLoader';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { params } from '../config/params';
@@ -36,6 +37,9 @@ function battleAssets(): AssetSpec[] {
   const enemyIds = [...new Set([...Object.keys(enemiesData.enemies), ...st.npcs, ...Object.keys(npcData.npcs)])];
   // 구현된 캐릭터만(미구현 골격은 시트 없음)
   const units = [...Object.keys(characters.characters).filter(isImplemented), ...enemyIds].flatMap((id) => manifest.unitSheets(id));
+  // 적 겉모습 변형(looks)·주변 생활(소·호랑이·개·주민): 그림 파일이 있는 시트만(없으면 원본 모습·코드 도트를 씀)
+  const looks = Object.values(enemiesData.enemies).flatMap((e) => (e as { looks?: string[] }).looks ?? []);
+  const extras = [...looks, ...Object.keys(ambientData.critters)].flatMap((id) => manifest.unitSheets(id)).filter((s) => s.path !== null);
   // UI 그림: 무기 투사체, 경험치 별, 레벨업 업그레이드 아이콘(데이터가 참조하는 것 전부)
   const weaponSprites = Object.values(weaponData.weapons).flatMap((w) => ('sprite' in w ? [w.sprite] : []));
   const upgradeIcons = [...upgradesData.upgrades, ...upgradesData.fallbacks].map((u) => u.icon);
@@ -60,7 +64,7 @@ function battleAssets(): AssetSpec[] {
   // 배경 소품(props.json 전 스테이지)
   const propNames = [...new Set(Object.values(propsData.stages as Record<string, { kinds: { sprite: string }[] }>).flatMap((s) => s.kinds.map((k) => k.sprite)))];
   const props = propNames.map((n) => manifest.prop(n));
-  return [...units, ...ui, ...fx, ...skillIcons, ...cards, ...props, ...floorTiles()];
+  return [...units, ...extras, ...ui, ...fx, ...skillIcons, ...cards, ...props, ...floorTiles()];
 }
 
 export class PreloadScene extends Phaser.Scene {

@@ -247,6 +247,118 @@ def npc_prompt(uid, desc):
     ])
 
 
+# ---------------------------------------------------------------- 이동 시트·적 외형 변형·주변 생활(2026-11-14, P4)
+# 기존 시트의 이동 행은 다리가 번갈아 나오지 않아 어색했다 → 이동만 따로, 6프레임 주기(가까운 다리 3프레임 → 먼 다리 3프레임)로 다시 그린다.
+# 게임은 walk·run·sprint 파일이 있으면 그것을 쓰고, 없으면 예전 move_slow·move_fast(·move)를 쓴다.
+
+LEG_RULE = ("LEGS: the two legs must clearly SWAP places in every cycle: frames 1-3 the NEAR leg (closest to the viewer) leads, "
+            "frames 4-6 the FAR leg leads; never draw both legs side by side in a static stance. The far leg and far arm are drawn "
+            "one shade darker so the limbs never merge into one shape. Arms swing opposite to the legs.")
+
+WALK_ROW = ("relaxed patrol walk, weapon low: 1 NEAR leg forward, heel down, far leg back on its toes; 2 weight drops onto the near leg, "
+            "body 1 px lower; 3 far leg swings past the straight near leg, body 1 px higher; 4 FAR leg forward, heel down (mirror of 1); "
+            "5 weight on the far leg, body 1 px lower; 6 near leg swings past")
+RUN_ROW = ("combat run leaning forward 10 degrees, weapon across the chest: 1 NEAR foot strikes under the hips; 2 push-off, far knee drives up; "
+           "3 flight, legs apart; 4 FAR foot strikes; 5 push-off, near knee up; 6 flight; dust puffs at the striking foot on 1 and 4")
+SPRINT_ROW = ("all-out one-second dash, clearly faster than the run: 25-degree forward lean, very long low strides alternating like the run, "
+              "weapon tucked to the chest, gear flapping backward, 2-3 short white speed lines behind the body, dust burst behind the back foot on 1 and 4")
+MARCH_ROW = ("steady advance toward the player, weapon held ready at the hip, slightly hunched: 1 contact, NEAR leg forward heel down; 2 down, "
+             "weight on the near leg; 3 passing, far leg swings past; 4 contact, FAR leg forward heel down; 5 down; 6 passing, near leg swings past")
+CHARGE_ROW = ("fast charge leaning forward about 15 degrees, weapon pointed ahead: 1 NEAR foot strikes; 2 push-off, far knee up; 3 flight; "
+              "4 FAR foot strikes; 5 push-off, near knee up; 6 flight; a small dust puff at the striking foot on frames 1 and 4")
+
+ALLY_MOVE_ROWS = [("walk", WALK_ROW), ("run", RUN_ROW), ("sprint", SPRINT_ROW)]
+ENEMY_WALK_ROWS = [("walk", MARCH_ROW), ("run", CHARGE_ROW)]
+
+# 적 외형 변형: 능력치·행동은 원본(괄호)과 같고 모습만 다르다(enemies.json looks). 눈에 튀지 않게 채도 낮은 군복
+ENEMY_LOOKS = [
+    ("E51", "E01", "KPA rifleman in a steel helmet with a little netting, rolled blanket over one shoulder, bolt-action rifle"),
+    ("E52", "E01", "KPA submachine gunner: side cap with a small red star, drum-magazine submachine gun, ammo pouches on the belt"),
+    ("E53", "E02", "KPA scout in a grass-covered camouflage cape, carbine, light pack, quick crouched steps"),
+    ("E54", "E06", "KPA rear-guard soldier: padded cap with the ear flaps tied up, carbine, ammunition bandolier across the chest"),
+    ("E55", "E31", "PVA infantryman: quilted khaki-green uniform, fur-lined cap, rifle with a fixed bayonet, small grenade bag"),
+    ("E56", "E31", "PVA submachine gunner: quilted uniform, cloth cap with a red star, submachine gun, canvas ammo vest"),
+]
+LOOK_RULE = " Muted, low-saturation colors close to the original unit so it reads as the same troop type; no glowing or flashy parts."
+
+# 주변 생활(전장 가장자리를 거닐다 폭발이 가까우면 서둘러 화면 밖으로 떠남, 공격 대상 아님): (id, 설명, 대기 동작, 크기 규칙, 변환 기준, 목표 px)
+CRITTERS = [
+    ("W01", "Korean native brown cow (hanwoo): warm reddish-brown coat, short curved horns, simple rope halter, calm eyes",
+     "grazing: head lowers to the grass and chews, tail swishes, one ear flicks", "about 70% of the cell width", "w", 64),
+    ("W02", "Korean tiger: orange coat with black stripes, white chest and muzzle, big soft paws; dignified and calm, not aggressive",
+     "sits and looks around, ears turn, tail tip flicks, a slow blink", "about 80% of the cell width", "w", 72),
+    ("W03", "Korean Jindo dog: cream-white coat, curled tail, pointed ears, friendly face",
+     "sits, sniffs the ground, scratches behind an ear, tail wags", "about 45% of the cell width", "w", 40),
+    ("W04", "Korean villager farmer, adult man: white hemp work clothes with rolled-up trousers, straw sandals, a wooden A-frame carrier on his back loaded with firewood",
+     "wipes his brow with a small towel, adjusts the carrier straps, looks around calmly", "about 60% of the cell height", "h", 58),
+    ("W05", "Korean villager woman, adult: white jeogori jacket, long dark skirt, hair in a bun under a white headscarf, a cloth bundle balanced on her head",
+     "steadies the bundle with one hand, adjusts her scarf, looks around calmly", "about 58% of the cell height", "h", 56),
+]
+
+
+def move_prompt(uid, desc):
+    return "\n".join([
+        "Create ONE sprite animation sheet of MOVEMENT cycles for a retro 2D survival action game set in the 1950 Korean War.",
+        STYLE,
+        CONTENT_RULES,
+        ALPHA_SOLID,
+        f"SUBJECT: {uid} {desc}. Ally unit (ROK Army, US forces or UN contingent); muted olive and khaki uniform colors with steel-gray metal. "
+        "Keep exactly this unit's design from its main sheet: same uniform, helmet, gear and weapon.",
+        "CANVAS: 1:1 square split into an invisible grid of 6 columns x 6 rows of equal square cells. "
+        "Use only the top 3 rows (each row is one movement cycle in 6 frames, left to right); rows 4 to 6 stay completely empty. " + GRID_RULE,
+        "FRAMES: the SAME character in all 18 used cells, as if traced from one model sheet: identical design, colors, gear and size. "
+        "Side view facing RIGHT. The figure is about 60% of the cell height; its BODY (not the weapon) is centered on the cell's vertical center line "
+        "in every frame, and the lowest foot touches one shared baseline 8% above the cell bottom (in flight frames the feet stay just above it). "
+        "Nothing crosses a cell border. Each row loops smoothly from frame 6 back to frame 1.",
+        LEG_RULE,
+        "ROWS:\n" + _rows_text(ALLY_MOVE_ROWS, 6),
+    ])
+
+
+def enemy_walk_prompt(uid, desc, extra=""):
+    return "\n".join([
+        "Create ONE sprite animation sheet of MOVEMENT cycles of an ENEMY unit for a retro 2D survival action game set in the 1950 Korean War.",
+        STYLE,
+        CONTENT_RULES,
+        ALPHA_SOLID,
+        f"SUBJECT: {uid} {desc}. Enemy unit (Korean People's Army or Chinese People's Volunteer Army) shown as a game opponent; "
+        "khaki, brown or quilted green uniforms with red-star badges and dark-red accents so it reads as hostile. "
+        "Keep exactly this unit's design from its main sheet: same uniform, cap or helmet, gear and weapon." + extra,
+        "CANVAS: 1:1 square split into an invisible grid of 6 columns x 6 rows of equal square cells. "
+        "Use only the top 2 rows (each row is one movement cycle in 6 frames, left to right); rows 3 to 6 stay completely empty. " + GRID_RULE,
+        f"FRAMES: the SAME unit in all 12 used cells, as if traced from one model sheet. Side view facing RIGHT. Size: {SIZE_RULE['S']}. "
+        "Its body (not the weapon) is centered on the cell's vertical center line in every frame; the lowest foot touches one shared baseline "
+        "8% above the cell bottom. Nothing crosses a cell border. Each row loops smoothly from frame 6 back to frame 1.",
+        LEG_RULE,
+        "ROWS:\n" + _rows_text(ENEMY_WALK_ROWS, 6),
+    ])
+
+
+def critter_prompt(uid, desc, idle, size):
+    quad = any(k in desc for k in ("cow", "tiger", "dog"))
+    gait = ("Four-legged gait: in the walk, diagonal legs move together (near front leg with far hind leg, then far front leg with near hind leg); "
+            "in the run, a natural trot or bounding gallop. The far legs are drawn one shade darker so all four legs stay readable."
+            if quad else LEG_RULE)
+    walk = "natural slow walk, relaxed and unhurried" + ("" if quad else ", frames 1-3 near leg leads, frames 4-6 far leg leads")
+    run = "hurrying away from a distant explosion: quick strides" + (" or a bounding gallop" if quad else ", one hand steadying the load") + \
+          ", leaning forward, small dust puffs; worried but never hurt"
+    return "\n".join([
+        "Create ONE sprite animation sheet of a harmless AMBIENT background character (an animal or a villager who wanders near the edge "
+        "of the battlefield and hurries away when explosions come close; never a target) for a retro 2D survival action game set in the 1950 Korean War.",
+        STYLE,
+        CONTENT_RULES + " Calm, natural behavior and a gentle mood; never injured or in distress.",
+        ALPHA_SOLID,
+        f"SUBJECT: {uid} {desc}.",
+        "CANVAS: 1:1 square split into an invisible grid of 6 columns x 6 rows of equal square cells. "
+        "Use only the top 3 rows (each row is one animation in 6 frames, left to right); rows 4 to 6 stay completely empty. " + GRID_RULE,
+        f"FRAMES: the SAME subject in all 18 used cells, as if traced from one model sheet. Side view facing RIGHT. Size: {size}. "
+        "Its body is centered on the cell's vertical center line in every frame; feet or hooves on one shared baseline 8% above the cell bottom. "
+        "Nothing crosses a cell border. Each row loops smoothly from frame 6 back to frame 1.",
+        gait,
+        "ROWS:\n" + _rows_text([("walk", walk), ("idle", idle), ("run", run)], 6),
+    ])
+
+
 # ---------------------------------------------------------------- 바닥 타일
 
 TILE_SETS = [
@@ -629,6 +741,22 @@ def build_items():
     for uid, desc in NPCS:
         if unit_phase(uid) == "P3":
             add(f"npc_{uid}", "P3", npc_prompt(uid, desc), {"kind": "unit", "id": uid, "faction": "npc", "tag": "S"})
+
+    # 이동 시트: 이미 그림이 있는 P1 유닛(A01~A03, E01~E03)은 P4, 나머지는 본 시트와 같은 단계
+    for uid, desc in ALLIES:
+        ph = "P4" if unit_phase(uid) == "P1" else unit_phase(uid)
+        add(f"move_{uid}", ph, move_prompt(uid, desc), {"kind": "unit", "layout": "ally_move", "id": uid, "faction": "ally", "tag": "S"})
+    for uid, tag, desc in ENEMIES:
+        if tag != "S":
+            continue
+        ph = "P4" if unit_phase(uid) == "P1" else unit_phase(uid)
+        add(f"walk_{uid}", ph, enemy_walk_prompt(uid, desc), {"kind": "unit", "layout": "enemy_walk", "id": uid, "faction": "enemy", "tag": "S"})
+    # P4: 적 외형 변형(본 시트 + 이동 시트), 주변 생활
+    for uid, base, desc in ENEMY_LOOKS:
+        add(f"enemy_{uid}", "P4", enemy_prompt(uid, "S", desc + "." + LOOK_RULE), {"kind": "unit", "id": uid, "faction": "enemy", "tag": "S"})
+        add(f"walk_{uid}", "P4", enemy_walk_prompt(uid, desc, LOOK_RULE), {"kind": "unit", "layout": "enemy_walk", "id": uid, "faction": "enemy", "tag": "S"})
+    for uid, desc, idle, size, fit, px in CRITTERS:
+        add(f"critter_{uid}", "P4", critter_prompt(uid, desc, idle, size), {"kind": "unit", "layout": "critter", "id": uid, "faction": "critter", "tag": "S", "fit": fit, "px": px})
 
     for i, it in enumerate(items, 1):
         it["no"] = i

@@ -213,7 +213,10 @@ export class Player {
 
   /** 상태 머신 결과가 바뀌었을 때만 재생을 (다시) 시작한다 */
   private applyAnim(force: boolean): void {
-    const key = this.anims.keys[this.anim.current];
+    // 질주(C) 중 이동이면 sprint 시트(있을 때만)
+    const cur = this.anim.current;
+    const sprint = this.sprintMul > 1 && (cur === 'move_slow' || cur === 'move_fast') ? this.anims.keys.sprint : undefined;
+    const key = sprint ?? this.anims.keys[cur];
     if (!key) return;
     if (force || key !== this.lastKey || this.anim.startedMs !== this.lastStart) {
       this.sprite.play(key);

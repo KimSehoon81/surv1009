@@ -1,5 +1,5 @@
 {
-  "$comment": "적 정의(PRD §9.2). hp·attack은 스테이지 1 레벨 1 기준이며 core/scaling 배율이 곱해진다. speed=px/초, radius=충돌 반지름(px), xp=처치 시 경험치, speedJitter=개체별 속도 흔들림(±비율). behaviors는 core/behaviors의 부품 조합 attacks=공격 부품(core/enemyAttack: lob·guard·chargeDash) 단계 windup→telegraph(붉은 예고, 최소 combat.minTelegraphMs)→active→recover, cooldownMs, range=[최소,최대] 시작 거리, damage=공격력 배수. lob은 예고 시간 = 포탄 비행 시간(착탄 = active). guard: 최근 whenHurtMs 안에 맞으면 activeMs 동안 피해 −reduce, 이어서 recoverMs 동안 약점(받는 피해 ×weakMult). chargeDash: 예고선 뒤 speed px/초로 activeMs 돌진(부딪히면 접촉 피해 ×damage). staggerImmune=피격 경직 없음(전차·보스). E03·E04 수치는 PRD 밖 값 weight=보스·엘리트 패턴 시퀀서 가중치(준비된 것 중 가중치로 선택). lob count·spread=목표 + 둘레 고리 포탄 수·반지름. fanShot=제자리 부채꼴 사격(range=사거리, angleDeg). opCard=보스 작전 카드: windup 3초 충전(보스 HP바 위 카드) → chance 판정(카드와 같은 연속 실패 완충) → 성공 시 radius 대형 착탄 예고·실행, 실패 또는 충전 중 최대 체력의 cancelFrac 이상 피해로 취소되면 failRecoverMs 경직 + 약점(×weakMult). E05 수치는 PRD 밖 값 (D22) flank=반원 포위(목표 둘레 radius를 옆으로 돌아 들어감), aimLine=조준 예고선 뒤 직선 사격(width 안이면 명중). targetPriority=자동 조준 '위협 우선' 대상(G6), disrupt={type, radius}=방해원: 플레이어가 radius 안이면 그 방해(disruptions.json)를 걸고 살아 있는 동안 유지, 원인 적이 모두 죽으면 해제 (D23) layMine=제자리에서 적 지뢰 설치(mine: systems/mines 규격 + alpha 희미한 마커), damageKind=피해 종류(antiTank는 장갑 캐릭터에 +50%, combat.json armor) (D24) stealth={distance, alpha}=플레이어와 distance보다 멀면 거의 투명·자동 조준 제외, stationary=움직이지 않음(고정 포대), hazardZone=예고 원 뒤 그 자리에 피해 장판(hazard: kind fire, lifeMs 동안 tickMs마다 피해, systems/hazards — 연기·독가스도 같은 엔티티) group={count:[최소,최대],spread px}=스폰 한 번에 무리로 나옴(E21 돌격대 집단 돌진, perSec은 무리 수). antiAir=방공 적(화면에 있으면 항공 스킬 일부 요격, D25). 보스(D27): 패턴 3개, 예고 0.8초 이상(테스트), 보스마다 고유 패턴 1개 — E05 작전 카드(opCard), E10 포위 명령(summon: 플레이어 둘레 고리에 점령부대 6), E15 탄막선(lob pattern line: 쏜 쪽→목표 축 7발, 옆으로 비켜야 피함). E20 강원 방어사령관 고유 '산악포 진지 구축'(summon E19 2문), E25 경기 방어군단장 고유 '포위 포격'(lob pattern ring: 플레이어 둘레 고리 8발, 가운데는 안전). (D32 서울) aura={radius,attackMul,speedMul}=반경 안 다른 적 강화(E28, 붉은 원 표시), 공격 부품 barricade=장애물 설치(E27 엄폐물, E30 고유 '시가지 봉쇄' = 플레이어 둘레 바리케이드 6개, 틈으로 빠져나감). aimLine은 장애물 뒤로 숨으면 막힘. (D33 황해도) E31 중공군 보병 = stages bursts로 원호 대규모 군집, E32 척후병 = 은신 + 보급선 차단 방해원, E33 신호병 = 이동 오라 ×1.3, E35 고유 '인해 전술'(summon E31 10체 고리). 위협 우선 조준은 방해원·오라 적. (D34 평안도) air=공중 유닛(공중 깊이, 장애물·지상 겹침·접촉 피해·근접·지상 폭발 없음, 대공 무기 antiAir와 스킬·조합 연출만 맞힘), 공격 부품 strafe=MiG 기총소사(목표를 지나는 띠 예고 → AS03 흙먼지 연출 재사용). E40 고유 '항공 지원 호출'(summon E38 2기, 최대 3). lifeMs=출격 시간(지나면 이탈, 처치 아님) — 대공 수단이 없는 캐릭터에서 MiG가 쌓이지 않게. (D35 평양) E42 특수부대원 = chargeDash 수치만(예고 0.6초·속도 560·쿨 3.5초), E43 대공 기관포 = 고정 + antiAir(항공 스킬 요격 D25 훅) + 방공망, E44 엘리트가 포위망 방해원(처치하면 해제), 보스 E45 고유 '특수부대 기습'(summon E42 고리 4). (D36 함경도) iceAccel={max,perSec}=빙판 가속(계속 움직이면 최대 max배, 지형), E48 MiG 편대 = 2기 무리 기총, 최종 보스 E50 패턴 4: 포위 포격(E25)·돌진(E20)·MiG 편대 호출·고유 '총결산' combo(시가지 봉쇄 E30 + 탄막선 E15를 한 번에 — 갇힌 채 일렬 탄막). maxAlive(단순성 점검)=이 적이 스폰 표로 동시에 있을 수 있는 최대 수(보스 소환·대군집은 제외). 거리를 두는 원거리 일반 적은 소총 사거리(210) 밖에 머물러 자동 조준에 잘 안 잡혀 판이 길수록 쌓임(S1 8분에 박격포병 22마리 생존) → 종류별 상한.",
+  "$comment": "적 정의(PRD §9.2). hp·attack은 스테이지 1 레벨 1 기준이며 core/scaling 배율이 곱해진다. speed=px/초, radius=충돌 반지름(px), xp=처치 시 경험치, speedJitter=개체별 속도 흔들림(±비율). behaviors는 core/behaviors의 부품 조합 attacks=공격 부품(core/enemyAttack: lob·guard·chargeDash) 단계 windup→telegraph(붉은 예고, 최소 combat.minTelegraphMs)→active→recover, cooldownMs, range=[최소,최대] 시작 거리, damage=공격력 배수. lob은 예고 시간 = 포탄 비행 시간(착탄 = active). guard: 최근 whenHurtMs 안에 맞으면 activeMs 동안 피해 −reduce, 이어서 recoverMs 동안 약점(받는 피해 ×weakMult). chargeDash: 예고선 뒤 speed px/초로 activeMs 돌진(부딪히면 접촉 피해 ×damage). staggerImmune=피격 경직 없음(전차·보스). E03·E04 수치는 PRD 밖 값 weight=보스·엘리트 패턴 시퀀서 가중치(준비된 것 중 가중치로 선택). lob count·spread=목표 + 둘레 고리 포탄 수·반지름. fanShot=제자리 부채꼴 사격(range=사거리, angleDeg). opCard=보스 작전 카드: windup 3초 충전(보스 HP바 위 카드) → chance 판정(카드와 같은 연속 실패 완충) → 성공 시 radius 대형 착탄 예고·실행, 실패 또는 충전 중 최대 체력의 cancelFrac 이상 피해로 취소되면 failRecoverMs 경직 + 약점(×weakMult). E05 수치는 PRD 밖 값 (D22) flank=반원 포위(목표 둘레 radius를 옆으로 돌아 들어감), aimLine=조준 예고선 뒤 직선 사격(width 안이면 명중). targetPriority=자동 조준 '위협 우선' 대상(G6), disrupt={type, radius}=방해원: 플레이어가 radius 안이면 그 방해(disruptions.json)를 걸고 살아 있는 동안 유지, 원인 적이 모두 죽으면 해제 (D23) layMine=제자리에서 적 지뢰 설치(mine: systems/mines 규격 + alpha 희미한 마커), damageKind=피해 종류(antiTank는 장갑 캐릭터에 +50%, combat.json armor) (D24) stealth={distance, alpha}=플레이어와 distance보다 멀면 거의 투명·자동 조준 제외, stationary=움직이지 않음(고정 포대), hazardZone=예고 원 뒤 그 자리에 피해 장판(hazard: kind fire, lifeMs 동안 tickMs마다 피해, systems/hazards — 연기·독가스도 같은 엔티티) group={count:[최소,최대],spread px}=스폰 한 번에 무리로 나옴(E21 돌격대 집단 돌진, perSec은 무리 수). antiAir=방공 적(화면에 있으면 항공 스킬 일부 요격, D25). 보스(D27): 패턴 3개, 예고 0.8초 이상(테스트), 보스마다 고유 패턴 1개 — E05 작전 카드(opCard), E10 포위 명령(summon: 플레이어 둘레 고리에 점령부대 6), E15 탄막선(lob pattern line: 쏜 쪽→목표 축 7발, 옆으로 비켜야 피함). E20 강원 방어사령관 고유 '산악포 진지 구축'(summon E19 2문), E25 경기 방어군단장 고유 '포위 포격'(lob pattern ring: 플레이어 둘레 고리 8발, 가운데는 안전). (D32 서울) aura={radius,attackMul,speedMul}=반경 안 다른 적 강화(E28, 붉은 원 표시), 공격 부품 barricade=장애물 설치(E27 엄폐물, E30 고유 '시가지 봉쇄' = 플레이어 둘레 바리케이드 6개, 틈으로 빠져나감). aimLine은 장애물 뒤로 숨으면 막힘. (D33 황해도) E31 중공군 보병 = stages bursts로 원호 대규모 군집, E32 척후병 = 은신 + 보급선 차단 방해원, E33 신호병 = 이동 오라 ×1.3, E35 고유 '인해 전술'(summon E31 10체 고리). 위협 우선 조준은 방해원·오라 적. (D34 평안도) air=공중 유닛(공중 깊이, 장애물·지상 겹침·접촉 피해·근접·지상 폭발 없음, 대공 무기 antiAir와 스킬·조합 연출만 맞힘), 공격 부품 strafe=MiG 기총소사(목표를 지나는 띠 예고 → AS03 흙먼지 연출 재사용). E40 고유 '항공 지원 호출'(summon E38 2기, 최대 3). lifeMs=출격 시간(지나면 이탈, 처치 아님) — 대공 수단이 없는 캐릭터에서 MiG가 쌓이지 않게. (D35 평양) E42 특수부대원 = chargeDash 수치만(예고 0.6초·속도 560·쿨 3.5초), E43 대공 기관포 = 고정 + antiAir(항공 스킬 요격 D25 훅) + 방공망, E44 엘리트가 포위망 방해원(처치하면 해제), 보스 E45 고유 '특수부대 기습'(summon E42 고리 4). (D36 함경도) iceAccel={max,perSec}=빙판 가속(계속 움직이면 최대 max배, 지형), E48 MiG 편대 = 2기 무리 기총, 최종 보스 E50 패턴 4: 포위 포격(E25)·돌진(E20)·MiG 편대 호출·고유 '총결산' combo(시가지 봉쇄 E30 + 탄막선 E15를 한 번에 — 갇힌 채 일렬 탄막). maxAlive(단순성 점검)=이 적이 스폰 표로 동시에 있을 수 있는 최대 수(보스 소환·대군집은 제외). 거리를 두는 원거리 일반 적은 소총 사거리(210) 밖에 머물러 자동 조준에 잘 안 잡혀 판이 길수록 쌓임(S1 8분에 박격포병 22마리 생존) → 종류별 상한. looks(2026-11-14)=겉모습 변형 id(그림 enemies/E51_move.png 등이 있을 때만, 능력치·행동은 원본 그대로, 전투 RNG와 따로 골라 같은 병종이 덜 단조롭게).",
   "enemies": {
     "E01": {
       "name": "인민군 보병",
@@ -15,6 +15,10 @@
         {
           "type": "chase"
         }
+      ],
+      "looks": [
+        "E51",
+        "E52"
       ]
     },
     "E02": {
@@ -36,6 +40,9 @@
           "amplitude": 0.9,
           "freq": 1.6
         }
+      ],
+      "looks": [
+        "E53"
       ]
     },
     "E03": {
@@ -210,6 +217,9 @@
           "type": "chase",
           "weight": 0.45
         }
+      ],
+      "looks": [
+        "E54"
       ]
     },
     "E07": {
@@ -1351,6 +1361,10 @@
           "amplitude": 0.25,
           "freq": 0.7
         }
+      ],
+      "looks": [
+        "E55",
+        "E56"
       ]
     },
     "E32": {

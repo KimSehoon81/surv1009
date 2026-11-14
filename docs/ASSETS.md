@@ -60,7 +60,10 @@ public/assets/
             (선택) A01_idle.png — 없으면 move_slow 첫 프레임을 대기 자세로 사용
   enemies/  E01_move.png  E01_attack.png  E01_defend.png  E01_crit.png  E01_hit.png
             보스·차량·항공기는 E05_move_L.png 처럼 _L (200×200 프레임)
+            (선택, 2026-11 P4) A01_walk.png  A01_run.png  A01_sprint.png — 다리가 번갈아 나오는 6프레임 이동, 있으면 move_slow·move_fast 대신
+  enemies/  (선택) E01_walk.png  E01_run.png — 6프레임 행군·돌격 / E51~E56 = 겉모습 변형(enemies.json looks)
   npcs/     N01_idle.png  N01_talk.png  N01_give.png
+  critters/ W01_walk.png  W01_idle.png  W01_run.png — 주변 생활(소·호랑이·개·주민, 6프레임), 없으면 코드 도트
   tiles/    T01.png ~ T20.png
   props/    tree_leaf_L  tree_pine_L  tree_dead_L  tree_snow_L  burnt_truck_L
             grass  reed  bush  flag  drum_fire  wire  sandbag  rock  smoke_col (.png, 앞 6칸 루프 — 풀·억새는 5·6번째 칸이 밟힘 프레임)

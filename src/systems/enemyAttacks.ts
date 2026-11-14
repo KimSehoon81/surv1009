@@ -98,6 +98,8 @@ export interface EnemyAttackHost {
   audio: AudioSink;
   /** 적 공격이 플레이어에게(공격력, 출처 위치). 무적·보호막·방어 판정은 호출부가 */
   hitPlayer(attack: number, fromX: number, fromY: number, cause: string): void;
+  /** 포탄이 떨어진 자리(주변 생활이 놀라 떠남) */
+  blast?(x: number, y: number, r: number): void;
   /** 피해 장판(화염방사병, systems/hazards) */
   placeHazard?(x: number, y: number, spec: AttackSpec, attack: number): void;
   /** 적 지뢰 설치(공병, systems/mines faction enemy) */
@@ -188,6 +190,7 @@ export class EnemyAttackSystem {
         let hit = false;
         for (const q of pts) {
           this.host.feel.hit('impact_s', q.x, q.y - combat.bodyOffsetY * 0.4, { groundY: q.y });
+          this.host.blast?.(q.x, q.y, spec.radius ?? 40);
           if (!hit && (p.x - q.x) ** 2 + (p.y - q.y) ** 2 <= r * r) hit = true;
         }
         if (hit) this.host.hitPlayer(e.attack * (spec.damage ?? 1), st.tx, st.ty, cause('lob'));

@@ -52,6 +52,10 @@ import { SkillSlots, type CastReject, type SkillDef } from '../core/skills';
 import { damageTakenMult } from '../core/enemyAttack';
 import { runEffect, type Params } from '../systems/effects';
 import { SupportSystem } from '../systems/support';
+import { AmbientSystem } from '../systems/ambient';
+import terrainData from '../data/terrain.json';
+import { hashString } from '../core/rng';
+import { inStream, type TerrainCfg } from '../core/terrain';
 import { ChestSystem, MagnetDrops } from '../systems/chests';
 import chestData from '../data/chest.json';
 import { chestCount, dropsChest, type ChestConfig } from '../core/chest';
@@ -200,6 +204,12 @@ export class BattleScene extends Phaser.Scene {
   support!: SupportSystem;
   chests!: ChestSystem;
   magnets!: MagnetDrops;
+  /** 바닥 지형(개울·풀숲·눈, terrain.json): 개울을 건너면 느려짐 */
+  private terrain: TerrainCfg | undefined;
+  private terrainSeed = 0;
+  private wadeUntil = -Infinity;
+  /** 주변 생활(소·호랑이·개·주민): 폭발이 가까우면 떠나 사라짐 */
+  ambient!: AmbientSystem;
   /** 보물 상자 열기 연출 중(전투 정지) */
   chestOpen = false;
   /** 조합·고급 스킬 연출 타임라인 */
@@ -307,7 +317,9 @@ export class BattleScene extends Phaser.Scene {
     const rng = createRng(params.seed);
     this.combatRng = rng.fork('combat');
     this.controls = new InputMap(this);
-    this.floor = new Floor(this, floorData[this.stage.floor as keyof typeof floorData] as FloorConfig, params.seed);
+    this.terrain = (terrainData.stages as Record<string, TerrainCfg>)[this.payload.stage];
+    this.terrainSeed = hashString(String(params.seed));
+    this.floor = new Floor(this, floorData[this.stage.floor as keyof typeof floorData] as FloorConfig, params.seed, this.terrain);
 
     this.player = new Player(this, 0, 0, this.payload.char);
     this.enemies = new EnemySystem(this, spawnData.S1, rng.fork('enemies'));
@@ -479,6 +491,8 @@ export class BattleScene extends Phaser.Scene {
     this.chests = new ChestSystem(this);
     this.magnets?.destroy();
     this.magnets = new MagnetDrops(this);
+    this.ambient?.destroy();
+    this.ambient = new AmbientSystem(this, this.payload.stage, `${params.seed ?? 'run'}:${this.payload.stage}`);
     this.chestOpen = false;
     this.support?.destroy();
     this.support = new SupportSystem(this, {
@@ -541,6 +555,7 @@ export class BattleScene extends Phaser.Scene {
         this.enemies.spawn(id, x, y, this.clock.timeMs, true);
         this.timelines.cue('summon_puff', x, y);
       },
+      blast: (x, y, r) => this.ambient.blast(x, y, r),
       placeHazard: (x, y, spec, attack) => {
         const h = spec.hazard;
         if (h) this.hazards.place(x, y, { kind: h.kind, faction: 'enemy', radius: spec.radius ?? 40, lifeMs: h.lifeMs, tickMs: h.tickMs, damage: attack }, this.clock.timeMs);
@@ -783,6 +798,13 @@ export class BattleScene extends Phaser.Scene {
       this.run.xp += gained;
       this.perf.lap('combat');
       const chest = this.chests.update(now, p);
+      this.ambient.update(now, dt, p, this.cameras.main);
+      // 개울 건너기: 물 위면 잠깐 느려짐(지형 감속 태그라 산악병 등 면역이면 무시), 언 개울은 그대로
+      const tr = this.terrain;
+      if (tr?.streams && !tr.streams.frozen && tr.wade && now > this.wadeUntil - 120 && inStream(tr.streams, this.terrainSeed, p.x, p.y)) {
+        this.wadeUntil = now + 300;
+        p.addBuff('wade', [{ stat: 'moveSpeed', op: 'mul', value: -tr.wade, tag: 'terrain' }], 300, now);
+      }
       if (this.magnets.update(now, p)) {
         // 자석: 전장의 경험치 별이 한꺼번에 날아옴
         this.pickups.attractAll();
@@ -996,6 +1018,7 @@ export class BattleScene extends Phaser.Scene {
   /** 곡사 착지·카드 포격: 범위 안 모든 적에게 피해 + 폭발 이펙트(mult 0이면 연출만) */
   private explode(x: number, y: number, radius: number, mult: number, fxName: string | undefined, fxScale: number, impact: string | undefined, tag?: string): void {
     const cy = y - combat.bodyOffsetY * 0.4;
+    this.ambient.blast(x, y, radius);
     if (fxName) this.fx.play(fxName, x, cy, fxScale);
     if (impact) this.feel.hit(impact, x, cy, { groundY: y });
     if (mult <= 0 || radius <= 0) return;

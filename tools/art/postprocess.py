@@ -32,8 +32,12 @@ UNIT_SPEC = {
     "ally": {"grid": (6, 6), "actions": ["attack", "defend", "skill", "move_slow", "move_fast", "crit"], "ref": "move_slow"},
     "enemy": {"grid": (5, 5), "actions": ["move", "attack", "defend", "crit", "hit"], "ref": "move"},
     "npc": {"grid": (5, 5), "actions": ["idle", "talk", "give"], "ref": "idle"},
+    # 2026-11 이동 시트(위 행만 사용): 다리가 번갈아 나오는 걷기·달리기·질주, 주변 생활(동물·주민)
+    "ally_move": {"grid": (6, 6), "actions": ["walk", "run", "sprint"], "ref": "walk"},
+    "enemy_walk": {"grid": (6, 6), "actions": ["walk", "run"], "ref": "walk"},
+    "critter": {"grid": (6, 6), "actions": ["walk", "idle", "run"], "ref": "walk"},
 }
-UNIT_FOLDER = {"ally": "chars", "enemy": "enemies", "npc": "npcs"}
+UNIT_FOLDER = {"ally": "chars", "enemy": "enemies", "npc": "npcs", "critter": "critters"}
 # 태그 → (프레임 크기, 기준 치수, 목표 px). 보병 몸체 62px = 화면 높이의 약 1/9 (×2 배율 기준)
 UNIT_TARGET = {"S": (100, "h", 62), "B": (200, "h", 112), "L": (200, "w", 140)}
 NPC_TARGET = (100, "h", 60)
@@ -434,7 +438,7 @@ def fit_frames(cells: list[np.ndarray], fs: int, metric: str, target: float, anc
 # ------------------------------------------------------------------ 종류별 처리
 
 def process_unit(img, post, out_root, report):
-    spec = UNIT_SPEC[post["faction"]]
+    spec = UNIT_SPEC[post.get("layout", post["faction"])]
     cols, rows = spec["grid"]
     nframes = cols
     grid, removed = extract_cells(img, cols, rows)
@@ -446,7 +450,10 @@ def process_unit(img, post, out_root, report):
         if empty:
             report["warnings"].append(f"{a}: 빈 프레임 {empty}개")
 
-    fs, metric, target = NPC_TARGET if post["faction"] == "npc" else UNIT_TARGET[post["tag"]]
+    if "fit" in post:  # 동물처럼 가로가 긴 것은 항목마다 기준(w·h)과 목표 px
+        fs, metric, target = 100, post["fit"], post["px"]
+    else:
+        fs, metric, target = NPC_TARGET if post["faction"] == "npc" else UNIT_TARGET[post["tag"]]
     ref_i = spec["actions"].index(spec["ref"])
     aligned, ground, cx, mdx, mdy = align_unit_rows(list(cells.values()), ref_i)
     report["info"].append(f"위치 보정: 프레임 좌우 최대 {mdx}px, 행 발높이 최대 {mdy}px (원본 픽셀)")

@@ -12,6 +12,8 @@ import { Depth } from '../config/depth';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { Enemy, MAX_ENEMY_RADIUS, isEnemyId, type EnemyId } from '../entities/Enemy';
 import enemyData from '../data/enemies.json';
+import { createRng } from '../core/rng';
+import { manifest } from '../assets/manifest';
 import combatData from '../data/combat.json';
 import { enemySprintMul, type EnemySprintConfig } from '../core/enemySprint';
 
@@ -67,7 +69,7 @@ export class EnemySystem {
   spawnMult = 1;
   maxAliveNormal = 160;
   private readonly acc = new Map<string, number>();
-  private readonly anims = new Map<EnemyId, UnitAnims>();
+  private readonly anims = new Map<string, UnitAnims>();
   private readonly spawnR = spawnRadius(LOGICAL_WIDTH, LOGICAL_HEIGHT, 0);
   private readonly rand = (): number => this.rng.next();
 
@@ -89,7 +91,16 @@ export class EnemySystem {
     return this.pool.size;
   }
 
-  private animsFor(id: EnemyId): UnitAnims {
+  /** 겉모습 변형(looks): 그림이 있는 것 중에서 전투 RNG와 따로 고름. 없으면 원본 */
+  private readonly lookRng = createRng('enemyLooks');
+  private lookOf(id: EnemyId): string {
+    const looks = (enemyData.enemies[id] as { looks?: string[] }).looks;
+    if (!looks || looks.length === 0) return id;
+    const cands = [id, ...looks.filter((l) => manifest.unitSheets(l).some((s) => s.action === 'move' && s.path !== null))];
+    return cands.length === 1 ? id : (cands[Math.floor(this.lookRng.next() * cands.length)] ?? id);
+  }
+
+  private animsFor(id: string): UnitAnims {
     let a = this.anims.get(id);
     if (!a) {
       a = registerUnitAnims(this.scene, id);
@@ -106,7 +117,7 @@ export class EnemySystem {
   spawn(id: EnemyId, x: number, y: number, nowMs: number, force = false): Enemy | null {
     if (!force && this.pool.size >= this.maxAlive) return null;
     const e = this.pool.acquire();
-    e.spawn(id, this.animsFor(id), x, y, enemyScale(this.stage, this.level, this.threat), this.rng, nowMs);
+    e.spawn(id, this.animsFor(this.lookOf(id)), x, y, enemyScale(this.stage, this.level, this.threat), this.rng, nowMs);
     return e;
   }
 
@@ -199,7 +210,7 @@ export class EnemySystem {
           e.setPosition(p.x, p.y);
         }
       }
-      e.updateAnim(true, nowMs, frozen ? 0 : timeScale);
+      e.updateAnim(true, nowMs, frozen ? 0 : timeScale, enemySprintMul(e.sprintAtMs, nowMs, SPRINT) > 1);
       // 은신(산악 침투병 등): 플레이어와 멀면 거의 투명·자동 조준 제외
       const stealth = (e.def as { stealth?: { distance: number; alpha: number } }).stealth;
       if (stealth) {
