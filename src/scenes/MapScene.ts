@@ -3,7 +3,6 @@ import mapData from '../data/map.json';
 import stagesData from '../data/stages.json';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { isUnlocked } from '../core/save';
-import { manifest } from '../assets/manifest';
 import { InputMap } from '../systems/input';
 import { loadProfile } from '../systems/save';
 import { uiText } from '../ui/text';
@@ -11,10 +10,15 @@ import type { MapPayload, PrepPayload } from '../types/scenes';
 import { SceneKey } from './keys';
 import { t } from '../i18n';
 import { params } from '../config/params';
+import { inside, project, type LonLat, type Projection } from '../core/geo';
 
-const NODES = mapData.nodes;
+const PROJ = mapData.projection as Projection;
+const pr = (lon: number, lat: number) => project(PROJ, lon, lat);
+/** 지역 노드(실제 도시 위치를 투영). 라벨은 바다 쪽(서해안 노드는 왼쪽) */
+const NODES = mapData.nodes.map((n) => ({ ...n, ...pr(n.lon, n.lat), left: n.lon < 126.8 && n.lat < 38 }));
 const ORDER = NODES.map((n) => n.id);
 const ALLY = 0x3a7bd5;
+const COAST = mapData.coast as unknown as LonLat[];
 
 /**
  * 한반도 작전지도(PRD §7.2): 10개 지역 남→북, 미해금 안개, 점령 지역 아군 색 + 깃발.
@@ -41,11 +45,7 @@ export class MapScene extends Phaser.Scene {
     this.controls = new InputMap(this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.controls.destroy());
     const prof = loadProfile();
-    // 바다 + 땅(자리표시자 실루엣)
-    this.add.rectangle(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT, 0x1c2a36).setOrigin(0);
-    const land = this.add.graphics();
-    const pts = mapData.outline.map(([x = 0, y = 0]) => new Phaser.Math.Vector2(x, y));
-    land.fillStyle(0x6b5a3e, 1).fillPoints(pts, true).lineStyle(2, 0x2a2016, 1).strokePoints(pts, true);
+    this.drawTerrain();
     this.gfx = this.add.graphics();
     this.add.text(16, 12, t('map.title'), uiText(18, '#ffe14d'));
     this.add.text(16, 36, t('map.merit', { n: prof.merit }), uiText(12));
@@ -57,11 +57,14 @@ export class MapScene extends Phaser.Scene {
 
     NODES.forEach((n, i) => {
       const hit = this.add.circle(n.x, n.y, 16, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
+      // 지역 라벨(번호 + 도): 바다 쪽으로
+      this.add
+        .text(n.left ? n.x - 13 : n.x + 13, n.y, `${i + 1} ${n.region}`, { ...uiText(11, '#f4ecd8'), stroke: '#1a1208', strokeThickness: 3 })
+        .setOrigin(n.left ? 1 : 0, 0.5);
       hit.on('pointerdown', () => {
         if (this.sel === i) this.confirm();
         this.sel = i;
       });
-      if (prof.stages[n.id]?.captured) this.add.image(n.x + 6, n.y - 4, manifest.image('ui', 'flag_ally', 32, 32).key).setOrigin(0.2, 1).setScale(1);
     });
     const focus = this.payload.focus ? ORDER.indexOf(this.payload.focus) : -1;
     // 처음엔 아직 점령하지 않은 첫 열린 지역
@@ -77,6 +80,77 @@ export class MapScene extends Phaser.Scene {
       this.sel = Math.max(0, ORDER.indexOf(auto));
       this.time.delayedCall(300, () => this.confirm());
     }
+  }
+
+  /** 옛 군용 지도: 물결 무늬 바다·경위도 격자·만주(흐리게)·한반도(그림자·점묘)·강·산맥·38선·바다 이름 */
+  private drawTerrain(): void {
+    const W = LOGICAL_WIDTH;
+    const H = LOGICAL_HEIGHT;
+    this.add.rectangle(0, 0, W, H, 0x14212b).setOrigin(0);
+    const g = this.add.graphics();
+    for (let y = 6; y < H; y += 9) for (let x = (y * 7) % 23; x < W; x += 23) g.fillStyle(0x1b2c38, 1).fillRect(x, y, 7, 1);
+    // 경위도 격자(1°)와 눈금
+    const left = pr(124.1, 0).x;
+    const right = pr(131.3, 0).x;
+    for (let lat = 34; lat <= 43; lat++) {
+      const y = pr(124, lat).y;
+      for (let x = left; x < right; x += 6) g.fillStyle(0x2a4050, 1).fillRect(x, y, 3, 1);
+      this.add.text(pr(123.08, 0).x, y - 1, `${lat}°`, uiText(11, '#4f6a7c')).setOrigin(0, 1);
+    }
+    for (let lon = 125; lon <= 131; lon++) {
+      const x = pr(lon, 0).x;
+      for (let y = 8; y < 512; y += 6) g.fillStyle(0x2a4050, 1).fillRect(x, y, 1, 3);
+    }
+    const poly = (pts: readonly LonLat[]) => pts.map(([lon, lat]) => pr(lon, lat));
+    // 만주·연해주(대륙, 흐리게)
+    g.fillStyle(0x3a3a30, 1).fillPoints(poly(mapData.mainland as unknown as LonLat[]), true);
+    // 한반도: 그림자 → 땅 → 해안선
+    const land = poly(COAST);
+    g.fillStyle(0x0c141a, 1).fillPoints(land.map((p) => ({ x: p.x + 3, y: p.y + 4 })), true);
+    g.fillStyle(0x9c8558, 1).fillPoints(land, true);
+    g.fillStyle(0x9c8558, 1).fillPoints(poly(mapData.jeju as unknown as LonLat[]), true);
+    // 지형 점묘(땅 안에만, 결정적 무늬)
+    for (let i = 0; i < 900; i++) {
+      const lon = 124.3 + ((i * 0.6180339) % 1) * 6.4;
+      const lat = 34.3 + ((i * 0.4142135) % 1) * 8.7;
+      if (!inside(COAST, lon, lat)) continue;
+      const p = pr(lon, lat);
+      g.fillStyle(i % 3 ? 0x8a7449 : 0xae9666, 1).fillRect(Math.round(p.x), Math.round(p.y), 1, 1);
+    }
+    g.lineStyle(2, 0x3a2a16, 1).strokePoints(land, true);
+    // 압록강·두만강 국경(강 색)
+    g.lineStyle(2, 0x4a7a9a, 1).strokePoints(land.slice(0, 16), false);
+    // 강
+    for (const r of Object.values(mapData.rivers as unknown as Record<string, LonLat[]>)) g.lineStyle(2, 0x4a7a9a, 1).strokePoints(poly(r), false);
+    // 산맥 ^
+    for (const [lon, lat] of mapData.mountains as unknown as LonLat[]) {
+      const p = pr(lon, lat);
+      g.lineStyle(1, 0x5a4428, 1).lineBetween(p.x - 4, p.y + 3, p.x, p.y - 2).lineBetween(p.x, p.y - 2, p.x + 4, p.y + 3);
+    }
+    // 38선: 붉은 점선 + 라벨
+    const y38 = pr(124, mapData.parallel38).y;
+    const xa = pr(124.6, 0).x;
+    const xb = pr(129.4, 0).x;
+    for (let x = xa; x < xb; x += 8) g.fillStyle(0xd84a3a, 1).fillRect(x, y38, 5, 2);
+    this.add.text(xb + 4, y38, t('map.parallel'), { ...uiText(12, '#ff7a60'), stroke: '#1a0a08', strokeThickness: 3 }).setOrigin(0, 0.5);
+    // 바다·대륙 이름
+    const label = (key: string, lon: number, lat: number, color: string) => {
+      const p = pr(lon, lat);
+      this.add.text(p.x, p.y, t(key), uiText(12, color)).setOrigin(0.5);
+    };
+    label('map.sea.east', 130.4, 38.5, '#5d7f96');
+    label('map.sea.west', 124.6, 36.4, '#5d7f96');
+    label('map.land.manchuria', 126.6, 42.6, '#7a7a66');
+    // 지도 칸 이중 테두리(옛 지도처럼, 대륙이 잘린 가장자리를 테두리로)
+    const tl = pr(123.0, 43.6);
+    const br = pr(131.45, 33.0);
+    g.lineStyle(2, 0xc8b078, 1).strokeRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y);
+    g.lineStyle(1, 0x6a5a3a, 1).strokeRect(tl.x - 4, tl.y - 4, br.x - tl.x + 8, br.y - tl.y + 8);
+    // 나침반(북)
+    const nx = pr(130.9, 0).x;
+    const ny = pr(0, 34.6).y;
+    g.fillStyle(0xd8c890, 1).fillTriangle(nx, ny - 16, nx - 5, ny, nx + 5, ny);
+    this.add.text(nx, ny + 9, 'N', uiText(12, '#d8c890')).setOrigin(0.5);
   }
 
   private say(msg: string): void {
@@ -114,11 +188,23 @@ export class MapScene extends Phaser.Scene {
   private draw(time: number): void {
     const prof = loadProfile();
     const g = this.gfx.clear();
-    // 진격로(남→북)
+    // 진격로(남→북): 점령한 구간은 아군 파랑 실선, 다음 목표 구간은 흐르는 금색 점선, 나머지는 흐린 점선
     for (let i = 1; i < NODES.length; i++) {
       const a = NODES[i - 1];
       const b = NODES[i];
-      if (a && b) g.lineStyle(1, 0xe8dcc0, 0.35).lineBetween(a.x, a.y, b.x, b.y);
+      if (!a || !b) continue;
+      const done = prof.stages[b.id]?.captured === true;
+      const next = !done && prof.stages[a.id]?.captured === true;
+      if (done) {
+        g.lineStyle(3, ALLY, 0.9).lineBetween(a.x, a.y, b.x, b.y);
+        continue;
+      }
+      const len = Math.hypot(b.x - a.x, b.y - a.y);
+      const off = next ? (time / 40) % 10 : 0;
+      for (let d = off; d < len; d += 10) {
+        const k = d / len;
+        g.fillStyle(next ? 0xffd84a : 0xe8dcc0, next ? 0.95 : 0.3).fillRect(a.x + (b.x - a.x) * k - 1, a.y + (b.y - a.y) * k - 1, 3, 3);
+      }
     }
     NODES.forEach((n, i) => {
       const open = isUnlocked(prof, ORDER, n.id);
@@ -129,6 +215,16 @@ export class MapScene extends Phaser.Scene {
       }
       g.fillStyle(cap ? ALLY : open ? 0xd8b850 : 0x4a4a4a, 1).fillCircle(n.x, n.y, 8);
       g.lineStyle(2, 0x1a1410, 1).strokeCircle(n.x, n.y, 8);
+      // 점령: 흰 별(색 말고 형태로도 구분)
+      if (cap) {
+        const pts: { x: number; y: number }[] = [];
+        for (let k = 0; k < 10; k++) {
+          const a = -Math.PI / 2 + (k * Math.PI) / 5;
+          const r = k % 2 ? 2.2 : 5.5;
+          pts.push({ x: n.x + Math.cos(a) * r, y: n.y + Math.sin(a) * r });
+        }
+        g.fillStyle(0xffffff, 1).fillPoints(pts, true);
+      }
       if (i === this.sel) g.lineStyle(2, 0xffe14d, 0.6 + 0.4 * Math.abs(Math.sin(time / 250))).strokeCircle(n.x, n.y, 15);
     });
     const n = NODES[this.sel];

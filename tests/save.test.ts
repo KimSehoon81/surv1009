@@ -58,13 +58,13 @@ describe('세이브', () => {
 });
 
 describe('작전지도 데이터', () => {
-  it('10개 지역, 남→북(y가 대체로 작아짐), S1은 스테이지 데이터가 있다', () => {
+  it('10개 지역, 남→북(위도가 커짐), S1은 스테이지 데이터가 있다', () => {
     expect(mapData.nodes).toHaveLength(10);
     expect(mapData.nodes.map((n) => n.id)).toEqual(['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10']);
     const first = mapData.nodes[0];
     const last = mapData.nodes[9];
-    expect((first?.y ?? 0) > (last?.y ?? 0)).toBe(true);
+    expect((first?.lat ?? 0) < (last?.lat ?? 0)).toBe(true);
     expect(stagesData.stages).toHaveProperty('S1');
-    for (const n of mapData.nodes) expect(n.x >= 0 && n.x <= 960 && n.y >= 0 && n.y <= 540, n.id).toBe(true);
+    for (const n of mapData.nodes) expect(n.lon > 124 && n.lon < 131 && n.lat > 33 && n.lat < 43, n.id).toBe(true);
   });
 });

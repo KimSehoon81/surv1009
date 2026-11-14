@@ -201,7 +201,15 @@
     },
     "info": "Enemies: {enemies}\nBoss: {boss}\nDisruption: {disruption}",
     "status": "Status: {status}",
-    "goal": "From the Nakdong to the Yalu —\ncapture 10 regions in order, south to north.\n\nOne run = survive and grow → defeat the boss → capture (about 15 min)\n\nCaptures give merit and unlock new characters and skills. Even if you fall, you keep half the merit."
+    "goal": "From the Nakdong to the Yalu —\ncapture 10 regions in order, south to north.\n\nOne run = survive and grow → defeat the boss → capture (about 15 min)\n\nCaptures give merit and unlock new characters and skills. Even if you fall, you keep half the merit.",
+    "parallel": "38th parallel",
+    "sea": {
+      "east": "East Sea",
+      "west": "Yellow Sea"
+    },
+    "land": {
+      "manchuria": "Manchuria"
+    }
   },
   "codex": {
     "tab": {
@@ -235,7 +243,8 @@
     "saveCorrupt": "Save was corrupted — backed up and started fresh",
     "saveMigrated": "Old save migrated to the new format",
     "restore": "Restore from backup (last good save)",
-    "tagline": "1950 — from the Nakdong to the Yalu: hold out and push north through 10 regions"
+    "tagline": "1950 — from the Nakdong to the Yalu: hold out and push north through 10 regions",
+    "year": "1950 · THE KOREAN WAR"
   },
   "settings": {
     "title": "Settings",
