@@ -7,7 +7,7 @@ import type { CardEvent, CardInstance } from '../core/cards';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { CARD_DATA, type CardSystem } from '../systems/cards';
 import type { InputMap } from '../systems/input';
-import { FACE_H, FACE_W, cardBackKey, cardFaceKey, overlayKey } from './cardFace';
+import { ART_RECT, FACE_H, FACE_W, cardBackKey, cardFaceKey, overlayKey } from './cardFace';
 import { PIXEL_FONT } from './pixelFont';
 
 const TAG_NAMES = cardsData.tags as Record<string, string>;
@@ -214,9 +214,9 @@ export class CardHud {
         sg.lineStyle(3, 0xff6050, 0.9).lineBetween(l + 8, t + 12, l + FACE_W - 8, t + FACE_H - 12).lineBetween(l + FACE_W - 8, t + 12, l + 8, t + FACE_H - 12);
       }
       if (card.disguised && !card.faceDown) {
-        const l = Math.round(x - FACE_W / 2) + 3;
-        const t = Math.round(y - FACE_H / 2) + 15;
-        sg.fillStyle(0x6a6458, 0.28).fillRect(l, t, FACE_W - 6, FACE_H - 18);
+        const l = Math.round(x - FACE_W / 2) + ART_RECT.x;
+        const t = Math.round(y - FACE_H / 2) + ART_RECT.y;
+        sg.fillStyle(0x6a6458, 0.28).fillRect(l, t, ART_RECT.w, ART_RECT.h);
       }
       label.setText(String(i + 1)).setPosition(Math.round(x - FACE_W / 2), Math.round(y - FACE_H / 2 - 1)).setTint(sel ? COL.select : 0xffffff);
       if (sel) g.lineStyle(2, COL.select, 1).strokeRect(Math.round(x - FACE_W / 2) - 1, Math.round(y - FACE_H / 2) - 1, FACE_W + 2, FACE_H + 2);
@@ -226,21 +226,21 @@ export class CardHud {
         g.fillStyle(0xffffff, 0.95).fillTriangle(x - 5, y + FACE_H / 2 + 10, x + 5, y + FACE_H / 2 + 10, x, y + FACE_H / 2 + 5);
       }
       if (noise) {
-        // 통신 노이즈: 그림·이름 칸에 지직거리는 가로줄과 색 번짐(태그 아이콘·테두리는 가리지 않음)
-        const l = Math.round(x - FACE_W / 2) + 3;
-        const t = Math.round(y - FACE_H / 2) + 15;
+        // 통신 노이즈: 그림 칸에 지직거리는 가로줄과 색 번짐(배지·별·테두리는 가리지 않음)
+        const l = Math.round(x - FACE_W / 2) + ART_RECT.x;
+        const t = Math.round(y - FACE_H / 2) + ART_RECT.y;
         for (let k = 0; k < 7; k++) {
-          const yy = t + ((Math.floor(time / 60) * 13 + k * 11 + i * 7) % (FACE_H - 20));
-          sg.fillStyle(k % 2 ? 0xd0e0ff : 0x203040, 0.55).fillRect(l, yy, FACE_W - 6, 2);
+          const yy = t + ((Math.floor(time / 60) * 13 + k * 11 + i * 7) % (ART_RECT.h - 2));
+          sg.fillStyle(k % 2 ? 0xd0e0ff : 0x203040, 0.55).fillRect(l, yy, ART_RECT.w, 2);
         }
-        sg.fillStyle(0xff40a0, 0.12).fillRect(l + 2, t, FACE_W - 8, FACE_H - 18);
-        sg.fillStyle(0x40e0ff, 0.12).fillRect(l - 1, t + 1, FACE_W - 8, FACE_H - 18);
+        sg.fillStyle(0xff40a0, 0.12).fillRect(l + 2, t, ART_RECT.w - 2, ART_RECT.h);
+        sg.fillStyle(0x40e0ff, 0.12).fillRect(l - 1, t + 1, ART_RECT.w - 2, ART_RECT.h);
       }
       if (smoke > 0) {
-        // 그림·이름 칸만(위 태그 줄·테두리 3px 제외), 덩어리 몇 개로 연기처럼
-        const l = Math.round(x - FACE_W / 2) + 3;
-        const t = Math.round(y - FACE_H / 2) + 15;
-        sg.fillStyle(0x8a8478, smoke).fillRect(l, t, FACE_W - 6, FACE_H - 18);
+        // 그림 칸만(별·테두리 제외), 덩어리 몇 개로 연기처럼
+        const l = Math.round(x - FACE_W / 2) + ART_RECT.x;
+        const t = Math.round(y - FACE_H / 2) + ART_RECT.y;
+        sg.fillStyle(0x8a8478, smoke).fillRect(l, t, ART_RECT.w, ART_RECT.h);
         for (let k = 0; k < 3; k++) {
           const wob = Math.sin(time / 400 + i * 1.7 + k * 2.1) * 4;
           sg.fillStyle(0xb0aaa0, smoke * 0.6).fillCircle(l + 10 + k * 18 + wob, t + 20 + ((k * 23) % 40), 12);
