@@ -1404,6 +1404,21 @@ export class BattleScene extends Phaser.Scene {
     this.scene.start(SceneKey.Ending, { threat: this.enemies.threat });
   }
 
+  /** 점령 뒤 다음 지역(작전지도 순서). 마지막이거나 없으면 null */
+  get nextStage(): string | null {
+    const order = mapData.nodes.map((n) => n.id);
+    const next = order[order.indexOf(this.payload.stage) + 1];
+    return next && next in stagesData.stages ? next : null;
+  }
+
+  /** 미션 클리어 → 다음 지역 출정 준비(새로 열린 캐릭터·스킬을 고를 수 있게 준비 화면으로, 첫 칸은 출정) */
+  toNextStage(): void {
+    const next = this.nextStage;
+    if (!next) return this.toMap();
+    this.scene.stop(SceneKey.Hud);
+    this.scene.start(SceneKey.Prep, { stage: next });
+  }
+
   /** 결과 뒤 작전지도로 */
   toMap(): void {
     const r = this.result;

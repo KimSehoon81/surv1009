@@ -11,6 +11,9 @@ import { InputMap, type InputAction } from '../systems/input';
 import { PIXEL_FONT, ensurePixelFont } from '../ui/pixelFont';
 import { CardHud } from '../ui/cardHud';
 import { cardBackKey } from '../ui/cardFace';
+import { drawMiniMap, type MiniMap } from '../ui/koreaMap';
+import mapData from '../data/map.json';
+import { loadProfile } from '../systems/save';
 import guideData from '../data/guide.json';
 import skillsData from '../data/skills.json';
 import cardsData from '../data/cards.json';
@@ -164,6 +167,7 @@ export class HudScene extends Phaser.Scene {
     this.arrowGfx = null;
     this.snowGfx = null;
     this.resultPanel = null;
+    this.resultMap = null;
     this.levelUp = null;
     this.warn = null;
     this.shop = null;
@@ -293,8 +297,12 @@ export class HudScene extends Phaser.Scene {
     if (this.resultPanel) {
       const enter = this.controls.justDown('redeploy');
       const toMap = this.controls.justDown('toMap');
+      const retry = this.controls.justDown('retry');
+      this.resultMap?.update(time);
       if (b.result?.ending && (enter || toMap)) b.toEnding();
-      else if (enter) b.redeploy();
+      // 점령: Enter = 다음 지역 출정, R = 같은 지역 다시 / 전사: Enter·R = 다시 출정
+      else if (enter && b.result?.record.victory && b.nextStage) b.toNextStage();
+      else if (enter || retry) b.redeploy();
       else if (toMap) b.toMap();
     } else if (this.shop) this.updateShop();
     else if (this.chest) this.updateChest(time);
@@ -681,12 +689,18 @@ export class HudScene extends Phaser.Scene {
   }
 
   /** 결과 화면(점령·전사): 기록·전공 포인트·팁, Enter 다시 출정 */
+  private resultMap: MiniMap | null = null;
+
   private showResult(): void {
     const r = this.battle.result;
     if (!r || this.resultPanel) return;
     this.hideLevelUp();
     const rec = r.record;
-    const root = this.add.container(0, 0);
+    if (rec.victory && !r.ending && this.battle.nextStage) {
+      this.showMissionClear();
+      return;
+    }
+    const root = this.add.container(0, 0).setDepth(900);
     root.add(this.add.rectangle(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT, 0x000000, 0.7).setOrigin(0));
     const title = rec.victory ? t('hud.result.victory', { name: this.battle.stage.name }) : t('hud.result.defeat');
     root.add(this.add.text(LOGICAL_WIDTH / 2, 86, title, textStyle(26, rec.victory ? '#ffe14d' : '#ff8060')).setOrigin(0.5));
@@ -730,6 +744,77 @@ export class HudScene extends Phaser.Scene {
       map.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.battle.toMap());
       root.add([again, map]);
     }
+    root.setAlpha(0);
+    this.tweens.add({ targets: root, alpha: 1, duration: 300 });
+    this.resultPanel = root;
+  }
+
+  /**
+   * 미션 클리어(점령): 왼쪽에 작은 한반도 지도(방금 점령 → 다음 목표로 흐르는 진격 화살표),
+   * 오른쪽에 기록, 아래에 '다음 목표'와 Enter 다음 지역 출정 · R 다시 · M 작전지도
+   */
+  private showMissionClear(): void {
+    const r = this.battle.result;
+    if (!r) return;
+    const rec = r.record;
+    const root = this.add.container(0, 0).setDepth(900);
+    root.add(this.add.rectangle(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT, 0x05080c, 0.84).setOrigin(0));
+    const stageId = this.battle.payload.stage;
+    const next = this.battle.nextStage;
+    const nextNode = mapData.nodes.find((n) => n.id === next);
+    const order = mapData.nodes.map((n) => n.id);
+    root.add(this.add.text(LOGICAL_WIDTH / 2, 30, t('hud.result.missionClear'), { ...uiText(14, '#7fd8ff'), stroke: '#0a0604', strokeThickness: 3, letterSpacing: 4 }).setOrigin(0.5));
+    root.add(this.add.text(LOGICAL_WIDTH / 2, 62, t('hud.result.victory', { name: this.battle.stage.name }), { ...uiText(28, '#ffd34d'), stroke: '#3a1206', strokeThickness: 6 }).setOrigin(0.5));
+    const captured = new Set(Object.entries(loadProfile().stages).filter(([, s]) => s.captured).map(([id]) => id));
+    captured.add(stageId);
+    this.resultMap = drawMiniMap(this, root, { x: 70, y: 104, scale: 28 }, { captured, current: stageId, next });
+    const mm = Math.floor(rec.timeSec / 60);
+    const ss = String(Math.floor(rec.timeSec % 60)).padStart(2, '0');
+    const right = 600;
+    const lines = [
+      t('hud.result.summary', { time: `${mm}:${ss}`, level: rec.level, step: r.step, kills: rec.kills }) + (rec.eliteKills > 0 ? t('hud.result.elite', { n: rec.eliteKills }) : ''),
+      t('hud.result.merit', { n: r.merit }),
+      '',
+      t('hud.result.opsLog'),
+      t('hud.result.opsLine', { submits: rec.submits, rate: r.rate, streak: rec.longestFailStreak, seals: rec.sealsUsed, residue: rec.residueDamage }),
+    ];
+    root.add(this.add.text(right, 112, lines.join('\n'), { ...uiText(13, '#e8dcc0'), align: 'center', lineSpacing: 6, wordWrap: { width: 560 } }).setOrigin(0.5, 0));
+    if (r.unlocked.length > 0) {
+      const chars = r.unlocked.filter((u) => u.kind === 'char').length;
+      const names = r.unlocked
+        .filter((u) => u.kind !== 'char')
+        .map((u) =>
+          u.kind === 'skill'
+            ? t('hud.unlock.skill', { name: (skillsData.skills as Record<string, { name: string }>)[u.id]?.name ?? u.id })
+            : u.kind === 'card'
+              ? t('hud.unlock.card', { name: (cardsData.cards as Record<string, { name: string }>)[u.id]?.name ?? u.id })
+              : u.kind === 'slot'
+                ? t('hud.unlock.slot', { id: u.id })
+                : t('hud.unlock.ending'),
+        );
+      const text = `${t('hud.unlock.title')}  ${[chars > 0 ? t('hud.unlock.chars', { n: chars }) : '', ...names].filter(Boolean).join(' · ')}`;
+      root.add(this.add.text(right, 262, text, { ...uiText(13, '#ffe14d'), align: 'center', wordWrap: { width: 560 } }).setOrigin(0.5, 0));
+    }
+    // 다음 목표(크게) + 버튼
+    if (nextNode) {
+      const box = this.add.graphics();
+      box.fillStyle(0x1a140a, 0.95).fillRect(right - 250, 318, 500, 64).lineStyle(2, 0xffd34d, 1).strokeRect(right - 250, 318, 500, 64);
+      root.add(box);
+      root.add(this.add.text(right, 334, t('hud.result.nextLabel'), uiText(12, '#b0a890')).setOrigin(0.5));
+      root.add(
+        this.add
+          .text(right, 358, `${order.indexOf(nextNode.id) + 1}. ${nextNode.region} — ${nextNode.name}`, { ...uiText(18, '#ffd34d'), stroke: '#0a0604', strokeThickness: 3 })
+          .setOrigin(0.5),
+      );
+    }
+    const go = this.add.text(right, 412, t('hud.result.next', { key: buttonLabel('redeploy') }), { ...uiText(18, '#ffffff'), backgroundColor: '#3a6a2a', padding: { x: 14, y: 6 } }).setOrigin(0.5);
+    go.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.battle.toNextStage());
+    this.tweens.add({ targets: go, scale: 1.06, duration: 520, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+    const again = this.add.text(right - 110, 460, t('hud.result.retry', { key: buttonLabel('retry') }), uiText(14, '#e8dcc0')).setOrigin(0.5);
+    again.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.battle.redeploy());
+    const map = this.add.text(right + 110, 460, t('hud.result.map'), uiText(14, '#e8dcc0')).setOrigin(0.5);
+    map.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.battle.toMap());
+    root.add([go, again, map]);
     root.setAlpha(0);
     this.tweens.add({ targets: root, alpha: 1, duration: 300 });
     this.resultPanel = root;

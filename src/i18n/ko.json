@@ -35,7 +35,12 @@
       "tip": "팁: {tip}",
       "ending": "Enter  엔딩 보기",
       "again": "Enter  다시 출정",
-      "map": "M  작전지도"
+      "map": "M  작전지도",
+      "missionClear": "미션 클리어",
+      "nextShort": "다음",
+      "nextLabel": "다음 목표",
+      "next": "{key}  다음 지역 출정 ▶",
+      "retry": "{key}  같은 지역 다시"
     },
     "unlock": {
       "title": "새로 해금됨",

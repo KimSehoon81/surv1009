@@ -35,7 +35,12 @@
       "tip": "Tip: {tip}",
       "ending": "Enter  View ending",
       "again": "Enter  Deploy again",
-      "map": "M  Campaign map"
+      "map": "M  Campaign map",
+      "missionClear": "MISSION CLEAR",
+      "nextShort": "Next",
+      "nextLabel": "Next objective",
+      "next": "{key}  Deploy to next region ▶",
+      "retry": "{key}  Replay this region"
     },
     "unlock": {
       "title": "Unlocked",
