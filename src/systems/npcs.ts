@@ -62,6 +62,11 @@ export class NpcSystem {
     return this.pool.size;
   }
 
+  /** 만나기를 기다리는 NPC 위치(화면 밖 방향 표시) */
+  waiting(): { x: number; y: number }[] {
+    return this.pool.active.filter((n) => n.state === 'wait').map((n) => ({ x: n.sprite.x, y: n.sprite.y }));
+  }
+
   /** 플레이어 주변(화면 안) distance 거리에 등장 */
   /** fix: 놓을 자리 보정(장애물 안이면 밖으로, 서울 시가전 등) */
   spawn(id: NpcId, near: { x: number; y: number }, nowMs: number, fix?: (x: number, y: number) => { x: number; y: number }): void {

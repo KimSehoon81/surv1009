@@ -60,7 +60,14 @@
     "obj": {
       "survive": "Goal: grow, then beat the boss (Lv {lv} or {time})"
     },
-    "sprint": "{key} Sprint"
+    "sprint": "{key} Sprint",
+    "poi": {
+      "supply": "Supply",
+      "airdrop": "Supply",
+      "chest": "Chest",
+      "npc": "NPC",
+      "boss": "Boss"
+    }
   },
   "card": {
     "reject": {

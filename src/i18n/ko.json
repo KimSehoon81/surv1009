@@ -60,7 +60,14 @@
     "obj": {
       "survive": "목표: 버티며 성장 → 보스 격파 (Lv {lv} 또는 {time} 출현)"
     },
-    "sprint": "{key} 질주"
+    "sprint": "{key} 질주",
+    "poi": {
+      "supply": "보급",
+      "airdrop": "보급",
+      "chest": "상자",
+      "npc": "NPC",
+      "boss": "보스"
+    }
   },
   "card": {
     "reject": {

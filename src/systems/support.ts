@@ -71,6 +71,11 @@ export class SupportSystem {
     return this.squad.length;
   }
 
+  /** 떨어지는 중·착지한 보급 상자 자리(화면 밖 방향 표시) */
+  crateSpots(): { x: number; y: number }[] {
+    return this.crates.map((c) => ({ x: c.x, y: c.y }));
+  }
+
   update(nowMs: number, dtMs: number): void {
     const sec = nowMs / 1000;
     const dropAt = due(sec, AD.firstSec, AD.everySec, this.lastDrop);
@@ -98,7 +103,7 @@ export class SupportSystem {
       const plane = this.scene.add.sprite(at.x - 520, at.y - 240, fxKey, 0).setDepth(Depth.Player + 20).setScale(1.2);
       this.scene.tweens.add({ targets: plane, x: at.x + 520, y: at.y - 260, duration: 2600, onComplete: () => plane.destroy() });
     }
-    const crate = this.scene.add.image(at.x, at.y - 220, CRATE_KEY).setOrigin(0.5, 1).setDepth(Depth.Player + 10);
+    const crate = this.scene.add.image(at.x, at.y - 220, CRATE_KEY).setOrigin(0.5, 1).setDepth(Depth.Player + 10).setScale(AD.crateScale);
     const chute = this.scene.textures.exists(fxKey) ? this.scene.add.sprite(at.x, at.y - 240, fxKey, 1).setOrigin(0.5, 1).setDepth(Depth.Player + 10).setScale(0.6) : null;
     const fall = { k: 0 };
     this.scene.tweens.add({
@@ -124,8 +129,8 @@ export class SupportSystem {
       const c = this.crates[i] as Crate;
       if (nowMs < c.landAt) {
         // 착지 지점: 아군 범위 표시(청록 원 + 조준 눈금)
-        g.lineStyle(1, 0x7fd8ff, 0.8).strokeEllipse(c.x, c.y, 34, 22);
-        allyMark(g, c.x, c.y, 17, 0x7fd8ff, 0.8);
+        g.lineStyle(2, 0x7fd8ff, 0.85).strokeEllipse(c.x, c.y, 48, 30);
+        allyMark(g, c.x, c.y, 24, 0x7fd8ff, 0.85);
         continue;
       }
       if (c.chute) {
@@ -141,7 +146,9 @@ export class SupportSystem {
       c.sprite.setVisible(left > 5000 || Math.floor(nowMs / 150) % 2 === 0);
       // 주우라는 표시: 위에서 까딱이는 삼각형
       const bob = Math.sin(nowMs / 160) * 2;
-      g.fillStyle(0x7fd8ff, 0.95).fillTriangle(c.x - 4, c.y - 26 + bob, c.x + 4, c.y - 26 + bob, c.x, c.y - 20 + bob);
+      // 바닥에 빛나는 원(눈에 띄게) + 위에서 까딱이는 삼각형
+      g.fillStyle(0x7fd8ff, 0.18 + 0.12 * Math.abs(Math.sin(nowMs / 220))).fillEllipse(c.x, c.y, 54, 26);
+      g.fillStyle(0x7fd8ff, 0.95).fillTriangle(c.x - 6, c.y - 44 + bob, c.x + 6, c.y - 44 + bob, c.x, c.y - 36 + bob);
       if ((p.x - c.x) ** 2 + (p.y - c.y) ** 2 <= (AD.radius + 10) ** 2) {
         this.pickup(c);
         this.crates.splice(i, 1);

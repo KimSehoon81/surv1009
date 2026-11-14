@@ -1,5 +1,5 @@
 {
-  "$comment": "NPC(PRD §9.3). 진영 neutral: 적의 공격 대상이 아니고 피격 판정 없음. 접촉하면 대화(talkMs) → 지급 동작 + effects(systems/effects 레지스트리 재사용: giveCard ids 중 하나 지급, heal, purgeMinus 손패 마이너스 정화). lifeMs 안에 만나지 못하면 떠남. 등장 시각은 stages.json npcAt, 종류는 stages.json npcs에서 차례로. distance=플레이어에게서 등장 거리 px action: shop=전공 상점 창(shop.json, 전투 정지), hiddenSupply=숨은 보급품을 화면 밖 distance px에 두고 가장자리 초록 화살표로 안내(닿으면 hiddenSupply.effects). N05 소년 통신병 = 방해 하나 해제 + 손패 리롤. (D37) N06 통역관 = 고급 스킬 쿨 −40%·TP, N07 군종 장교 = 마이너스 정화·회복·사기(공격 +10%), N08 정비병 = 공격 +25%·공속 +30%(45초), N09 헌병 = action safeZone(반경 radius에 ms 동안 적 진입 차단, 보스·공중 제외), N10 군견 = 정찰(적 표시)·짧은 지원 사격.",
+  "$comment": "NPC(PRD §9.3). 진영 neutral: 적의 공격 대상이 아니고 피격 판정 없음. 접촉하면 대화(talkMs) → 지급 동작 + effects(systems/effects 레지스트리 재사용: giveCard ids 중 하나 지급, heal, purgeMinus 손패 마이너스 정화). lifeMs 안에 만나지 못하면 떠남. 등장 시각은 stages.json npcAt, 종류는 stages.json npcs에서 차례로. distance=플레이어에게서 등장 거리 px action: shop=전공 상점 창(shop.json, 전투 정지), hiddenSupply=숨은 보급품을 화면 밖 distance px에 두고 가장자리 초록 화살표로 안내(닿으면 hiddenSupply.effects). N05 소년 통신병 = 방해 하나 해제 + 손패 리롤. (D37) N06 통역관 = 고급 스킬 쿨 −40%·TP, N07 군종 장교 = 마이너스 정화·회복·사기(공격 +10%), N08 정비병 = 공격 +25%·공속 +30%(45초), N09 헌병 = action safeZone(반경 radius에 ms 동안 적 진입 차단, 보스·공중 제외), N10 군견 = 정찰(적 표시)·짧은 지원 사격. hiddenSupply.scale(2026-11-14)=숨은 보급품 상자 그림 배율(크게).",
   "distance": 200,
   "contactRadius": 28,
   "talkMs": 900,
@@ -155,7 +155,7 @@
       520,
       760
     ],
-    "radius": 22,
+    "radius": 30,
     "effects": [
       {
         "effect": "heal",
@@ -175,7 +175,8 @@
           "ids": "P04,P10,P13"
         }
       }
-    ]
+    ],
+    "scale": 1.6
   },
   "safeZone": {
     "radius": 110,

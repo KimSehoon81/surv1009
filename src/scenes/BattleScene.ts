@@ -1159,6 +1159,23 @@ export class BattleScene extends Phaser.Scene {
   revealUntil = 0;
 
   /** 화면 밖 방해원(HUD 가장자리 화살표) */
+  /**
+   * 화면 밖 관심 지점(HUD 가장자리 화살표, 화면 좌표): 숨은 보급품·보급 투하 상자·보물 상자·만날 NPC·보스.
+   * 방해원은 disruptorsOffscreen(따로, 위협 우선 조준 표시와 함께)
+   */
+  pointsOffscreen(): { x: number; y: number; kind: 'supply' | 'airdrop' | 'chest' | 'npc' | 'boss' }[] {
+    const v = this.cameras.main.worldView;
+    const out: { x: number; y: number; kind: 'supply' | 'airdrop' | 'chest' | 'npc' | 'boss' }[] = [];
+    const add = (x: number, y: number, kind: (typeof out)[number]['kind']) => {
+      if (!v.contains(x, y)) out.push({ x: x - v.x, y: y - v.y, kind });
+    };
+    if (this.supply) add(this.supply.x, this.supply.y, 'supply');
+    for (const c of this.support.crateSpots()) add(c.x, c.y, 'airdrop');
+    for (const n of this.npcs.waiting()) add(n.x, n.y, 'npc');
+    if (this.boss?.alive) add(this.boss.x, this.boss.y - 40, 'boss');
+    return out;
+  }
+
   disruptorsOffscreen(): { x: number; y: number }[] {
     const v = this.cameras.main.worldView;
     const out: { x: number; y: number }[] = [];
@@ -1498,7 +1515,7 @@ export class BattleScene extends Phaser.Scene {
     const at = this.obstacles.resolve(this.player.x + Math.cos(a) * r, this.player.y + Math.sin(a) * r, npcData.hiddenSupply.radius + 8);
     const { x, y } = at;
     this.supply?.sprite.destroy();
-    const sprite = this.add.image(x, y, manifest.image('ui', 'supply_crate', 32, 32).key).setOrigin(0.5, 0.8).setDepth(Depth.Decal + 3);
+    const sprite = this.add.image(x, y, manifest.image('ui', 'supply_crate', 32, 32).key).setOrigin(0.5, 0.8).setDepth(Depth.Decal + 3).setScale(npcData.hiddenSupply.scale ?? 1);
     this.supply = { x, y, sprite };
   }
 
@@ -1513,15 +1530,6 @@ export class BattleScene extends Phaser.Scene {
     this.toast(t('battle.hiddenSupplyGot'), '#6fd06f');
     s.sprite.destroy();
     this.supply = null;
-  }
-
-  /** 화면 밖 숨은 보급품 위치(화면 좌표, HUD 화살표). 화면 안이면 null */
-  supplyOffscreen(): { x: number; y: number } | null {
-    const s = this.supply;
-    if (!s) return null;
-    const v = this.cameras.main.worldView;
-    if (v.contains(s.x, s.y)) return null;
-    return { x: s.x - v.x, y: s.y - v.y };
   }
 
   /** 작전판(Tab): 전투를 완전히 멈추고 조합표·확률 내역을 본다 */

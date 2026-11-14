@@ -29,6 +29,14 @@ import { lastDevice } from '../systems/pad';
 import { buttonLabel, sealLabel } from '../ui/buttons';
 
 const RARITY = upgradesData.rarity;
+/** 화면 밖 관심 지점 화살표 색·크기 */
+const POI: Record<'supply' | 'airdrop' | 'chest' | 'npc' | 'boss', { color: number; size: number }> = {
+  supply: { color: 0x6fd06f, size: 12 },
+  airdrop: { color: 0x7fd8ff, size: 12 },
+  chest: { color: 0xffd34d, size: 14 },
+  npc: { color: 0xf4ecd8, size: 10 },
+  boss: { color: 0xff4030, size: 14 },
+};
 const mmss = (sec: number): string => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
 const PICK_KEYS: InputAction[] = ['levelPick1', 'levelPick2', 'levelPick3', 'levelPick4'];
 const CARD_W = 200;
@@ -390,20 +398,35 @@ export class HudScene extends Phaser.Scene {
     const g = this.arrowGfx.clear();
     const reveal = this.battle.clock.timeMs < this.battle.revealUntil;
     const alpha = 0.6 + 0.4 * Math.abs(Math.sin(time / 200));
-    const list: { x: number; y: number; color: number; s: number }[] = this.battle.disruptorsOffscreen().map((p) => ({ ...p, color: reveal ? 0xffe14d : 0xff6040, s: 9 }));
-    // 숨은 보급품(N04): 초록, 조금 크게
-    const sup = this.battle.supplyOffscreen();
-    if (sup) list.push({ ...sup, color: 0x6fd06f, s: 12 });
-    if (list.length === 0) return;
-    const cx = LOGICAL_WIDTH / 2;
-    const cy = LOGICAL_HEIGHT / 2;
+    const list: { x: number; y: number; color: number; s: number; label?: string }[] = this.battle.disruptorsOffscreen().map((p) => ({ ...p, color: reveal ? 0xffe14d : 0xff6040, s: 9 }));
+    // 화면 밖 관심 지점: 보급품·보물 상자·NPC·보스 — 색 + 짧은 글자로 무엇인지
+    for (const p of this.battle.pointsOffscreen()) {
+      const k = POI[p.kind];
+      list.push({ x: p.x, y: p.y, color: k.color, s: k.size, label: t(`hud.poi.${p.kind}`) });
+    }
+    let used = 0;
+    if (list.length === 0) {
+      for (const tx of this.poiLabels) tx.setVisible(false);
+      return;
+    }
+    // 화살표가 머무는 테두리: 위 HUD 줄·아래 손패를 피한 안쪽 사각형
+    const box = { l: 20, r: LOGICAL_WIDTH - 20, t: 66, b: LOGICAL_HEIGHT - 132 };
+    const cx = (box.l + box.r) / 2;
+    const cy = (box.t + box.b) / 2;
     for (const p of list) {
       const { color, s } = p;
-      const a = Math.atan2(p.y - cy, p.x - cx);
-      // 화면 가장자리(안쪽 18px)와 만나는 점
-      const k = Math.min((cx - 18) / Math.abs(Math.cos(a) || 1e-6), (cy - 18) / Math.abs(Math.sin(a) || 1e-6));
+      const a = Math.atan2(p.y - LOGICAL_HEIGHT / 2, p.x - LOGICAL_WIDTH / 2);
+      const k = Math.min((box.r - cx) / Math.abs(Math.cos(a) || 1e-6), (box.b - cy) / Math.abs(Math.sin(a) || 1e-6));
       const x = cx + Math.cos(a) * k;
       const y = cy + Math.sin(a) * k;
+      g.fillStyle(0x0a0604, 0.6).fillTriangle(
+        x + Math.cos(a) * (s + 2),
+        y + Math.sin(a) * (s + 2),
+        x + Math.cos(a + 2.5) * (s + 2),
+        y + Math.sin(a + 2.5) * (s + 2),
+        x + Math.cos(a - 2.5) * (s + 2),
+        y + Math.sin(a - 2.5) * (s + 2),
+      );
       g.fillStyle(color, alpha).fillTriangle(
         x + Math.cos(a) * s,
         y + Math.sin(a) * s,
@@ -412,8 +435,19 @@ export class HudScene extends Phaser.Scene {
         x + Math.cos(a - 2.5) * s,
         y + Math.sin(a - 2.5) * s,
       );
+      if (!p.label) continue;
+      // 화살표 안쪽에 무엇인지 글자(보급·상자·NPC·보스)
+      const tx = this.poiLabels[used] ?? this.poiLabels[this.poiLabels.push(this.add.text(0, 0, '', { ...uiText(11, '#ffffff'), stroke: '#0a0604', strokeThickness: 3 }).setOrigin(0.5)) - 1];
+      used++;
+      tx?.setText(p.label)
+        .setColor(`#${color.toString(16).padStart(6, '0')}`)
+        .setPosition(Math.round(x - Math.cos(a) * (s + 14)), Math.round(y - Math.sin(a) * (s + 10)))
+        .setVisible(true);
     }
+    for (let i = used; i < this.poiLabels.length; i++) this.poiLabels[i]?.setVisible(false);
   }
+
+  private readonly poiLabels: Phaser.GameObjects.Text[] = [];
 
   /** 좌상단 체력(Lv·경험치 아래) */
   private sprintLabel!: Phaser.GameObjects.Text;
