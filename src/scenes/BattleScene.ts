@@ -101,9 +101,10 @@ const TP = skillsData.tp;
 const ACH = achievementsData.achievements as AchievementDef[];
 /** 마지막 지역(엔딩): 작전지도 순서의 끝 */
 const FINAL_STAGE = mapData.nodes[mapData.nodes.length - 1]?.id ?? 'S10';
-/** 위협 우선 조준(G6): 방해원(disrupt)·버프 오라(aura)·지정 우선(targetPriority) */
+/** 위협 우선 조준(G6): 방해원(disrupt)·버프 오라(aura)·지정 우선(targetPriority)·작전 카드 충전 중인 보스(약점) */
 const isPriorityTarget = (e: Enemy): boolean => {
   const d = e.def as { disrupt?: unknown; aura?: unknown; targetPriority?: number };
+  if (e.atk.phase === 'windup' && e.attacks[e.atk.index]?.type === 'opCard') return true;
   return d.disrupt !== undefined || d.aura !== undefined || d.targetPriority !== undefined;
 };
 /** 캐릭터 정의 중 능력치 밖 성질(카드 보정·강화·주기 지원·레벨업 보정) */

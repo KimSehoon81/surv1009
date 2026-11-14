@@ -507,7 +507,7 @@ export class HudScene extends Phaser.Scene {
       g.fillStyle(0xff5040, 1).fillRect(LOGICAL_WIDTH / 2 - 31, 129, Math.round(62 * k), 3);
       g.fillStyle(0xffd040, 1).fillRect(LOGICAL_WIDTH / 2 - 31, 134, Math.round(62 * cancel), 3);
       this.bossCard.setAlpha(0.7 + 0.3 * Math.abs(Math.sin(time / 120)));
-      this.bossInfo.setText(t('hud.boss.opCharge')).setColor('#ffe14d').setPosition(LOGICAL_WIDTH / 2, 150).setVisible(true);
+      this.bossInfo.setText(t('hud.boss.opCharge')).setColor(Math.floor(time / 130) % 2 ? '#ffe14d' : '#ff8040').setPosition(LOGICAL_WIDTH / 2, 150).setVisible(true);
     } else if (this.bossJudge && time < this.bossJudge.untilReal) {
       this.bossInfo.setText(this.bossJudge.msg).setColor(this.bossJudge.color).setPosition(LOGICAL_WIDTH / 2, 62).setVisible(true);
     } else this.bossInfo.setVisible(false);

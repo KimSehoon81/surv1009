@@ -18,7 +18,7 @@
       "opSuccess": "Enemy op succeeded — heavy barrage incoming!",
       "opCancel": "Charge cancelled — weak point exposed!",
       "opFail": "Enemy op failed — weak point exposed!",
-      "opCharge": "Enemy op card charging — focus fire to cancel!"
+      "opCharge": "Enemy op card charging — weak point! Focus fire to cancel"
     },
     "paused": "Paused\nEsc to resume",
     "result": {
@@ -146,7 +146,8 @@
     "npcArrive": "{name} arrived — walk over to meet",
     "captured": "{name} captured!",
     "autoQuality": "Low frame rate: effects lowered to '{name}' — change in Settings",
-    "safeZone": "Safe zone {sec}s — enemies can't enter the yellow circle"
+    "safeZone": "Safe zone {sec}s — enemies can't enter the yellow circle",
+    "weakPoint": "WEAK POINT! Focus fire"
   },
   "prep": {
     "deckErr": {

@@ -8,6 +8,8 @@ import type { Enemy } from '../entities/Enemy';
 import type { AudioSink } from './audio';
 import type { Feel } from './feel';
 import { enemyMark } from '../ui/factionMark';
+import { uiText } from '../ui/text';
+import { t } from '../i18n';
 
 const TM = feelData.threatMarker;
 const RED = parseColor(TM.color);
@@ -126,6 +128,10 @@ export class EnemyAttackSystem {
   private tracers: { x1: number; y1: number; x2: number; y2: number; untilMs: number }[] = [];
   private readonly gfx: Phaser.GameObjects.Graphics;
   private readonly air: Phaser.GameObjects.Graphics;
+  /** 보스 작전 카드 충전 중 약점 표시(깜박임·조준선·글자) */
+  private readonly weakGfx: Phaser.GameObjects.Graphics;
+  private readonly weakLabel: Phaser.GameObjects.Text;
+  private readonly blinking = new Set<Enemy>();
 
   constructor(
     scene: Phaser.Scene,
@@ -133,6 +139,12 @@ export class EnemyAttackSystem {
   ) {
     this.gfx = scene.add.graphics().setDepth(Depth.Decal + 1);
     this.air = scene.add.graphics().setDepth(Depth.Projectile);
+    this.weakGfx = scene.add.graphics().setDepth(Depth.Player + 6);
+    this.weakLabel = scene.add
+      .text(0, 0, t('battle.weakPoint'), { ...uiText(16, '#ffe14d'), stroke: '#3a0a00', strokeThickness: 4 })
+      .setOrigin(0.5, 1)
+      .setDepth(Depth.Player + 7)
+      .setVisible(false);
   }
 
   get activeThreats(): number {
@@ -308,6 +320,7 @@ export class EnemyAttackSystem {
       const y = s.fromY + (s.ty - s.fromY) * k - Math.sin(k * Math.PI) * 110 - combat.bodyOffsetY * (1 - k);
       a.fillStyle(0x2a2622, 1).fillCircle(x, y, 2.5);
     }
+    this.drawWeakPoints(nowMs, enemies);
     // 방어 자세(강철색 고리)·약점 노출(주황 깜빡임)
     for (const e of enemies) {
       // 오라 반경(정치보위요원): 옅은 붉은 원 — 이 안의 적은 강해짐
@@ -319,6 +332,49 @@ export class EnemyAttackSystem {
       if (e.atk.phase === 'active') g.lineStyle(2, GUARD, 0.9).strokeEllipse(e.x, e.y - 2, e.radius * 2.6, e.radius * 1.2);
       else if (e.atk.phase === 'recover' && Math.floor(nowMs / 120) % 2 === 0) g.lineStyle(2, WEAK, 1).strokeEllipse(e.x, e.y - 2, e.radius * 2.8, e.radius * 1.3);
     }
+  }
+
+  /**
+   * 보스 작전 카드 충전(3초) = 약점: 몸이 흰·노랑으로 깜박이고 도는 조준선과 '약점!' 글자.
+   * 이 동안 최대 체력의 일정 비율을 맞히면 작전이 취소된다(core/enemyAttack cancelFrac)
+   */
+  private drawWeakPoints(nowMs: number, enemies: readonly Enemy[]): void {
+    const g = this.weakGfx.clear();
+    let label: Enemy | null = null;
+    for (const e of enemies) {
+      const spec = e.alive && e.atk.index >= 0 ? e.attacks[e.atk.index] : undefined;
+      const charging = spec?.type === 'opCard' && e.atk.phase === 'windup';
+      if (!charging) {
+        if (this.blinking.delete(e)) e.sprite.clearTint();
+        continue;
+      }
+      this.blinking.add(e);
+      const on = Math.floor(nowMs / 130) % 2 === 0;
+      if (on) e.sprite.setTintFill(0xfff2a8);
+      else e.sprite.clearTint();
+      // 몸 가운데에 도는 조준선(네 모서리 꺾쇠)
+      const cy = e.y - e.sprite.displayHeight * 0.32;
+      const r = Math.max(26, e.radius * 1.8) * (1 + 0.08 * Math.sin(nowMs / 90));
+      const rot = nowMs / 600;
+      const col = on ? 0xffe14d : 0xff8040;
+      for (let k = 0; k < 4; k++) {
+        const a = rot + (k * Math.PI) / 2;
+        const ca = Math.cos(a);
+        const sa = Math.sin(a);
+        const px = e.x + ca * r;
+        const py = cy + sa * r * 0.8;
+        g.lineStyle(3, col, 1).lineBetween(px, py, px - ca * 10 + -sa * 7, py - sa * 8 + ca * 6).lineBetween(px, py, px - ca * 10 + sa * 7, py - sa * 8 - ca * 6);
+      }
+      g.lineStyle(1, col, 0.8).strokeCircle(e.x, cy, 4);
+      label = e;
+    }
+    if (label) {
+      const pulse = 1 + 0.12 * Math.abs(Math.sin(nowMs / 110));
+      this.weakLabel
+        .setPosition(label.x, label.y - label.sprite.displayHeight * 0.72)
+        .setScale(pulse)
+        .setVisible(true);
+    } else this.weakLabel.setVisible(false);
   }
 
   private drawThreat(g: Phaser.GameObjects.Graphics, t: Threat, now: number): void {

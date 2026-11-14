@@ -18,7 +18,7 @@
       "opSuccess": "적 작전 성공 — 대형 포격 예고!",
       "opCancel": "충전 취소 — 약점 노출!",
       "opFail": "적 작전 실패 — 약점 노출!",
-      "opCharge": "적 작전 카드 충전 — 집중 사격으로 취소!"
+      "opCharge": "적 작전 카드 충전 — 지금이 약점! 집중 사격으로 취소"
     },
     "paused": "일시정지\nEsc로 계속",
     "result": {
@@ -146,7 +146,8 @@
     "npcArrive": "{name} 등장 — 다가가서 만나기",
     "captured": "{name} 점령!",
     "autoQuality": "화면이 느려 이펙트 품질을 '{name}'(으)로 낮췄습니다 — 설정에서 바꿀 수 있음",
-    "safeZone": "안전지대 {sec}초 — 노란 원 안으로 적이 못 들어옴"
+    "safeZone": "안전지대 {sec}초 — 노란 원 안으로 적이 못 들어옴",
+    "weakPoint": "약점! 집중 사격"
   },
   "prep": {
     "deckErr": {
