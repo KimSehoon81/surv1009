@@ -80,22 +80,44 @@ os.makedirs(RAW_DIR, exist_ok=True)
 os.makedirs(OUT_DIR, exist_ok=True)
 print("저장 위치:", BASE)
 
+def _clean(k):
+    """복사할 때 섞이기 쉬운 것 제거: 앞뒤 공백·줄바꿈, 따옴표, 'Bearer ' 접두어, 중간 공백(키에는 공백이 없음)"""
+    k = (k or "").strip().strip('"').strip("'").strip()
+    if k.lower().startswith("bearer "):
+        k = k[7:]
+    return "".join(k.split())
+
+def _mask(k):
+    """키 전체는 절대 출력하지 않음: 앞 8자 + 끝 4자(OpenAI 키 목록에 보이는 끝 4자와 비교용)"""
+    return f"{k[:8]}…{k[-4:]} ({len(k)}자)" if len(k) > 12 else f"(너무 짧음: {len(k)}자)"
+
+def _err_msg(r):
+    try:
+        return r.json().get("error", {}).get("message") or r.text[:300]
+    except Exception:
+        return r.text[:300]
+
 def _get_key():
-    if os.environ.get("OPENAI_API_KEY"):
-        return os.environ["OPENAI_API_KEY"].strip()
+    # 1) Colab 보안 비밀을 먼저(이 런타임에서 예전에 잘못 입력한 키가 남아 있어도 보안 비밀이 이김)
     if IN_COLAB:
         try:
             from google.colab import userdata
-            k = userdata.get("OPENAI_API_KEY")
+            k = _clean(userdata.get("OPENAI_API_KEY"))
             if k:
-                return k.strip()
-        except Exception:
-            pass
-    return getpass.getpass("OpenAI API 키를 붙여넣고 Enter: ").strip()
+                return k, "Colab 보안 비밀 OPENAI_API_KEY"
+        except Exception as e:
+            print(f"보안 비밀을 읽지 못했습니다({type(e).__name__}): 이름이 정확히 OPENAI_API_KEY인지, 노트북 액세스 스위치가 켜져 있는지 확인")
+    # 2) 이 런타임에 저장된 키(앞에서 직접 입력한 것) 3) 직접 입력
+    k = _clean(os.environ.get("OPENAI_API_KEY"))
+    if k:
+        return k, "이 런타임에 저장된 키(앞에서 직접 입력)"
+    return _clean(getpass.getpass("OpenAI API 키를 붙여넣고 Enter: ")), "직접 입력"
 
-API_KEY = "" if CONVERT_ONLY else _get_key()
+API_KEY, KEY_SOURCE = ("", "") if CONVERT_ONLY else _get_key()
 if API_KEY:
     os.environ["OPENAI_API_KEY"] = API_KEY  # 다시 실행해도 묻지 않게(이 런타임 안에서만)
+    print("사용할 키:", _mask(API_KEY), "· 출처:", KEY_SOURCE)
+    print("  → platform.openai.com/api-keys 목록의 키 끝 4글자와 같은지 확인하세요")
     if not API_KEY.startswith("sk-"):
         print("경고: API 키 형식이 sk-로 시작하지 않습니다. 확인해 주세요.")
 HEADERS = {"Authorization": "Bearer " + API_KEY}
@@ -109,17 +131,43 @@ CELL_PLAN = '''#@title 5) 모델 확인과 작업 목록 { display-mode: "form" 
 PREFERRED = ["gpt-image-2.5-flare", "gpt-image-2.5", "gpt-image-1.5", "gpt-image-1"]
 
 def list_image_models():
-    try:
-        r = requests.get("https://api.openai.com/v1/models", headers=HEADERS, timeout=30)
+    global API_KEY, HEADERS
+    for attempt in range(3):
+        try:
+            r = requests.get("https://api.openai.com/v1/models", headers=HEADERS, timeout=30)
+        except Exception as e:
+            print("모델 목록을 가져오지 못했습니다:", e)
+            return []
         if r.status_code == 401:
-            raise SystemExit("API 키가 올바르지 않습니다(401). 키를 다시 확인하세요.")
-        r.raise_for_status()
+            msg = _err_msg(r)
+            low = msg.lower()
+            if "insufficient permissions" in low or "missing scope" in low:
+                # 권한 제한(Restricted) 키: 목록은 못 봐도 그림 만들기는 될 수 있음
+                print("이 키는 권한이 제한된 키라 모델 목록을 볼 수 없습니다. 기본 모델로 계속합니다.")
+                print("  OpenAI 설명:", msg)
+                print("  그림 만들기도 막히면 키를 권한 All로 새로 만드세요(platform.openai.com/api-keys).")
+                return []
+            print("OpenAI가 이 키를 거절했습니다(401):", msg)
+            print("  흔한 원인: ① 키가 삭제·폐기됨(OpenAI는 공개된 곳에 노출된 키를 자동 폐기) ② 복사할 때 글자가 빠지거나 더해짐 ③ 다른 계정·조직의 키")
+            print("  해결: platform.openai.com/api-keys에서 위 끝 4글자 키가 아직 있는지 보고, 없으면 새 키를 만들어")
+            print("        왼쪽 열쇠(보안 비밀)의 OPENAI_API_KEY 값을 바꾼 뒤 '런타임 → 세션 다시 시작' 하고 모두 실행")
+            k = _clean(getpass.getpass("지금 새 키를 붙여넣으면 바로 이어서 합니다(그냥 Enter = 중단): "))
+            if not k:
+                raise SystemExit("API 키가 거절되었습니다(401). 위 안내대로 새 키를 넣고 다시 실행하세요.")
+            API_KEY = k
+            os.environ["OPENAI_API_KEY"] = k
+            HEADERS = {"Authorization": "Bearer " + k}
+            print("새 키:", _mask(k), "로 다시 확인합니다")
+            continue
+        if r.status_code == 429:
+            print("요청 제한·크레딧 문제(429):", _err_msg(r), "→ platform.openai.com → Billing 확인")
+        try:
+            r.raise_for_status()
+        except Exception as e:
+            print("모델 목록을 가져오지 못했습니다:", e, _err_msg(r))
+            return []
         return sorted(m["id"] for m in r.json().get("data", []) if "image" in m["id"])
-    except SystemExit:
-        raise
-    except Exception as e:
-        print("모델 목록을 가져오지 못했습니다:", e)
-        return []
+    raise SystemExit("API 키가 계속 거절되었습니다(401). 새 키를 만들어 보안 비밀에 넣고 다시 실행하세요.")
 
 available = [] if CONVERT_ONLY else list_image_models()
 if not CONVERT_ONLY:
