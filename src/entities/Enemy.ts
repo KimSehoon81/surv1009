@@ -48,6 +48,8 @@ export class Enemy implements Agent {
   readonly kb: Knockback = createKnockback();
   /** 국소 정지(일반 타격 2프레임): 이 시각(전투 시계)까지 넉백·애니메이션이 멈춤 */
   freezeUntilMs = 0;
+  /** 돌격대 번호(0 = 아님): 그 돌격대를 전부 격퇴하면 보상 */
+  rushId = 0;
   /** 질주 시작 시각(전투 시계 ms, core/enemySprint). 그 전 windupMs는 예고 */
   sprintAtMs = -Infinity;
   /** 공격 부품(data attacks)과 단계 상태 */
@@ -123,6 +125,7 @@ export class Enemy implements Agent {
     this.stunUntilMs = 0;
     this.kb.ms = 0;
     this.freezeUntilMs = 0;
+    this.rushId = 0;
     this.sprintAtMs = -Infinity;
     this.anims = anims;
     this.anim = createAnimState(anims.rules, nowMs);

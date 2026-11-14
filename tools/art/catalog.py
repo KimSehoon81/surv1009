@@ -815,7 +815,7 @@ def build_items():
     add("props_1", "P2", props_prompt(PROP_SETS[0][1]), {"kind": "props", "rows": [{"name": n, "frame": f, "fit": m, "px": px} for n, _d, f, m, px in PROP_SETS[0][1]]})
 
     # P2
-    add("map_korea", "P2", MAP_PROMPT, {"kind": "map", "w": 360, "h": 540}, size="1024x1536", transparent=False)
+    # (map_korea는 뺌: 작전지도는 실제 해안선 자료로 코드가 그린다 — src/data/map.json, 2026-11-14)
     add("tiles_2", "P2", tiles_prompt(TILE_SETS[1][1]), {"kind": "tiles", "ids": [t for t, _ in TILE_SETS[1][1]]}, transparent=False)
     add("tiles_3", "P2", tiles_prompt(TILE_SETS[2][1]), {"kind": "tiles", "ids": [t for t, _ in TILE_SETS[2][1]]}, transparent=False)
     for uid, desc in ALLIES:

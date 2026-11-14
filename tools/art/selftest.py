@@ -18,6 +18,8 @@ import postprocess as pp  # noqa: E402
 
 with open(os.path.join(HERE, "prompts.json"), encoding="utf-8") as f:
     ITEMS = {it["name"]: it for it in json.load(f)}
+# 지도 그림은 생성 목록에서 뺐지만(작전지도는 코드가 그림) 변환 규칙은 남아 있어 검증만 계속한다
+ITEMS.setdefault("map_korea", {"name": "map_korea", "phase": "-", "size": "1024x1536", "transparent": False, "prompt": "", "post": {"kind": "map", "w": 360, "h": 540}})
 
 
 def unit_sheet(cols, rows, body_ratio, bg=None, wide=False, overflow=False):

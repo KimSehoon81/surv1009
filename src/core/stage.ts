@@ -67,6 +67,40 @@ export interface BurstDef {
   arcDeg: number;
   warnSec: number;
   label?: string;
+  /** 돌격대(rules.rush로 만든 작은 군집): 방향 예고, 전부 격퇴하면 보급. 보스가 예고되면 더 나오지 않음 */
+  rush?: boolean;
+}
+
+export interface RushRule {
+  firstSec: number;
+  everySec: number;
+  untilSec: number;
+  /** 첫 회 수와 회차마다 늘어나는 수 */
+  base: number;
+  grow: number;
+  arcDeg: number;
+  warnSec: number;
+  /** 엘리트·기존 군집과 이 시간 안이면 건너뜀 */
+  avoidSec: number;
+}
+
+/**
+ * 돌격대 일정: firstSec부터 everySec마다 untilSec까지, 그 구간 스폰 표의 기본 적(ok를 통과하는 첫 줄)으로.
+ * 엘리트·기존 군집 근처, 대군집(배율 > 1) 구간, 보스 시각 임박은 건너뛴다(큰 사건과 겹치지 않게)
+ */
+export function rushBursts(stage: StageDef, r: RushRule, ok: (enemy: string) => boolean = () => true): BurstDef[] {
+  const out: BurstDef[] = [];
+  const busy = [...stage.elites.map((e) => e.at), ...(stage.bursts ?? []).map((b) => b.at)];
+  for (let t = r.firstSec; t <= r.untilSec; t += r.everySec) {
+    if (t >= stage.boss.trigger.time - r.avoidSec) break;
+    if (busy.some((b) => Math.abs(b - t) < r.avoidSec)) continue;
+    if ((pacingAt(stage, t)?.mult ?? 1) > 1) continue;
+    const spawns = phaseAt(stage, t).spawns;
+    const enemy = (spawns.find((s) => ok(s.enemy)) ?? spawns[0])?.enemy;
+    if (!enemy) continue;
+    out.push({ at: t, enemy, count: r.base + r.grow * out.length, arcDeg: r.arcDeg, warnSec: r.warnSec, rush: true });
+  }
+  return out;
 }
 
 export type StageEvent =
@@ -164,6 +198,8 @@ export class StageDirector {
     const ev: StageEvent[] = [];
     const st = this.stage;
     (st.bursts ?? []).forEach((b, i) => {
+      // 돌격대는 보스가 예고된 뒤로는 나오지 않음(이미 예고한 것은 그대로)
+      if (b.rush && this.burstStep[i] === 0 && (this.bossAt !== null || this.bossSpawned)) this.burstStep[i] = 2;
       if (this.burstStep[i] === 0 && t >= b.at - b.warnSec) {
         this.burstStep[i] = 1;
         ev.push({ type: 'burstWarn', burst: b, inSec: Math.max(0, b.at - t) });

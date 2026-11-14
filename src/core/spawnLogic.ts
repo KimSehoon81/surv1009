@@ -19,15 +19,17 @@ export interface BurstJob {
   /** 원호 가운데 각(라디안)과 폭 */
   angle: number;
   arcRad: number;
+  /** 돌격대 번호(전부 격퇴 보상용), 없으면 0 */
+  tag?: number;
 }
 
-export function takeBurst(queue: readonly BurstJob[], room: number): { spawn: { id: string; angle: number; arcRad: number }[]; queue: BurstJob[] } {
-  const spawn: { id: string; angle: number; arcRad: number }[] = [];
+export function takeBurst(queue: readonly BurstJob[], room: number): { spawn: { id: string; angle: number; arcRad: number; tag?: number }[]; queue: BurstJob[] } {
+  const spawn: { id: string; angle: number; arcRad: number; tag?: number }[] = [];
   const rest: BurstJob[] = [];
   let left = Math.max(0, room);
   for (const j of queue) {
     const n = Math.min(left, j.left);
-    for (let i = 0; i < n; i++) spawn.push({ id: j.id, angle: j.angle, arcRad: j.arcRad });
+    for (let i = 0; i < n; i++) spawn.push({ id: j.id, angle: j.angle, arcRad: j.arcRad, ...(j.tag ? { tag: j.tag } : {}) });
     left -= n;
     if (j.left - n > 0) rest.push({ ...j, left: j.left - n });
   }

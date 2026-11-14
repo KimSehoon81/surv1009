@@ -1,4 +1,6 @@
-import type * as Phaser from 'phaser';
+import * as Phaser from 'phaser';
+import feelData from '../data/feel.json';
+import { parseColor } from '../core/feel';
 import { manifest } from '../assets/manifest';
 import { Pool } from '../core/pool';
 import type { SpatialHash } from '../core/spatialHash';
@@ -81,14 +83,21 @@ export interface LobSpec {
 }
 
 
+const TRACER = feelData.tracer;
+const TRACER_CORE = parseColor(TRACER.core);
+const TRACER_GLOW = parseColor(TRACER.glow);
+
 /** 직선 투사체(총알)와 곡사 투사체(수류탄). 스프라이트는 풀에서 재사용 */
 export class ProjectileSystem {
   private readonly pool: Pool<Projectile>;
+  /** 예광탄 궤적(총알 뒤로 밝은 줄): 한 그래픽에 모아 그림 */
+  private readonly trail: Phaser.GameObjects.Graphics;
 
   constructor(
     scene: Phaser.Scene,
     private readonly bodyOffsetY: number,
   ) {
+    this.trail = scene.add.graphics().setDepth(Depth.Projectile - 1).setBlendMode(Phaser.BlendModes.ADD);
     this.pool = new Pool(
       () => ({
         sprite: scene.add.image(0, 0, '__DEFAULT').setActive(false).setVisible(false).setDepth(Depth.Projectile),
@@ -152,7 +161,9 @@ export class ProjectileSystem {
   }
 
   update(dtMs: number, grid: SpatialHash<Enemy>, hooks: ProjectileHooks): void {
+    // 멈춘 동안(히트스톱·일시정지)은 궤적도 그대로 둔다
     if (dtMs <= 0) return;
+    const tr = this.trail.clear();
     const list = this.pool.active;
     for (let i = list.length - 1; i >= 0; i--) {
       const p = list[i] as Projectile;
@@ -173,6 +184,13 @@ export class ProjectileSystem {
       p.y += (p.vy * dtMs) / 1000;
       p.lifeMs -= dtMs;
       p.sprite.setPosition(p.x, p.y);
+      // 예광탄: 속도에 비례한 길이, 번진 주황 위에 밝은 심
+      const sp = Math.hypot(p.vx, p.vy) || 1;
+      const len = Math.min(TRACER.maxPx, Math.max(TRACER.minPx, sp * TRACER.lenSec));
+      const bx = p.x - (p.vx / sp) * len;
+      const by = p.y - (p.vy / sp) * len;
+      tr.lineStyle(TRACER.glowWidth, TRACER_GLOW, TRACER.glowAlpha).lineBetween(bx, by, p.x, p.y);
+      tr.lineStyle(TRACER.coreWidth, TRACER_CORE, 1).lineBetween(bx + (p.x - bx) * 0.35, by + (p.y - by) * 0.35, p.x, p.y);
       // 적 위치는 발 기준이므로 투사체 높이를 발 기준으로 바꿔 질의
       const feetY = p.y + this.bodyOffsetY;
       if (hooks.blocked?.(p.x, feetY, p.damageMult)) {
@@ -203,6 +221,7 @@ export class ProjectileSystem {
   }
 
   clear(): void {
+    this.trail.clear();
     const list = this.pool.active;
     for (let i = list.length - 1; i >= 0; i--) this.release(list[i] as Projectile);
   }

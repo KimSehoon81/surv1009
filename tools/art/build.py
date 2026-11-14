@@ -221,7 +221,7 @@ est = sum(PRICE[QUALITY] * (1.5 if it["size"] != "1024x1024" else 1) for it in t
 done_count = sum(os.path.exists(raw_path(it)) for it in selected)
 print(f"선택 {len(selected)}개 중 완료 {done_count}개 / 이번에 만들 것 {len(todo)}개, 예상 약 ${est:.2f} ({QUALITY})")
 # 단계별 진행: 어느 단계가 아직 남았는지 한눈에(PHASE를 무엇으로 바꿀지)
-PHASE_INFO = {"P1": "스테이지 1 기본", "P2": "아군 A04~A15·적 E06~E25·NPC·타일·소품·지도", "P3": "나머지 아군·적·타일·소품",
+PHASE_INFO = {"P1": "스테이지 1 기본", "P2": "아군 A04~A15·적 E06~E25·NPC·타일·소품", "P3": "나머지 아군·적·타일·소품",
               "P4": "걷기·질주·적 변형·소·호랑이·개·주민", "P5": "보물 상자·자석·보급 상자·서울 폐허·바닥 데칼"}
 _status = {ph: (sum(os.path.exists(raw_path(it)) for it in PROMPTS if it["phase"] == ph), sum(1 for it in PROMPTS if it["phase"] == ph)) for ph in PHASE_INFO}
 print("단계별 완료:", " · ".join(f"{ph} {d}/{n}" for ph, (d, n) in _status.items()))

@@ -294,8 +294,14 @@ export class EnemySystem {
   }
 
   /** 대규모 군집(D33): 한쪽 원호에서 count체 */
-  burst(id: string, count: number, arcDeg: number): void {
-    this.burstQueue.push({ id, left: count, angle: this.rng.next() * Math.PI * 2, arcRad: (arcDeg * Math.PI) / 180 });
+  /** angle(라디안)을 주면 그 방향에서(돌격대 예고 화살표와 맞춤), tag = 돌격대 번호 */
+  burst(id: string, count: number, arcDeg: number, angle?: number, tag = 0): void {
+    this.burstQueue.push({ id, left: count, angle: angle ?? this.rng.next() * Math.PI * 2, arcRad: (arcDeg * Math.PI) / 180, tag });
+  }
+
+  /** 돌격대가 나오는 자리(예고 화살표): 플레이어에서 angle 방향 스폰 반경 */
+  rushPoint(target: { x: number; y: number }, angle: number): { x: number; y: number } {
+    return ringPoint(target.x, target.y, this.spawnR + this.cfg.radiusMargin, angle);
   }
 
   get burstPending(): number {
@@ -314,7 +320,9 @@ export class EnemySystem {
       this.burstQueue = r.queue;
       for (const s of r.spawn) {
         const p = ringPoint(target.x, target.y, this.spawnR + this.cfg.radiusMargin, s.angle + (this.rng.next() - 0.5) * s.arcRad);
-        if (isEnemyId(s.id)) this.spawn(s.id, p.x, p.y, nowMs);
+        if (!isEnemyId(s.id)) continue;
+        const e = this.spawn(s.id, p.x, p.y, nowMs);
+        if (e && s.tag) e.rushId = s.tag;
       }
     }
     const density = enemyScale(this.stage, this.level, this.threat).density * this.spawnMult * this.encircle;
