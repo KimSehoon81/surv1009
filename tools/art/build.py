@@ -220,6 +220,20 @@ PRICE = {"low": 0.006, "medium": 0.013, "high": 0.053} if "2.5" in USE_MODEL els
 est = sum(PRICE[QUALITY] * (1.5 if it["size"] != "1024x1024" else 1) for it in todo)
 done_count = sum(os.path.exists(raw_path(it)) for it in selected)
 print(f"선택 {len(selected)}개 중 완료 {done_count}개 / 이번에 만들 것 {len(todo)}개, 예상 약 ${est:.2f} ({QUALITY})")
+# 단계별 진행: 어느 단계가 아직 남았는지 한눈에(PHASE를 무엇으로 바꿀지)
+PHASE_INFO = {"P1": "스테이지 1 기본", "P2": "아군 A04~A15·적 E06~E25·NPC·타일·소품·지도", "P3": "나머지 아군·적·타일·소품",
+              "P4": "걷기·질주·적 변형·소·호랑이·개·주민", "P5": "보물 상자·자석·보급 상자·서울 폐허·바닥 데칼"}
+_status = {ph: (sum(os.path.exists(raw_path(it)) for it in PROMPTS if it["phase"] == ph), sum(1 for it in PROMPTS if it["phase"] == ph)) for ph in PHASE_INFO}
+print("단계별 완료:", " · ".join(f"{ph} {d}/{n}" for ph, (d, n) in _status.items()))
+_left = [ph for ph, (d, n) in _status.items() if d < n]
+if not todo and not CONVERT_ONLY and not only and not regen:
+    if _left:
+        print(f"→ 지금 PHASE={PHASE}은(는) 모두 만들어져 있습니다. 위 1) 설정에서 PHASE를 바꾸세요:")
+        for ph in _left:
+            d, n = _status[ph]
+            print(f"   {ph}: {n - d}장 남음 — {PHASE_INFO[ph]}")
+    else:
+        print("→ 모든 단계의 그림이 만들어져 있습니다.")
 for it in todo[:20]:
     print("  -", it["no"], it["name"])
 if len(todo) > 20:
@@ -348,7 +362,7 @@ if todo:
                 log(f"[{i}/{len(todo)}] 실패 {it['no']} {it['name']} - {e}")
                 failed.append((it["name"], str(e)))
 elif not CONVERT_ONLY:
-    log("새로 만들 그림이 없습니다. (LIMIT, PHASE, ONLY, REGENERATE 설정 확인)")
+    log("새로 만들 그림이 없습니다. 5) 셀의 '단계별 완료'를 보고 1) 설정의 PHASE를 아직 남은 단계로 바꾸세요(LIMIT·ONLY·REGENERATE도 확인).")
 log(f"\\n이번 실행: 성공 {len(made)}장, 실패 {len(failed)}장")
 for name, err in failed:
     log(f"  - {name}: {err[:200]}")
