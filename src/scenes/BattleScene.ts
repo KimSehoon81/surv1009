@@ -14,7 +14,7 @@ import disruptionsData from '../data/disruptions.json';
 import metaData from '../data/meta.json';
 import webJson from '../data/skillWeb.json';
 import { addMasteryXp, buildWeb, masteryLevel, webEffects, type WebData } from '../core/web';
-import { StageDirector, rushBursts, type RushRule, type StageDef, type StageEvent } from '../core/stage';
+import { StageDirector, bossAttackRate, rushBursts, type OverLevelRule, type RushRule, type StageDef, type StageEvent } from '../core/stage';
 import { Disruptions } from '../core/disruptions';
 import { actualRate, defeatTip, meritPoints, type RunRecord } from '../core/results';
 import { createRng, type Rng } from '../core/rng';
@@ -126,6 +126,7 @@ const TP_BY_TIER: Record<string, number> = { normal: TP.perKill, elite: TP.perEl
 const SKILL_ACTIONS = skillsData.slots.map((s) => s.action as InputAction);
 const STAGES = stagesData.stages as unknown as Record<string, StageDef>;
 const RUSH = stagesData.rules.rush as RushRule & { clearSec: number; rewardTp: number; arrowSec: number };
+const OVER = stagesData.rules.overLevel as OverLevelRule;
 type DisruptionType = { name: string; category: string; priority: number; hint: string; selectDelayMs?: number; drawMul?: number; blockTags?: string[]; spawnMul?: number; playerSpeedMul?: number; tagPenalty?: Record<string, number>; interactions?: { on: string; tag: string; do: string; ms: number }[] };
 const DTYPES = disruptionsData.types as Record<string, DisruptionType>;
 const DISRUPTION_NAMES: Record<string, string> = Object.fromEntries(Object.entries(DTYPES).map(([k, v]) => [k, v.name]));
@@ -602,6 +603,8 @@ export class BattleScene extends Phaser.Scene {
         this.timelines.cue('summon_puff', x, y);
       },
       blast: (x, y, r) => this.ambient.blast(x, y, r),
+      // 플레이어가 보스 등장 레벨을 넘겨 성장한 만큼 보스가 더 자주 공격
+      attackRate: (e) => (e === this.boss ? this.bossRate : 1),
       placeHazard: (x, y, spec, attack) => {
         const h = spec.hazard;
         if (h) this.hazards.place(x, y, { kind: h.kind, faction: 'enemy', radius: spec.radius ?? 40, lifeMs: h.lifeMs, tickMs: h.tickMs, damage: attack }, this.clock.timeMs);
@@ -1781,9 +1784,16 @@ export class BattleScene extends Phaser.Scene {
   }
 
   /** 레벨업 창 열기: 전투 시계만 멈추고(HUD는 계속) 선택지를 HUD로 보낸다 */
+  /** 보스 공격 빈도 배율(플레이어 레벨이 보스 등장 레벨을 넘는 만큼, stages.json rules.overLevel) */
+  get bossRate(): number {
+    return bossAttackRate(this.progression.level, OVER);
+  }
+
   private openLevelUp(): void {
     const choices = this.progression.open(this.upgradeTarget);
     if (!choices) return;
+    // 보스 등장 레벨을 넘긴 성장: 계속 강해지는 대신 보스가 잦아진다는 것을 알림
+    if (this.progression.level > OVER.from) this.toast(t('battle.overLevel', { lv: this.progression.level, pct: Math.round((this.bossRate - 1) * 100) }), '#ffb060');
     this.clock.pause('levelup');
     this.events.emit('levelup', choices);
     this.audio.play('levelup');

@@ -18,7 +18,8 @@
       "opSuccess": "Enemy op succeeded — heavy barrage incoming!",
       "opCancel": "Charge cancelled — weak point exposed!",
       "opFail": "Enemy op failed — weak point exposed!",
-      "opCharge": "Enemy op card charging — weak point! Focus fire to cancel"
+      "opCharge": "Enemy op card charging — weak point! Focus fire to cancel",
+      "rate": "Attack rate +{pct}%"
     },
     "paused": "PAUSED",
     "result": {
@@ -191,7 +192,8 @@
     "multiKill": "MASS KILL ×{n}",
     "multiKillSub": "Swept them all at once!",
     "rushClear": "ASSAULT REPELLED!",
-    "rushClearSub": "Magnet drop · TP +{tp}"
+    "rushClearSub": "Magnet drop · TP +{tp}",
+    "overLevel": "Lv {lv} — still growing! The boss attacks more often (+{pct}%)"
   },
   "prep": {
     "deckErr": {

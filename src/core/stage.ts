@@ -71,6 +71,18 @@ export interface BurstDef {
   rush?: boolean;
 }
 
+export interface OverLevelRule {
+  /** 이 레벨을 넘는 만큼 보스가 빨라짐(보스가 나오는 레벨) */
+  from: number;
+  bossAttackRatePerLevel: number;
+  bossAttackRateMax: number;
+}
+
+/** 플레이어가 from을 넘겨 성장한 만큼 보스의 공격 빈도 배율(1 = 그대로). 쉬는 시간에만 적용(core/enemyAttack rate) */
+export function bossAttackRate(level: number, r: OverLevelRule): number {
+  return Math.min(r.bossAttackRateMax, 1 + r.bossAttackRatePerLevel * Math.max(0, Math.floor(level) - r.from));
+}
+
 export interface RushRule {
   firstSec: number;
   everySec: number;

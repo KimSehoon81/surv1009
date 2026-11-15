@@ -100,6 +100,8 @@ export interface EnemyAttackHost {
   hitPlayer(attack: number, fromX: number, fromY: number, cause: string): void;
   /** 포탄이 떨어진 자리(주변 생활이 놀라 떠남) */
   blast?(x: number, y: number, r: number): void;
+  /** 이 적의 공격 빈도 배율(기본 1) */
+  attackRate?(e: Enemy): number;
   /** 피해 장판(화염방사병, systems/hazards) */
   placeHazard?(x: number, y: number, spec: AttackSpec, attack: number): void;
   /** 적 지뢰 설치(공병, systems/mines faction enemy) */
@@ -156,6 +158,10 @@ export class EnemyAttackSystem {
   /** 붉은 예고 마커(ms 동안, 마지막 4프레임 수축) */
   telegraph(shape: ThreatShape, nowMs: number, ms: number): void {
     this.threats.push({ shape, startMs: nowMs, untilMs: nowMs + ms });
+  }
+
+  attackRate(e: Enemy): number {
+    return this.host.attackRate?.(e) ?? 1;
   }
 
   onAttack(e: Enemy, ev: AttackEvent, nowMs: number): void {

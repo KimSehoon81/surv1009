@@ -3,7 +3,7 @@ import stagesData from '../src/data/stages.json';
 import enemiesData from '../src/data/enemies.json';
 import floorData from '../src/data/floor.json';
 import metaData from '../src/data/meta.json';
-import { StageDirector, earlySpawns, introductions, pacingAt, phaseAt, rushBursts, type RushRule, type StageDef } from '../src/core/stage';
+import { StageDirector, bossAttackRate, earlySpawns, introductions, pacingAt, phaseAt, rushBursts, type OverLevelRule, type RushRule, type StageDef } from '../src/core/stage';
 import { Disruptions } from '../src/core/disruptions';
 import { actualRate, defeatTip, meritPoints, type RunRecord } from '../src/core/results';
 import { createAttackState, damageTakenMult, moveMode, stepAttack, type AttackSpec } from '../src/core/enemyAttack';
@@ -163,6 +163,45 @@ describe('돌격대(rules.rush)', () => {
     expect(types(100, 10)).toContain('bossWarn');
     expect(types(168, 10)).not.toContain('burstWarn');
     expect(types(171, 10)).not.toContain('burst');
+  });
+});
+
+describe('보스 등장 레벨을 넘긴 성장(rules.overLevel)', () => {
+  const O = RULES.overLevel as OverLevelRule;
+
+  it('레벨 10까지는 그대로, 넘는 레벨마다 4%씩, 상한까지', () => {
+    expect(bossAttackRate(1, O)).toBe(1);
+    expect(bossAttackRate(10, O)).toBe(1);
+    expect(bossAttackRate(11, O)).toBeCloseTo(1.04);
+    expect(bossAttackRate(15, O)).toBeCloseTo(1.2);
+    expect(bossAttackRate(99, O)).toBe(O.bossAttackRateMax);
+    // 보스가 나오는 레벨과 같은 기준
+    for (const st of Object.values(STAGES)) expect(st.boss.trigger.level).toBe(O.from);
+  });
+
+  it('빈도 배율은 공격 사이 쉬는 시간만 줄이고 예고·판정 시간은 그대로', () => {
+    const spec = { type: 'lob', range: [0, 9999], cooldownMs: 2000, windupMs: 300, telegraphMs: 800, activeMs: 100, recoverMs: 400, damage: 1, radius: 40 } as unknown as AttackSpec;
+    const run = (rate: number) => {
+      const s = createAttackState([spec], () => 0);
+      const ctx = { x: 0, y: 0, targetX: 100, targetY: 0, sinceHurtMs: 99999, rand: () => 0, rate };
+      const at: Record<string, number> = {};
+      const starts: number[] = [];
+      for (let t = 0; t < 12000; t += 10) {
+        for (const ev of stepAttack(s, [spec], 10, ctx, 0)) {
+          if (ev.type === 'windup') starts.push(t);
+          if (!(ev.type in at)) at[ev.type] = t;
+        }
+      }
+      return { starts, tele: (at.active ?? 0) - (at.telegraph ?? 0) };
+    };
+    const slow = run(1);
+    const fast = run(1.5);
+    // 예고 → 판정 사이(피할 틈)는 같다
+    expect(fast.tele).toBe(slow.tele);
+    // 같은 시간에 공격 횟수는 늘어남
+    expect(fast.starts.length).toBeGreaterThan(slow.starts.length);
+    const gap = (r: { starts: number[] }) => (r.starts[2] ?? 0) - (r.starts[1] ?? 0);
+    expect(gap(fast)).toBeLessThan(gap(slow));
   });
 });
 

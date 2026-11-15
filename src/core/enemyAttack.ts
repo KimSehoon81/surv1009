@@ -84,6 +84,8 @@ export interface AttackCtx {
   sinceHurtMs: number;
   /** 0~1 난수(패턴 가중치·작전 카드 판정). 없으면 첫 준비 공격·판정 실패 */
   rand?: () => number;
+  /** 공격 빈도 배율(기본 1): 공격 사이 쉬는 시간(대기·회복)만 이만큼 빨리 지나간다. 예고·충전·판정 시간은 그대로(피할 틈은 같음) */
+  rate?: number;
 }
 
 export type AttackEvent =
@@ -183,6 +185,7 @@ const NEXT: Record<AttackPhase, AttackPhase> = { idle: 'windup', windup: 'telegr
 export function stepAttack(s: AttackState, specs: readonly AttackSpec[], dtMs: number, ctx: AttackCtx, minTelegraphMs: number): AttackEvent[] {
   const events: AttackEvent[] = [];
   if (specs.length === 0) return events;
+  if ((s.phase === 'idle' || s.phase === 'recover') && ctx.rate && ctx.rate > 1) dtMs *= ctx.rate;
   if (s.phase === 'idle') {
     for (let i = 0; i < s.cooldowns.length; i++) s.cooldowns[i] = Math.max(0, (s.cooldowns[i] ?? 0) - dtMs);
     const i = pick(specs, s, ctx);

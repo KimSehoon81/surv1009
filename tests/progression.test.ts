@@ -20,16 +20,31 @@ describe('경험치(PRD §4.2)', () => {
     expect(xpToNext(2, XP)).toBe(27);
     expect(xpToNext(9, XP)).toBeGreaterThanOrEqual(218);
     expect(xpToNext(9, XP)).toBeLessThanOrEqual(222);
-    expect(xpToNext(10, XP)).toBe(Infinity);
+    expect(xpToNext(XP.maxLevel, XP)).toBe(Infinity);
+    // 예전 규칙(softCap 없음): Lv10이 끝
+    expect(xpToNext(10, { base: 20, growth: 1.35, maxLevel: 10 })).toBe(Infinity);
+  });
+
+  it('보스 등장 레벨(softCap 10) 뒤로는 12%씩만 늘어 계속 성장', () => {
+    const at9 = xpToNext(9, XP);
+    expect(XP.softCap).toBe(10);
+    expect(xpToNext(10, XP)).toBe(Math.round(20 * 1.35 ** 8 * 1.12));
+    expect(xpToNext(10, XP)).toBeGreaterThan(at9);
+    expect(xpToNext(10, XP)).toBeLessThan(at9 * 1.35);
+    // 완만: Lv15→16이 Lv10→11의 2배를 넘지 않음(원래 곡선이면 4.5배)
+    expect(xpToNext(15, XP) / xpToNext(10, XP)).toBeLessThan(2);
+    for (let lv = 10; lv < XP.maxLevel - 1; lv++) expect(xpToNext(lv + 1, XP)).toBeGreaterThan(xpToNext(lv, XP));
   });
 
   it('한 번에 여러 레벨, 남은 경험치 이월, 최대 레벨에서 멈춤', () => {
     const r = gainXp({ level: 1, xp: 0 }, xpToNext(1, XP) + xpToNext(2, XP) + 5, XP);
     expect(r).toEqual({ state: { level: 3, xp: 5 }, levelsGained: 2 });
-    const max = gainXp({ level: 9, xp: 0 }, 99999, XP);
-    expect(max.state).toEqual({ level: 10, xp: 0 });
+    const max = gainXp({ level: XP.maxLevel - 1, xp: 0 }, 9_999_999, XP);
+    expect(max.state).toEqual({ level: XP.maxLevel, xp: 0 });
     expect(max.levelsGained).toBe(1);
     expect(gainXp(max.state, 50, XP).levelsGained).toBe(0);
+    // Lv10을 넘어 이어서 오름
+    expect(gainXp({ level: 10, xp: 0 }, xpToNext(10, XP) + 3, XP)).toEqual({ state: { level: 11, xp: 3 }, levelsGained: 1 });
   });
 });
 

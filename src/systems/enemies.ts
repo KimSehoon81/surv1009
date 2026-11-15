@@ -36,6 +36,8 @@ export interface SpawnConfig {
 /** 공격 단계 이벤트를 전투 쪽(예고 마커·포탄·피해)으로 */
 export interface AttackHooks {
   onAttack(e: Enemy, ev: AttackEvent, nowMs: number): void;
+  /** 공격 빈도 배율(보스가 플레이어 성장에 맞춰 빨라짐). 없으면 1 */
+  attackRate?(e: Enemy): number;
 }
 
 export interface Target {
@@ -170,7 +172,7 @@ export class EnemySystem {
         // 공격 2층: 단계 상태기계가 이동 방식(자유·제자리·돌진)을 정한다
         let mode = 'free';
         if (e.attacks.length > 0) {
-          const evs = stepAttack(e.atk, e.attacks, dtMs, { x: e.x, y: e.y, targetX: target.x, targetY: target.y, sinceHurtMs: nowMs - e.lastHurtMs, rand: this.rand }, minTelegraphMs);
+          const evs = stepAttack(e.atk, e.attacks, dtMs, { x: e.x, y: e.y, targetX: target.x, targetY: target.y, sinceHurtMs: nowMs - e.lastHurtMs, rand: this.rand, rate: hooks?.attackRate?.(e) ?? 1 }, minTelegraphMs);
           for (const ev of evs) hooks?.onAttack(e, ev, nowMs);
           mode = moveMode(e.atk, e.attacks);
         }

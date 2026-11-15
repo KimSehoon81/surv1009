@@ -19,6 +19,7 @@ import guideData from '../data/guide.json';
 import skillsData from '../data/skills.json';
 import cardsData from '../data/cards.json';
 import combosData from '../data/combos.json';
+import hudData from '../data/hud.json';
 import enemiesData from '../data/enemies.json';
 import type { Enemy } from '../entities/Enemy';
 import { SkillHud } from '../ui/skillHud';
@@ -62,11 +63,11 @@ const textStyle = (size: number, color = '#ffffff'): Phaser.Types.GameObjects.Te
 export class HudScene extends Phaser.Scene {
   private battle!: BattleScene;
   private controls!: InputMap;
-  private lvText!: Phaser.GameObjects.BitmapText;
+  private lvNum!: Phaser.GameObjects.BitmapText;
+  private lvShown = 0;
+  private xpNum!: Phaser.GameObjects.BitmapText;
+  private hpNum!: Phaser.GameObjects.Text;
   private xpBar!: Phaser.GameObjects.Graphics;
-  private comboText!: Phaser.GameObjects.BitmapText;
-  private comboCount = 0;
-  private comboBumpAt = -Infinity;
   private pauseMenu: PauseMenu | null = null;
   private bannerText!: Phaser.GameObjects.Text;
   private levelUp: Phaser.GameObjects.Container | null = null;
@@ -88,6 +89,7 @@ export class HudScene extends Phaser.Scene {
   private bossJudge: { msg: string; color: string; untilReal: number } | null = null;
   private resultPanel: Phaser.GameObjects.Container | null = null;
   private hpBar!: Phaser.GameObjects.Graphics;
+  private bossRateText!: Phaser.GameObjects.Text;
   /** 가이드 팁: 대기열, 지금 보이는 것의 끝 시각(실시간) */
   private guideText!: Phaser.GameObjects.Text;
   private readonly guideQueue: string[] = [];
@@ -212,6 +214,7 @@ export class HudScene extends Phaser.Scene {
     this.resultPanel = null;
     this.resultMap = null;
     this.pauseMenu = null;
+    this.lvShown = 0;
     this.lowHpGfx = null;
     this.stampObjs = [];
     this.levelUp = null;
@@ -223,16 +226,17 @@ export class HudScene extends Phaser.Scene {
     this.controls = new InputMap(this);
     ensurePixelFont(this);
 
-    this.lvText = this.add.bitmapText(12, 10, PIXEL_FONT, 'LV 1', 7).setLetterSpacing(-1).setScale(2);
+    // 왼쪽 위 상태판(hud.json status): 레벨 배지 | XP 막대·숫자 / HP 막대·숫자 / 질주 게이지
+    const st = hudData.status;
+    const plate = this.add.graphics();
+    plate.fillStyle(0x000000, st.panelAlpha).fillRect(st.x - 6, st.y - 5, st.barX + st.barW + 46 - st.x, st.badge.h + 10);
+    plate.fillStyle(0x140e0a, 0.85).fillRect(st.x, st.y, st.badge.w, st.badge.h);
+    plate.lineStyle(2, 0xc8a060, 1).strokeRect(st.x + 1, st.y + 1, st.badge.w - 2, st.badge.h - 2);
+    this.add.bitmapText(st.x + st.badge.w / 2, st.y + 5, PIXEL_FONT, 'LV', 7).setOrigin(0.5, 0).setLetterSpacing(-1).setTint(0xc8a060);
+    this.lvNum = this.add.bitmapText(st.x + st.badge.w / 2, st.y + 30, PIXEL_FONT, '1', 7).setOrigin(0.5).setLetterSpacing(-1).setScale(3).setTint(0xffe14d);
+    this.add.bitmapText(st.barX - 26, st.xp.y + 1, PIXEL_FONT, 'XP', 7).setLetterSpacing(-1).setScale(2).setTint(parseColor(st.xp.color));
+    this.xpNum = this.add.bitmapText(st.barX + st.barW + 4, st.xp.y + 1, PIXEL_FONT, '', 7).setLetterSpacing(-1).setTint(0xb8c8d0);
     this.xpBar = this.add.graphics();
-    const c = feelData.combo;
-    this.comboText = this.add
-      .bitmapText(c.x, c.y, PIXEL_FONT, '', 7)
-      .setLetterSpacing(-1)
-      .setOrigin(1, 0)
-      .setScale(c.scale)
-      .setTint(parseColor(c.color))
-      .setVisible(false);
 
     const panel = { ...textStyle(16), align: 'center', backgroundColor: '#000000b0', padding: { x: 12, y: 8 } };
     this.bannerText = this.add.text(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT / 2, '', panel).setOrigin(0.5).setVisible(false);
@@ -258,11 +262,14 @@ export class HudScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setVisible(false);
     this.bossName = this.add.text(LOGICAL_WIDTH / 2, 30, '', { ...textStyle(12, '#ffd0c0'), stroke: '#1a1410', strokeThickness: 3 }).setOrigin(0.5, 1).setVisible(false);
+    // 보스 공격 빈도(플레이어가 보스 등장 레벨을 넘겨 성장하면): 체력 막대 오른쪽 끝 위
+    this.bossRateText = this.add.text(LOGICAL_WIDTH / 2 + 180, 30, '', { ...textStyle(11, '#ffb060'), stroke: '#1a1410', strokeThickness: 3 }).setOrigin(1, 1).setVisible(false);
     this.bossCard = this.add.image(LOGICAL_WIDTH / 2, 92, cardBackKey(this)).setVisible(false);
     this.bossInfo = this.add.text(LOGICAL_WIDTH / 2, 142, '', { ...textStyle(12, '#ffe14d'), stroke: '#1a1410', strokeThickness: 3 }).setOrigin(0.5).setVisible(false);
     this.hpBar = this.add.graphics();
-    this.add.bitmapText(12, 28, PIXEL_FONT, 'HP', 7).setLetterSpacing(-1).setScale(2);
-    this.sprintLabel = this.add.text(64, 40, '', { ...uiText(11, '#7fd8ff'), stroke: '#0a0604', strokeThickness: 3 });
+    this.add.bitmapText(st.barX - 26, st.hp.y + 1, PIXEL_FONT, 'HP', 7).setLetterSpacing(-1).setScale(2).setTint(parseColor(st.hp.color));
+    this.hpNum = this.add.text(st.barX + 4, st.hp.y + st.hp.h / 2, '', { ...uiText(11, '#ffffff'), stroke: '#0a0604', strokeThickness: 3 }).setOrigin(0, 0.5);
+    this.sprintLabel = this.add.text(st.barX - 26, st.sprint.y + 2, '', { ...uiText(11, '#7fd8ff'), stroke: '#0a0604', strokeThickness: 3 }).setOrigin(0, 0.5);
     this.guideText = this.add
       .text(LOGICAL_WIDTH / 2, 120, '', { ...textStyle(14, '#ffe14d'), backgroundColor: '#000000c0', padding: { x: 10, y: 5 } })
       .setOrigin(0.5)
@@ -314,17 +321,6 @@ export class HudScene extends Phaser.Scene {
     const b = this.battle;
     if (!b.progression) return;
     this.drawXp();
-
-    // 콤보: 늘어날 때 1.3배로 튀었다가 0.2초에 걸쳐 원래 크기로
-    const n = b.feel.combo.count;
-    if (n > this.comboCount) this.comboBumpAt = time;
-    this.comboCount = n;
-    const show = n >= feelData.combo.minShow;
-    this.comboText.setVisible(show);
-    if (show) {
-      const k = Math.min(1, (time - this.comboBumpAt) / 200);
-      this.comboText.setText(`${n} COMBO`).setScale(feelData.combo.scale * (1 + 0.3 * (1 - k)));
-    }
 
     // 일시정지 메뉴(Esc·Start·창 벗어남): 계속하기 / 작전지도로 철수 / 메인 메뉴로 철수
     const paused = b.clock.hasScale('pause') && !b.run.defeated && !b.opsOpen && !b.result;
@@ -693,21 +689,27 @@ export class HudScene extends Phaser.Scene {
   private drawHp(): void {
     const p = this.battle.player;
     const g = this.hpBar.clear();
-    const x = 64;
-    const y = 32;
-    const w = 200;
+    const st = hudData.status;
+    const x = st.barX;
+    const y = st.hp.y;
+    const w = st.barW;
+    const h = st.hp.h;
     const k = Math.max(0, p.hp) / p.maxHp;
-    g.fillStyle(0x1a1410, 0.9).fillRect(x - 1, y - 1, w + 2, 8);
-    g.fillStyle(0x5a2020, 1).fillRect(x, y, w, 6);
-    g.fillStyle(k > 0.3 ? 0x6fd06f : 0xff5040, 1).fillRect(x, y, Math.round(w * k), 6);
+    const low = k <= st.hp.lowRatio;
+    g.fillStyle(0x0a0806, 0.9).fillRect(x - 1, y - 1, w + 2, h + 2);
+    g.fillStyle(parseColor(st.hp.back), 1).fillRect(x, y, w, h);
+    g.fillStyle(parseColor(low ? st.hp.low : st.hp.color), 1).fillRect(x, y, Math.round(w * k), h);
+    // 윗줄 밝은 띠(막대가 도톰해 보이게)
+    g.fillStyle(0xffffff, 0.18).fillRect(x, y, Math.round(w * k), 2);
+    this.hpNum.setText(`${Math.max(0, Math.ceil(p.hp))} / ${p.maxHp}`);
     // 질주 게이지(체력 아래): 차오르는 동안 흐린 청록, 준비되면 밝게 깜빡
     const s = this.battle.sprintGauge;
-    const sx = x + 64;
-    const sy = y + 12;
     const ready = s >= 1;
-    g.fillStyle(0x1a1410, 0.9).fillRect(sx - 1, sy - 1, 82, 6);
-    g.fillStyle(ready ? 0x7fd8ff : 0x3a6a80, ready ? 0.75 + 0.25 * Math.abs(Math.sin(this.time.now / 220)) : 1).fillRect(sx, sy, Math.round(80 * s), 4);
     this.sprintLabel.setText(t('hud.sprint', { key: buttonLabel('sprint') })).setAlpha(ready ? 1 : 0.6);
+    const sx = Math.round(this.sprintLabel.x + this.sprintLabel.width + 6);
+    const sy = st.sprint.y;
+    g.fillStyle(0x0a0806, 0.9).fillRect(sx - 1, sy - 1, st.sprint.w + 2, st.sprint.h + 2);
+    g.fillStyle(parseColor(ready ? st.sprint.ready : st.sprint.charging), ready ? 0.75 + 0.25 * Math.abs(Math.sin(this.time.now / 220)) : 1).fillRect(sx, sy, Math.round(st.sprint.w * s), st.sprint.h);
   }
 
   /** 가이드 팁 한 줄씩(대기열) */
@@ -757,6 +759,7 @@ export class HudScene extends Phaser.Scene {
     const g = this.bossGfx.clear();
     const show = e !== null && e.alive;
     this.bossName.setVisible(show);
+    this.bossRateText.setVisible(false);
     if (!show || !e) {
       this.bossCard.setVisible(false);
       this.bossInfo.setVisible(false);
@@ -766,6 +769,8 @@ export class HudScene extends Phaser.Scene {
     const x = LOGICAL_WIDTH / 2 - w / 2;
     const y = 34;
     this.bossName.setText((enemiesData.enemies as Record<string, { name: string }>)[e.id]?.name ?? e.id);
+    const rate = this.battle.bossRate;
+    if (rate > 1) this.bossRateText.setText(t('hud.boss.rate', { pct: Math.round((rate - 1) * 100) })).setVisible(true);
     g.fillStyle(0x1a1410, 0.9).fillRect(x - 2, y - 2, w + 4, 10);
     g.fillStyle(0x3a1a14, 1).fillRect(x, y, w, 6);
     g.fillStyle(0xd84030, 1).fillRect(x, y, Math.round((w * Math.max(0, e.hp)) / e.maxHp), 6);
@@ -922,17 +927,25 @@ export class HudScene extends Phaser.Scene {
 
   private drawXp(): void {
     const p = this.battle.progression;
-    this.lvText.setText(`LV ${p.level}`);
+    if (p.level !== this.lvShown) {
+      // 레벨 숫자: 배지 안에 크게(세 자리는 없지만 두 자리는 한 단계 작게), 오를 때 통 튐
+      this.lvNum.setText(String(p.level)).setScale(p.level >= 10 ? 2.5 : 3);
+      if (this.lvShown > 0) this.tweens.add({ targets: this.lvNum, scale: this.lvNum.scale * 1.5, duration: 110, yoyo: true });
+      this.lvShown = p.level;
+    }
+    const need = p.xpNeed;
+    this.xpNum.setText(Number.isFinite(need) ? `${Math.floor(p.xpNow)}/${need}` : 'MAX');
     this.timerText.setText(mmss(this.battle.clock.timeMs / 1000));
     this.stepText.setText(t('hud.step', { n: globalStep(this.battle.enemies.stage, p.level) }));
     this.drawObjective();
     const g = this.xpBar.clear();
-    const x = 64;
-    const y = 14;
-    const w = 300;
-    g.fillStyle(0x1a1410, 0.9).fillRect(x - 1, y - 1, w + 2, 8);
-    g.fillStyle(0x3a3020, 1).fillRect(x, y, w, 6);
-    g.fillStyle(0x7fd8ff, 1).fillRect(x, y, Math.round(w * p.progress), 6);
+    const st = hudData.status;
+    const x = st.barX;
+    const y = st.xp.y;
+    const w = st.barW;
+    g.fillStyle(0x0a0806, 0.9).fillRect(x - 1, y - 1, w + 2, st.xp.h + 2);
+    g.fillStyle(parseColor(st.xp.back), 1).fillRect(x, y, w, st.xp.h);
+    g.fillStyle(parseColor(st.xp.color), 1).fillRect(x, y, Math.round(w * p.progress), st.xp.h);
   }
 
   /** 일시정지 메뉴: 철수 칸은 한 번 더 눌러야 확정(전사처럼 전공 절반 정산) */

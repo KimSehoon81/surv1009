@@ -18,7 +18,8 @@
       "opSuccess": "적 작전 성공 — 대형 포격 예고!",
       "opCancel": "충전 취소 — 약점 노출!",
       "opFail": "적 작전 실패 — 약점 노출!",
-      "opCharge": "적 작전 카드 충전 — 지금이 약점! 집중 사격으로 취소"
+      "opCharge": "적 작전 카드 충전 — 지금이 약점! 집중 사격으로 취소",
+      "rate": "공격 빈도 +{pct}%"
     },
     "paused": "일시정지",
     "result": {
@@ -191,7 +192,8 @@
     "multiKill": "대량 격파 ×{n}",
     "multiKillSub": "한 번에 쓸어 담았다!",
     "rushClear": "돌격대 격퇴!",
-    "rushClearSub": "자석 보급 · TP +{tp}"
+    "rushClearSub": "자석 보급 · TP +{tp}",
+    "overLevel": "Lv {lv} — 계속 성장! 대신 보스의 공격이 잦아집니다(+{pct}%)"
   },
   "prep": {
     "deckErr": {

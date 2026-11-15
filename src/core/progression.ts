@@ -59,6 +59,15 @@ export class Progression {
     return this.xp.level;
   }
 
+  /** 지금 레벨에서 모은 경험치와 다음 레벨까지 필요한 양(최대 레벨이면 need = Infinity) */
+  get xpNow(): number {
+    return this.xp.xp;
+  }
+
+  get xpNeed(): number {
+    return xpToNext(this.xp.level, this.cfg.xp);
+  }
+
   /** 다음 레벨까지 진행률 0~1(최대 레벨이면 1) */
   get progress(): number {
     const need = xpToNext(this.xp.level, this.cfg.xp);

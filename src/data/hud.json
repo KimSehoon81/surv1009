@@ -1,0 +1,44 @@
+{
+  "$comment": "전투 HUD 배치(2026-11-15, 사용자 요청: 직관적으로·한눈에). skills = 오른쪽 위 고급 스킬 칸(box 한 칸 px, iconScale 아이콘 배율, panelAlpha·boxAlpha 판 불투명도 — 전장이 비쳐 보이게 약 20%). status = 왼쪽 위 상태판: 레벨 배지(badge) 옆에 경험치·체력 막대와 숫자, 아래 질주 게이지. 레벨이 두 자리(10 이상)여도 글자가 막대를 가리지 않게 배지 칸을 따로 둠.",
+  "skills": {
+    "box": 50,
+    "gap": 6,
+    "right": 14,
+    "top": 24,
+    "iconScale": 1.25,
+    "panelAlpha": 0.2,
+    "boxAlpha": 0.2
+  },
+  "status": {
+    "x": 10,
+    "y": 8,
+    "badge": {
+      "w": 46,
+      "h": 46
+    },
+    "barX": 88,
+    "barW": 196,
+    "xp": {
+      "y": 10,
+      "h": 8,
+      "color": "#7fd8ff",
+      "back": "#2a3038"
+    },
+    "hp": {
+      "y": 26,
+      "h": 12,
+      "color": "#6fd06f",
+      "low": "#ff5040",
+      "back": "#5a2020",
+      "lowRatio": 0.3
+    },
+    "sprint": {
+      "y": 46,
+      "w": 90,
+      "h": 5,
+      "ready": "#7fd8ff",
+      "charging": "#3a6a80"
+    },
+    "panelAlpha": 0.2
+  }
+}
