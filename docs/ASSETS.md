@@ -62,6 +62,7 @@ public/assets/
             보스·차량·항공기는 E05_move_L.png 처럼 _L (200×200 프레임)
             (선택, 2026-11 P4) A01_walk.png  A01_run.png  A01_sprint.png — 다리가 번갈아 나오는 6프레임 이동, 있으면 move_slow·move_fast 대신
   enemies/  (선택) E01_walk.png  E01_run.png — 6프레임 행군·돌격 / E51~E56 = 겉모습 변형(enemies.json looks)
+            (2026-11-15) 100px 프레임을 넘치는 동작(총구 섬광·말풍선)은 그 동작만 A07_attack_L.png처럼 _L(200px 프레임)로 나옴: 몸 크기는 같고 잘림 없음. 게임은 _L을 우선
   npcs/     N01_idle.png  N01_talk.png  N01_give.png
   critters/ W01_walk.png  W01_idle.png  W01_run.png — 주변 생활(소·호랑이·개·주민, 6프레임), 없으면 코드 도트
   sprites/  title_bg.png(960×540 첫 화면 배경) · treasure_chest · supply_crate · magnet_item · ruin_1~4 · decal_* — 단일 그림, 크기는 src/data/assets.json sprites 표(tools/art P5), 없으면 코드 그림

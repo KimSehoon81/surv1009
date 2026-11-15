@@ -46,6 +46,12 @@ PALETTE = {"unit": 48, "tile": 32, "prop": 48, "fx": 64, "icon": 24, "card": 48,
 SOFT_PROPS = {"burnt_truck", "drum_fire"}  # 연기·불꽃이 있어 알파 5단계 유지
 ALPHA_STEPS = np.array([0, 64, 128, 191, 255], dtype=np.int16)
 MAX_SHRINK = 0.10  # 프레임에 넘칠 때 목표 크기에서 줄일 수 있는 최대 비율
+# 그래도 넘치는 유닛(총구 섬광·말풍선·큰 동작)의 처리:
+#   "large"  = 몸 크기는 그대로 두고 200px 큰 프레임(<이름>_L.png)으로 내보냄 → 잘림도 축소도 없음(기본)
+#   "shrink" = 100px 프레임에 다 들어갈 때까지 유닛 전체를 줄임(잘림 없음, 유닛이 작아질 수 있음)
+#   "clip"   = 예전 방식: MAX_SHRINK까지만 줄이고 나머지는 프레임 끝에서 잘림
+OVERFLOW = "large"
+MAX_SHRINK_LARGE = 0.25  # 이미 200px 프레임인 유닛(보스·차량)은 더 큰 프레임이 없어 여기까지만 줄임(그 이상은 끝이 잘림)
 
 
 # ------------------------------------------------------------------ 기본 연산
@@ -125,6 +131,105 @@ def smart_boxes(arr: np.ndarray, cols: int, rows: int, search: float = 0.3):
         xs = [0] + [_best_cut(cprof, k * cw, cw * search) for k in range(1, cols)] + [w]
         boxes.append([(xs[c], ys[r], xs[c + 1], ys[r + 1]) for c in range(cols)])
     return boxes
+
+
+def row_bands(arr: np.ndarray, thr_frac: float = 0.004, gap_frac: float = 0.012):
+    """그림이 있는 세로 구간들 [[y0, y1], ...]과 행별 불투명 픽셀 수. 아주 작은 틈(gap_frac)은 이어 붙인다"""
+    h, w = arr.shape[:2]
+    prof = (arr[..., 3] >= 64).sum(axis=1)
+    on = prof > max(2, w * thr_frac)
+    bands, start = [], None
+    for y in range(h):
+        if on[y] and start is None:
+            start = y
+        elif not on[y] and start is not None:
+            bands.append([start, y])
+            start = None
+    if start is not None:
+        bands.append([start, h])
+    merged = []
+    for b in bands:
+        if merged and b[0] - merged[-1][1] < h * gap_frac:
+            merged[-1][1] = b[1]
+        else:
+            merged.append(list(b))
+    return merged, prof
+
+
+def find_used_rows(arr: np.ndarray, rows: int, n: int):
+    """행 일부만 쓰는 시트(이동·주변 생활·NPC: 격자 rows행 중 위 n행)에서 실제로 그려진 n개 행을 찾는다.
+    AI는 '위 n행만 쓰고 아래는 비워라'를 잘 지키지 않고 n행을 더 크게(캔버스를 채워) 그리곤 한다.
+    그대로 균등 격자로 자르면 머리·몸통이 다른 행으로 갈라진다.
+    반환: 자르는 선 n+1개(y 좌표) 또는 None(= 균등 격자와 맞으니 그대로 자르면 됨, 또는 찾지 못함)"""
+    h, w = arr.shape[:2]
+    bands, prof = row_bands(arr)
+    if not bands:
+        return None
+    # 1) 부스러기(전형 높이의 45% 미만: 말풍선·흙먼지·속도선)는 가까운 띠에 붙이고, 멀리 떨어진 것은 버림
+    while len(bands) > 1:
+        hs = [b[1] - b[0] for b in bands]
+        typical = float(np.median(sorted(hs, reverse=True)[:n]))
+        small = [i for i, x in enumerate(hs) if x < typical * 0.45]
+        if not small:
+            break
+        i = min(small, key=lambda k: hs[k])
+        up = bands[i][0] - bands[i - 1][1] if i > 0 else float("inf")
+        dn = bands[i + 1][0] - bands[i][1] if i < len(bands) - 1 else float("inf")
+        if min(up, dn) > typical * 0.5:
+            bands.pop(i)
+        elif up <= dn:
+            bands[i - 1][1] = bands[i][1]
+            bands.pop(i)
+        else:
+            bands[i + 1][0] = bands[i][0]
+            bands.pop(i)
+    # 2) 모델이 남는 자리에 행을 더 그렸으면 앞 n개만
+    bands = bands[:n]
+    # 3) 행끼리 붙어 띠가 모자라면: 전체 높이를 n등분한 근처의 가장 빈 줄에서 나눔
+    cuts = None
+    if len(bands) < n:
+        unit = sum(b[1] - b[0] for b in bands) / n
+        parts = [max(1, int(round((b[1] - b[0]) / unit))) for b in bands]
+        if sum(parts) != n:
+            return None
+        split = []
+        for b, k in zip(bands, parts):
+            step = (b[1] - b[0]) / k
+            ys = [b[0]] + [_best_cut(prof, b[0] + j * step, step * 0.3) for j in range(1, k)] + [b[1]]
+            split += [[ys[j], ys[j + 1]] for j in range(k)]
+        bands = split
+    # 4) 균등 격자와 맞으면(각 행이 제 칸 ±30% 안) 손대지 않는다: 지금까지 잘 나오던 시트는 결과가 그대로
+    rh = h / rows
+    if all(b[0] >= i * rh - 0.3 * rh and b[1] <= (i + 1) * rh + 0.3 * rh for i, b in enumerate(bands)):
+        return None
+    gaps = [bands[i + 1][0] - bands[i][1] for i in range(n - 1)]
+    pad = int(max(4, (np.median(gaps) / 2) if gaps and np.median(gaps) > 0 else h * 0.02))
+    cuts = [max(0, bands[0][0] - pad)] + [(bands[i][1] + bands[i + 1][0]) // 2 for i in range(n - 1)] + [min(h, bands[-1][1] + pad)]
+    return cuts
+
+
+def regrid_rows(arr: np.ndarray, cuts: list[int]) -> np.ndarray:
+    """찾은 행들을 같은 높이의 칸으로 다시 쌓는다(행 수 = len(cuts) - 1). 이후 처리는 균등 격자 그대로"""
+    n = len(cuts) - 1
+    w = arr.shape[1]
+    hmax = max(cuts[i + 1] - cuts[i] for i in range(n))
+    slot = int(hmax * 1.16) + 8
+    out = np.zeros((slot * n, w, 4), np.uint8)
+    for i in range(n):
+        strip = arr[cuts[i]:cuts[i + 1]]
+        oy = i * slot + (slot - strip.shape[0]) // 2
+        out[oy:oy + strip.shape[0]] = strip
+    return out
+
+
+def cut_through(arr: np.ndarray, cols: int, rows: int) -> float:
+    """행을 나누는 선이 그림을 지나가는 정도(0~1, 선 위 불투명 픽셀 비율의 최댓값).
+    제대로 나뉜 시트는 0에 가깝다. 크면 원본의 칸 배치가 규격과 다르다는 뜻(머리·몸통이 갈라짐)"""
+    h, w = arr.shape[:2]
+    opaque = arr[..., 3] >= 64
+    boxes = smart_boxes(arr, cols, rows)
+    ys = [boxes[r][0][1] for r in range(1, rows)]
+    return max((float(opaque[min(h - 1, y)].sum()) / w for y in ys), default=0.0)
 
 
 def components(mask: np.ndarray):
@@ -388,8 +493,23 @@ def seam_ratio(arr: np.ndarray, thr: int = 60, gap: int = 6, band: int = 8) -> f
     return best
 
 
+def fit_limit(cells: list[np.ndarray], fs: int, cx: float, ay_src: float) -> float:
+    """(cx, ay_src)를 프레임의 (가운데, 기준선)에 둘 때 이 칸들이 fs 프레임 안에 다 들어오는 최대 배율"""
+    ab = union([bbox(c) for c in cells])
+    if not ab:
+        return float("inf")
+    ax_dst, ay_dst = fs / 2, fs * BASELINE
+    need = [
+        (cx - ab[0]) / ax_dst if cx > ab[0] else 0,
+        (ab[2] - cx) / (fs - ax_dst) if ab[2] > cx else 0,
+        (ay_src - ab[1]) / ay_dst if ay_src > ab[1] else 0,
+        (ab[3] - ay_src) / (fs - ay_dst) if ab[3] > ay_src else 0,
+    ]
+    return 1 / max(max(need), 1e-6)
+
+
 def fit_frames(cells: list[np.ndarray], fs: int, metric: str, target: float, anchor_bottom: bool, ref_cells=None, warn=None,
-               anchor_x=None, anchor_y=None):
+               anchor_x=None, anchor_y=None, max_shrink=None, info=None, force_scale=None):
     """같은 배율·같은 기준점으로 여러 칸을 fs×fs 프레임에 배치한다.
     anchor_x/anchor_y(칸 좌표)를 주면 그 점이 프레임의 (가운데, 기준선)에 온다. 없으면 기준 칸들의 bbox로 정한다."""
     ref = ref_cells if ref_cells is not None else cells
@@ -407,6 +527,8 @@ def fit_frames(cells: list[np.ndarray], fs: int, metric: str, target: float, anc
     ay_dst = fs * BASELINE if anchor_bottom else fs / 2
     # 모든 프레임이 프레임 안에 들어오는지 확인하고 넘치면 배율을 줄인다
     ab = union([bbox(c) for c in cells])
+    if force_scale is not None:
+        s, ab = force_scale, None  # 배율은 호출부가 정함(process_unit: 행마다 프레임 크기를 골라 넘침을 없앰)
     if ab:
         need = [
             (cx - ab[0]) / ax_dst if cx > ab[0] else 0,
@@ -418,10 +540,14 @@ def fit_frames(cells: list[np.ndarray], fs: int, metric: str, target: float, anc
         if s > smax:
             # 넘치는 만큼 줄이되 최대 MAX_SHRINK까지만: 총구 끝·섬광 몇 프레임 때문에 유닛 전체가 작아지면
             # 유닛마다 크기가 들쭉날쭉해진다. 그 이상은 프레임 끝에서 잘리게 둔다.
-            s_new = max(smax, s * (1 - MAX_SHRINK))
+            ms = MAX_SHRINK if max_shrink is None else max_shrink
+            s_new = max(smax, s * (1 - ms))
+            if info is not None:
+                info["clipped"] = s_new > smax * 1.0001
+                info["shrink"] = 1 - s_new / s
             if warn is not None:
                 if s_new > smax:
-                    warn.append(f"동작 범위가 커서 {MAX_SHRINK:.0%} 축소, 일부 프레임의 끝(총구·섬광 등)이 프레임 밖으로 잘림")
+                    warn.append(f"동작 범위가 커서 {ms:.0%} 축소, 일부 프레임의 끝(총구·섬광 등)이 프레임 밖으로 잘림")
                 elif s > smax * 1.03:
                     warn.append(f"프레임에 넘쳐 배율 {s:.3f}→{smax:.3f}로 축소")
             s = s_new
@@ -441,6 +567,17 @@ def process_unit(img, post, out_root, report):
     spec = UNIT_SPEC[post.get("layout", post["faction"])]
     cols, rows = spec["grid"]
     nframes = cols
+    # 행 일부만 쓰는 시트: 실제로 그려진 행을 찾아 다시 쌓는다(AI가 위 n행 대신 캔버스를 채워 그린 경우)
+    n_act = len(spec["actions"])
+    if n_act < rows:
+        cuts = find_used_rows(img, rows, n_act)
+        if cuts:
+            report["info"].append("행 배치가 규격(위 %d/%d행)과 달라 실제 그려진 행을 찾아 자름: y=%s" % (n_act, rows, ",".join(str(int(c)) for c in cuts)))
+            img = regrid_rows(img, cuts)
+            rows = n_act
+    through = cut_through(img, cols, rows)
+    if through > 0.03:
+        report["warnings"].append(f"행을 나누는 선이 그림을 지나감({through:.0%}) → 원본의 칸 배치가 규격과 달라 머리·몸통이 갈라졌을 수 있음(미리보기 확인)")
     grid, removed = extract_cells(img, cols, rows)
     cells = {a: grid[r][:nframes] for r, a in enumerate(spec["actions"])}
     if removed:
@@ -457,27 +594,83 @@ def process_unit(img, post, out_root, report):
     ref_i = spec["actions"].index(spec["ref"])
     aligned, ground, cx, mdx, mdy = align_unit_rows(list(cells.values()), ref_i)
     report["info"].append(f"위치 보정: 프레임 좌우 최대 {mdx}px, 행 발높이 최대 {mdy}px (원본 픽셀)")
-    all_cells = [c for row in aligned for c in row]
-    frames, s = fit_frames(all_cells, fs, metric, target, True, ref_cells=aligned[ref_i], warn=report["warnings"],
-                           anchor_x=cx, anchor_y=ground)
-    # 반올림 오차 보정: 기준 동작의 발 기준선을 정확히 y = fs*BASELINE에 맞춘다
-    ref_bottoms = [b[3] for b in (bbox(f) for f in frames[ref_i * nframes:(ref_i + 1) * nframes]) if b]
+    # 배율: 기준 동작(걷기·대기)의 몸이 목표 크기가 되게. 넘치는 동작 처리(OVERFLOW):
+    #  - 10%(MAX_SHRINK) 안의 넘침은 예전처럼 유닛 전체를 살짝 줄여 해결
+    #  - 그보다 크면 "large": 넘치는 동작만 200px 프레임(_L)으로(몸 크기 그대로, 잘림 없음)
+    #               "shrink": 다 들어갈 때까지 유닛 전체 축소 / "clip": 예전처럼 끝이 잘림
+    rb = union([bbox(c) for c in aligned[ref_i]]) or union([bbox(c) for row in aligned for c in row])
+    if rb is None:
+        report["warnings"].append("그림을 찾지 못함(빈 시트)")
+        return []
+    s0 = target / ((rb[3] - rb[1]) if metric == "h" else (rb[2] - rb[0]))
+    lim = [fit_limit(row, fs, cx, ground) for row in aligned]
+    sizes = [fs] * len(aligned)
+    s = s0
+    worst = min(lim)
+    if worst < s0:
+        if worst >= s0 * (1 - MAX_SHRINK):
+            s = worst
+            if s0 > worst * 1.03:
+                report["warnings"].append(f"프레임에 넘쳐 배율 {s0:.3f}→{worst:.3f}로 축소")
+        elif OVERFLOW == "clip":
+            s = s0 * (1 - MAX_SHRINK)
+            report["warnings"].append(f"동작 범위가 커서 {MAX_SHRINK:.0%} 축소, 일부 프레임의 끝(총구·섬광 등)이 프레임 밖으로 잘림")
+        elif OVERFLOW == "large" and fs < 200:
+            big = [a for a, l in zip(spec["actions"], lim) if l < s0]
+            sizes = [200 if l < s0 else fs for l in lim]
+            # 큰 프레임에서도 넘치면 그만큼만 유닛 전체를 줄임(잘림 없음)
+            lim2 = min(fit_limit(row, sz, cx, ground) for row, sz in zip(aligned, sizes))
+            if lim2 < s0:
+                s = lim2
+                report["warnings"].append(f"큰 프레임에서도 넘쳐 배율 {s0:.3f}→{lim2:.3f}로 축소")
+            report["info"].append("동작 범위가 큰 동작은 큰 프레임(200px, _L)으로: " + ", ".join(big) + " (몸 크기 그대로, 잘림 없음)")
+        elif OVERFLOW == "large":
+            # 보스·차량(이미 200px): 더 큰 프레임이 없으니 MAX_SHRINK_LARGE까지 줄이고, 그래도 넘치면 끝만 잘림
+            s = max(worst, s0 * (1 - MAX_SHRINK_LARGE))
+            if s > worst * 1.0001:
+                report["warnings"].append(f"동작 범위가 매우 커서 {MAX_SHRINK_LARGE:.0%} 축소, 그래도 넘치는 끝은 잘림(200px 프레임 한계)")
+            else:
+                report["warnings"].append(f"프레임에 넘쳐 배율 {s0:.3f}→{worst:.3f}로 축소(잘림 없음)")
+        else:
+            s = worst
+            report["warnings"].append(f"프레임에 넘쳐 배율 {s0:.3f}→{worst:.3f}로 축소(잘림 없음)")
+    rows_out = []
+    for row, sz in zip(aligned, sizes):
+        fr, _ = fit_frames(row, sz, metric, target, True, ref_cells=aligned[ref_i], anchor_x=cx, anchor_y=ground, force_scale=s)
+        rows_out.append(fr)
+    # 반올림 오차 보정: 기준 동작의 발 기준선을 정확히 y = fs*BASELINE에 맞춘다(모든 행을 같은 만큼)
+    ref_bottoms = [b[3] for b in (bbox(f) for f in rows_out[ref_i]) if b]
     if ref_bottoms:
-        dy = int(round(fs * BASELINE)) - int(np.median(ref_bottoms))
-        frames = [shift(f, 0, dy) for f in frames]
-    frames = [harden_alpha(f, "hard") for f in frames]
-    # 유닛 전체에 한 팔레트: 프레임을 이어 붙여 양자화 후 다시 나눈다
-    strip = quantize(np.concatenate(frames, axis=1), PALETTE["unit"])
-    frames = [strip[:, i * fs:(i + 1) * fs] for i in range(len(frames))]
+        dy = int(round(sizes[ref_i] * BASELINE)) - int(np.median(ref_bottoms))
+        rows_out = [[shift(f, 0, dy) for f in fr] for fr in rows_out]
+    rows_out = [[harden_alpha(f, "hard") for f in fr] for fr in rows_out]
+    # 유닛 전체에 한 팔레트: 프레임을 (가장 큰 높이에 맞춰) 이어 붙여 양자화 후 다시 나눈다
+    hmax = max(sizes)
+    padded = []
+    for fr, sz in zip(rows_out, sizes):
+        for f in fr:
+            cell = np.zeros((hmax, sz, 4), np.uint8)
+            cell[:sz] = f
+            padded.append(cell)
+    strip = quantize(np.concatenate(padded, axis=1), PALETTE["unit"])
+    x = 0
+    for fr, sz in zip(rows_out, sizes):
+        for i in range(len(fr)):
+            fr[i] = strip[:sz, x:x + sz]
+            x += sz
     report["scale"] = round(s, 4)
 
-    suffix = "_L" if fs > 100 else ""
     outs = []
-    for r, a in enumerate(spec["actions"]):
-        sheet = to_sheet(frames[r * nframes:(r + 1) * nframes], fs)
-        rel = f"{UNIT_FOLDER[post['faction']]}/{post['id']}_{a}{suffix}.png"
-        save_rgba(sheet, os.path.join(out_root, rel))
-        outs.append((rel, frames[r * nframes:(r + 1) * nframes]))
+    folder = UNIT_FOLDER[post["faction"]]
+    for a, fr, sz in zip(spec["actions"], rows_out, sizes):
+        suffix = "_L" if sz > 100 else ""
+        rel = f"{folder}/{post['id']}_{a}{suffix}.png"
+        save_rgba(to_sheet(fr, sz), os.path.join(out_root, rel))
+        # 같은 동작의 다른 크기(일반 ↔ _L) 옛 출력은 지운다(게임은 _L을 우선하므로 둘 다 있으면 헷갈림)
+        other = os.path.join(out_root, f"{folder}/{post['id']}_{a}{'' if suffix else '_L'}.png")
+        if os.path.exists(other):
+            os.remove(other)
+        outs.append((rel, fr))
     return outs
 
 
@@ -679,7 +872,7 @@ def checker(h, w, size=8):
     return np.dstack([v, v, v, np.full_like(v, 255)])
 
 
-def build_preview(outs, scale=2, max_w=1600) -> np.ndarray:
+def build_preview(outs, scale=2, max_w=2600) -> np.ndarray:
     """출력 프레임들을 체크무늬 위에 2배로 늘어놓은 확인용 이미지"""
     rows = []
     for _rel, frames in outs:

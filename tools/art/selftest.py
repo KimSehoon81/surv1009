@@ -117,6 +117,37 @@ def grid_sheet(cols, rows, opaque=False):
     return im
 
 
+HEAD, LEGS = (200, 60, 60, 255), (60, 70, 160, 255)
+
+
+def tall_sheet(n, pitch, cols=6):
+    """n행을 pitch 높이로 그린 시트(머리 빨강·몸 초록·다리 파랑): 머리·다리가 다 들어왔는지로 행을 제대로 찾았는지 본다"""
+    im = Image.new("RGBA", (1024, 1024), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    cw = 1024 / cols
+    for r in range(n):
+        base = r * pitch + pitch * 0.92
+        fh = pitch * 0.72
+        fw = fh * 0.42
+        for c in range(cols):
+            cx = c * cw + cw / 2 + (c - 3) * 1.5
+            d.rectangle([cx - fw * 0.3, base - fh, cx + fw * 0.3, base - fh * 0.75], fill=HEAD, outline=(42, 26, 16, 255))
+            d.rectangle([cx - fw / 2, base - fh * 0.75, cx + fw / 2, base - fh * 0.32], fill=(70, 120, 60, 255), outline=(42, 26, 16, 255))
+            d.rectangle([cx - fw / 2, base - fh * 0.32, cx - 4, base], fill=LEGS)
+            d.rectangle([cx + 4, base - fh * 0.32, cx + fw / 2, base], fill=LEGS)
+    return im
+
+
+def whole_figure(sheet_path, fs=100):
+    """첫 프레임에 머리(빨강)와 다리(파랑)가 모두 있고 세로로 긴가"""
+    f = pp.load_rgba(sheet_path)[:fs, :fs]
+    px = f.reshape(-1, 4)
+    px = px[px[:, 3] > 128][:, :3].astype(int)
+    near = lambda c: int((np.abs(px - np.array(c[:3])).sum(axis=1) < 90).sum())
+    b = pp.bbox(f)
+    return b is not None and near(HEAD) > 5 and near(LEGS) > 10 and (b[3] - b[1]) > (b[2] - b[0]) * 1.5
+
+
 def foot_and_height(sheet_path, fs, frame_index=0):
     arr = pp.load_rgba(sheet_path)
     r, c = divmod(frame_index, pp.OUT_GRID)
@@ -167,6 +198,14 @@ def main():
         grid_sheet(3, 2).save(os.path.join(raw, "card_overlays.png"))
         Image.new("RGB", (1024, 1536), (30, 60, 70)).save(os.path.join(raw, "map_korea.png"))
 
+        # (2026-11) 넘치는 보병: 넘치는 동작만 큰 프레임(_L), 몸 크기는 그대로
+        unit_sheet(5, 5, 0.3, overflow=True).save(os.path.join(raw, "enemy_E06.png"))
+        # (2026-11) 위 n행만 쓰라는 시트를 AI가 더 큰 칸으로 그린 경우: 3행 × 256px, 2행 × 512px, 3행이 캔버스를 채움
+        tall_sheet(3, 256).save(os.path.join(raw, "move_A01.png"))
+        tall_sheet(2, 512).save(os.path.join(raw, "walk_E01.png"))
+        tall_sheet(3, 1024 / 3).save(os.path.join(raw, "critter_W04.png"))
+        tall_sheet(3, 1024 / 6).save(os.path.join(raw, "move_A02.png"))  # 규격대로(위 3/6행)
+
         reps = {r["name"]: r for r in pp.process_all(list(ITEMS.values()), raw, out)}
         A = os.path.join(out, "public", "assets")
 
@@ -186,7 +225,28 @@ def main():
         sheet = pp.load_rgba(os.path.join(A, "enemies", "E04_move_L.png"))
         ub = pp.union([pp.bbox(sheet[(i // 4) * 200:(i // 4 + 1) * 200, (i % 4) * 200:(i % 4 + 1) * 200]) for i in range(5)])
         check(ub is not None and abs((ub[2] - ub[0]) - 140) <= 3, f"차량 너비(동작 전체) 140px 근처 (실제 {ub[2] - ub[0] if ub else None})")
-        check(any("축소" in w for w in reps["enemy_E05"]["warnings"]), "프레임 넘침 시 최대 10% 축소 + 잘림 경고")
+        check(any("축소" in w for w in reps["enemy_E05"]["warnings"]), "보스(200px) 넘침: 최대 25% 축소 + 경고")
+        # 넘치는 보병: 넘친 동작(move)만 _L, 몸 높이는 목표(62) 그대로, 섬광이 잘리지 않음, 일반 파일은 남지 않음
+        e6 = os.path.join(A, "enemies")
+        check(os.path.exists(os.path.join(e6, "E06_move_L.png")) and not os.path.exists(os.path.join(e6, "E06_move.png")), "넘치는 동작만 큰 프레임(_L)")
+        check(os.path.exists(os.path.join(e6, "E06_attack.png")) and not os.path.exists(os.path.join(e6, "E06_attack_L.png")), "넘치지 않는 동작은 100px 그대로")
+        bL, _ = foot_and_height(os.path.join(e6, "E06_move_L.png"), 200)
+        bN, _ = foot_and_height(os.path.join(e6, "E06_attack.png"), 100)
+        check(abs((bL[3] - bL[1]) - (bN[3] - bN[1])) <= 1 and abs((bN[3] - bN[1]) - 62) <= 2, "큰 프레임에서도 몸 높이 62px 그대로")
+        check(bL[3] == 184 and bN[3] == 92, "발 기준선: 100px는 92, 200px는 184")
+        fl = pp.load_rgba(os.path.join(e6, "E06_move_L.png"))[0:200, 600:800]
+        check(pp.bbox(fl)[2] < 199, "섬광이 프레임 끝에서 잘리지 않음")
+        check(not any("잘림" in w for w in reps["enemy_E06"]["warnings"]), "넘치는 보병에 잘림 경고 없음")
+        # 행 배치: 더 큰 칸으로 그려도 실제 행을 찾아 온전한 몸이 나옴
+        for rel in ("chars/A01_walk.png", "chars/A01_run.png", "chars/A01_sprint.png", "enemies/E01_walk.png", "enemies/E01_run.png",
+                    "critters/W04_walk.png", "critters/W04_idle.png", "critters/W04_run.png", "chars/A02_walk.png", "chars/A02_sprint.png"):
+            check(whole_figure(os.path.join(A, rel)), f"행 찾기: {rel} 머리부터 발까지 온전")
+        check(any("실제 그려진 행" in i for i in reps["move_A01"]["info"]), "큰 칸으로 그린 시트는 행을 찾아 자름")
+        check(not any("실제 그려진 행" in i for i in reps["move_A02"]["info"]), "규격대로 그린 시트는 손대지 않음")
+        new = ("move_A01", "walk_E01", "critter_W04", "move_A02", "enemy_E06")
+        check(not any("지나감" in w for k in new for w in reps[k]["warnings"]), "새 시트: 행을 나누는 선이 그림을 지나가지 않음")
+        # 규격(6×6의 위 3행)으로 잘랐다면 걸렸을 것: 256px 행을 170px 격자로 자르면 선이 몸통을 지나감
+        check(pp.cut_through(np.array(tall_sheet(3, 256)), 6, 6) > 0.03, "잘못 자르면 '선이 그림을 지나감'으로 걸러짐")
         for uid in ("E02", "E03"):
             frames = []
             for act in ("move", "attack", "defend", "crit", "hit"):

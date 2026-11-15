@@ -26,7 +26,9 @@ MD_GUIDE = """# 압록강 서바이벌 — 그래픽 자동 생성 ({TOTAL}장, 
 2. 괜찮으면 `LIMIT = 0`(제한 없음)으로 바꾸고 다시 모두 실행합니다. 이미 만든 그림은 건너뜁니다.
 3. 끝나면 `game_assets.zip`이 내려받아집니다. 압축을 풀면 `public/assets/...` 구조이므로 GitHub 저장소 루트에 그대로 올리면 게임이 자동으로 사용합니다.
 
-**변환 규칙이 바뀌었을 때(노트북 새 버전)**: `CONVERT_ONLY`를 체크하고 모두 실행하면, Drive에 있는 원본을 다시 생성하지 않고 변환만 새로 합니다.
+**변환 규칙이 바뀌었을 때(노트북 새 버전)**: `CONVERT_ONLY`를 체크하고 `PHASE`를 `ALL`로 두고 모두 실행하면, Drive에 있는 원본을 다시 생성하지 않고(비용 0) 변환만 새로 합니다.
+
+**잘림 없이 변환(2026-11-15)**: (1) 걷기·질주·주변 생활 시트는 AI가 칸을 더 크게 그려도 실제 행을 찾아 자릅니다. (2) 100px 프레임을 넘치는 동작(총구 섬광·말풍선)은 줄이거나 자르지 않고 그 동작만 큰 프레임(`_L`, 200px)으로 내보냅니다(`OVERFLOW_MODE`). 변환 뒤 7번 셀 아래 요약에 "[주의] 칸 배치를 못 맞춘 시트"가 있으면 그 항목은 올리지 말고 알려 주세요.
 
 **마음에 안 드는 그림 다시 만들기**: `REGENERATE`에 항목 이름을 쉼표로 적고 실행합니다(예: `ally_A01,enemy_E04`). 프롬프트가 바뀐 항목만 다시 만들려면 `changed`.
 
@@ -53,6 +55,8 @@ MODERATION = "auto"  #@param ["auto", "low"]
 SAVE_TO_DRIVE = True  #@param {type:"boolean"}
 #@markdown 다시 만들 항목(쉼표 구분) 또는 changed(프롬프트가 바뀐 항목 전부)
 REGENERATE = ""  #@param {type:"string"}
+#@markdown 100px 프레임을 넘치는 동작(총구 섬광·말풍선 등) 처리 — large: 그 동작만 큰 프레임(_L)으로, 잘림·축소 없음(권장) / shrink: 유닛 전체를 줄여 맞춤 / clip: 예전처럼 끝이 잘림
+OVERFLOW_MODE = "large"  #@param ["large", "shrink", "clip"]
 #@markdown 원본 이미지 zip도 함께 내려받기
 ZIP_RAW = False  #@param {type:"boolean"}
 '''
@@ -373,18 +377,34 @@ try:
     from IPython.display import Image as IPyImage, display
 except ImportError:  # Colab 밖(일반 파이썬)에서는 미리보기 표시 생략
     IPyImage = display = None
+OVERFLOW = OVERFLOW_MODE  # 후처리 코드(4번 셀)가 읽는 설정
 targets = {it["name"] for it in selected if os.path.exists(raw_path(it))}
 reports = process_all([it for it in PROMPTS if it["name"] in targets], RAW_DIR, OUT_DIR)
-shown = 0
-for rep in reports:
-    if rep["name"] in made or (not made and shown < 6):
-        p = os.path.join(OUT_DIR, "preview", rep["name"] + ".png")
-        if display and os.path.exists(p) and shown < 12:
-            print("미리보기:", rep["name"])
-            display(IPyImage(filename=p))
-            shown += 1
+# 미리보기: 이번에 새로 만든 것 → 없으면 확인이 필요한 것(경고·행을 다시 찾은 시트·큰 프레임으로 바뀐 것) → 그것도 없으면 앞 6개
+def _flag(rep):
+    notes = rep["warnings"] + rep.get("info", [])
+    return any(k in n for n in notes for k in ("지나감", "실제 그려진 행", "큰 프레임", "잘림"))
+
+pick = [r for r in reports if r["name"] in made] or [r for r in reports if _flag(r)] or reports[:6]
+for rep in pick[:12]:
+    p = os.path.join(OUT_DIR, "preview", rep["name"] + ".png")
+    if display and os.path.exists(p):
+        print("미리보기:", rep["name"], "·", "; ".join(n for n in rep.get("info", []) if "행" in n or "큰 프레임" in n)[:120])
+        display(IPyImage(filename=p))
 warn = sum(1 for r in reports if r["warnings"])
+refit = [r["name"] for r in reports if any("실제 그려진 행" in n for n in r.get("info", []))]
+large = [r["name"] for r in reports if any("큰 프레임" in n for n in r.get("info", []))]
+broken = [r["name"] for r in reports if any("지나감" in w for w in r["warnings"])]
+clipped = [r["name"] for r in reports if any("잘림" in w for w in r["warnings"])]
 print(f"변환 {len(reports)}개 (경고 있는 항목 {warn}개). 전체 미리보기: {os.path.join(OUT_DIR, 'preview')}")
+if refit:
+    print(f"- 행 배치를 다시 찾아 자른 시트 {len(refit)}개(걷기·질주·주변 생활): 미리보기에서 머리부터 발까지 온전한지 확인")
+if large:
+    print(f"- 넘치는 동작을 큰 프레임(_L)으로 내보낸 유닛 {len(large)}개: 몸 크기 그대로, 잘림 없음")
+if clipped:
+    print(f"- 그래도 끝이 잘린 항목 {len(clipped)}개(보스·차량은 200px이 한계): {', '.join(clipped[:12])}")
+if broken:
+    print(f"- [주의] 칸 배치를 못 맞춘 시트 {len(broken)}개(머리·몸통이 갈라졌을 수 있음 → 올리지 말고 알려 주세요): {', '.join(broken[:20])}")
 '''
 
 CELL_ZIP = '''#@title 8) 묶어서 내려받기 { display-mode: "form" }

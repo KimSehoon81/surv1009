@@ -134,7 +134,10 @@ export class WebScene extends Phaser.Scene {
     const c = this.add.graphics();
     c.fillStyle(0x2a2014, 1).fillCircle(L.cx, L.cy, 30).lineStyle(2, 0xffd34d, 1).strokeCircle(L.cx, L.cy, 30);
     // 발 기준점(50,92)·몸체 56~64px → 몸 가운데가 원 가운데에 오게
-    if (isCharacterId(char)) this.add.image(L.cx, L.cy, manifest.sheetKey(char, 'move_slow'), 0).setOrigin(0.5, 0.61).setScale(0.85);
+    if (isCharacterId(char)) {
+      const fsz = manifest.sheet(char, 'move_slow').frameSize;
+      this.add.image(L.cx, L.cy, manifest.sheetKey(char, 'move_slow'), 0).setOrigin(0.5, (fsz * manifest.anchor.y - 31) / fsz).setScale(0.85);
+    }
 
     for (const n of this.graph.nodes) {
       const p = this.pos.get(n.id);

@@ -83,7 +83,8 @@ export class PrepScene extends Phaser.Scene {
     // 좌: 캐릭터
     panel(this, 12, 40, 220, 400, t('prep.chars'));
     this.charList = new UiList(this, 16, 64, 212, 6);
-    this.charImg = this.add.image(122, 300, manifest.sheetKey(this.loadout.char as CharacterId, 'move_slow'), 0).setScale(1.2);
+    // 발 기준점으로 놓는다(프레임이 100px든 큰 200px(_L)든 같은 자리)
+    this.charImg = this.add.image(122, 350, manifest.sheetKey(this.loadout.char as CharacterId, 'move_slow'), 0).setOrigin(manifest.anchor.x, manifest.anchor.y).setScale(1.2);
     this.charInfo = this.add.text(20, 360, '', { ...uiText(12), lineSpacing: 4 });
 
     // 중: 덱

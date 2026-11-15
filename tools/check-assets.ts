@@ -33,5 +33,15 @@ for (const full of files) {
     console.log(`${issue.severity === 'error' ? '오류' : '주의'}  ${rel}: ${issue.message}`);
   }
 }
+// 같은 동작의 일반(100px)·큰(_L, 200px) 시트가 둘 다 있으면 게임은 _L만 쓴다 → 일반 파일은 예전 변환의 찌꺼기
+const rels = new Set(files.map((f) => relative(root, f).split(sep).join('/')));
+for (const rel of rels) {
+  if (!rel.endsWith('_L.png')) continue;
+  const plain = rel.replace(/_L\.png$/, '.png');
+  if (rels.has(plain)) {
+    warns++;
+    console.log(`주의  ${plain}: 같은 동작의 큰 시트(${rel.split('/').pop()})가 있어 쓰이지 않음 → 지워도 됨`);
+  }
+}
 console.log(`\n[assets:check] 파일 ${files.length}개, 오류 ${errors}개, 주의 ${warns}개`);
 process.exit(errors > 0 ? 1 : 0);
