@@ -1,4 +1,5 @@
-// 성장 지도(거미줄형 캐릭터 성장, 2026-11-14): 칸 그래프·개방 규칙·숙련 레벨·효과 합산. Phaser 없음
+// 성장 지도(거미줄형 캐릭터 성장): 칸 그래프·개방 규칙·숙련 레벨·효과 합산. Phaser 없음
+// v2(2026-11-15): 5단계(5단계 = 정점, 개수 제한) + 옆 갈래를 잇는 연결 칸(양쪽 2단계 모두 필요) + 단계별 숙련 레벨 관문
 import type { StatMod } from './stats';
 
 export interface WebNodeDef {
@@ -22,30 +23,58 @@ export interface MasteryCurve {
   pointsPerLevel: number;
   maxLevel: number;
 }
+export interface WebBridgeDef extends WebNodeDef {
+  /** 잇는 두 갈래 id */
+  between: [string, string];
+}
 export interface WebData {
+  /** 규칙 판(바뀌면 저장된 칸은 되돌리고 포인트 환급, 경험치는 유지) */
+  version: number;
   mastery: MasteryCurve;
+  /** 단계(1부터)별 비용 */
   costs: number[];
+  /** 단계별 필요 숙련 레벨(index = 단계) */
+  levelGates: number[];
+  /** 이 단계의 칸은 옆 갈래의 같은 단계에서도 이어짐 */
   ringLinks: number[];
+  /** 정점(마지막 단계)은 캐릭터당 이 개수까지 */
+  capstoneLimit: number;
+  bridgeCost: number;
+  bridgeLevel: number;
   branches: WebBranch[];
   nodes: Record<string, WebNodeDef[]>;
+  bridges: WebBridgeDef[];
   signature: Record<string, { name: string; nodes: WebNodeDef[] }>;
   archetypes: Record<string, string>;
 }
 export interface WebNode extends WebNodeDef {
   id: string;
+  /** 갈래 id(연결 칸은 첫 갈래) */
   branch: string;
+  /** 단계 1~5(연결 칸은 2.5) */
   ring: number;
   cost: number;
+  kind: 'branch' | 'bridge';
+  /** 열 수 있는 숙련 레벨 */
+  level: number;
+  /** 모두 열려 있어야 하는 칸(연결 칸: 양쪽 갈래의 2단계) */
+  all?: string[];
+  /** 정점(개수 제한) */
+  capstone?: boolean;
 }
 export interface WebGraph {
   nodes: WebNode[];
+  /** 하나만 열려 있어도 이어지는 줄 */
   links: [string, string][];
   archetype: string;
+  version: number;
+  capstoneLimit: number;
 }
-/** 저장: 캐릭터별 숙련 경험치와 연 칸 */
+/** 저장: 캐릭터별 숙련 경험치와 연 칸(v = 칸을 찍은 규칙 판) */
 export interface CharWeb {
   xp: number;
   nodes: string[];
+  v?: number;
 }
 
 /** 고유 갈래 id(내용은 캐릭터 계열마다 다름) */
@@ -55,7 +84,9 @@ export function archetypeOf(data: WebData, char: string): string {
   return data.archetypes[char] ?? Object.keys(data.signature)[0] ?? '';
 }
 
-/** 캐릭터의 거미줄: 갈래마다 1~4단계 칸, 같은 갈래는 안→밖, ringLinks 단계는 옆 갈래와 고리 */
+export const bridgeId = (a: string, b: string): string => `br_${a}_${b}`;
+
+/** 캐릭터의 거미줄: 갈래마다 1~5단계(같은 갈래는 안→밖, ringLinks 단계는 옆 갈래와 고리) + 갈래 사이 연결 칸 */
 export function buildWeb(data: WebData, char: string): WebGraph {
   const archetype = archetypeOf(data, char);
   const nodes: WebNode[] = [];
@@ -65,7 +96,16 @@ export function buildWeb(data: WebData, char: string): WebGraph {
     const defs = b.id === SIGNATURE ? (data.signature[archetype]?.nodes ?? []) : (data.nodes[b.id] ?? []);
     defs.forEach((d, i) => {
       const ring = i + 1;
-      nodes.push({ ...d, id: `${b.id}${ring}`, branch: b.id, ring, cost: data.costs[i] ?? last });
+      nodes.push({
+        ...d,
+        id: `${b.id}${ring}`,
+        branch: b.id,
+        ring,
+        cost: data.costs[i] ?? last,
+        kind: 'branch',
+        level: data.levelGates[ring] ?? 0,
+        ...(ring === defs.length && ring >= data.costs.length ? { capstone: true } : {}),
+      });
       if (ring > 1) links.push([`${b.id}${ring - 1}`, `${b.id}${ring}`]);
     });
   }
@@ -79,17 +119,36 @@ export function buildWeb(data: WebData, char: string): WebGraph {
       if (has.has(a) && has.has(c)) links.push([a, c]);
     });
   }
-  return { nodes, links, archetype };
+  for (const br of data.bridges) {
+    const [a, b] = br.between;
+    const need = [`${a}2`, `${b}2`];
+    if (!need.every((id) => has.has(id))) continue;
+    const { between: _between, ...def } = br;
+    nodes.push({ ...def, id: bridgeId(a, b), branch: a, ring: 2.5, cost: data.bridgeCost, kind: 'bridge', level: data.bridgeLevel, all: need });
+  }
+  return { nodes, links, archetype, version: data.version, capstoneLimit: data.capstoneLimit };
 }
 
 export function neighbors(g: WebGraph, id: string): string[] {
   return g.links.filter(([a, b]) => a === id || b === id).map(([a, b]) => (a === id ? b : a));
 }
 
-/** 열 수 있는 자리: 1단계(가운데와 이어짐)거나 이어진 칸 하나가 열려 있음 */
+/** 저장된 칸 중 지금 규칙 판에서 유효한 것(판이 다르면 없음 = 포인트 전부 환급) */
+export function ownedNodes(g: WebGraph, cw: CharWeb | undefined): string[] {
+  if (!cw || (cw.v ?? 1) !== g.version) return [];
+  return cw.nodes;
+}
+
+/** 저장된 칸이 예전 규칙 판 것인지(성장 지도를 열 때 한 번 알림) */
+export function isStale(g: WebGraph, cw: CharWeb | undefined): boolean {
+  return Boolean(cw && cw.nodes.length > 0 && (cw.v ?? 1) !== g.version);
+}
+
+/** 이어져 있는가: 1단계는 가운데와, 연결 칸은 양쪽 2단계 모두, 그 밖은 이어진 칸 하나 */
 export function isReachable(g: WebGraph, owned: readonly string[], id: string): boolean {
   const n = g.nodes.find((x) => x.id === id);
   if (!n) return false;
+  if (n.all) return n.all.every((x) => owned.includes(x));
   return n.ring === 1 || neighbors(g, id).some((x) => owned.includes(x));
 }
 
@@ -109,37 +168,45 @@ export function masteryLevel(xp: number, m: MasteryCurve): { level: number; into
 export function points(g: WebGraph, cw: CharWeb | undefined, m: MasteryCurve): { total: number; spent: number; free: number } {
   const total = masteryLevel(cw?.xp ?? 0, m).level * m.pointsPerLevel;
   // 데이터에서 사라진 칸은 비용 0(포인트 자동 환급)
-  const spent = (cw?.nodes ?? []).reduce((s, id) => s + (g.nodes.find((n) => n.id === id)?.cost ?? 0), 0);
+  const spent = ownedNodes(g, cw).reduce((s, id) => s + (g.nodes.find((n) => n.id === id)?.cost ?? 0), 0);
   return { total, spent, free: total - spent };
 }
 
-export type UnlockCheck = 'ok' | 'owned' | 'unreachable' | 'points' | 'missing';
+/** 연 정점 수 */
+export function capstones(g: WebGraph, owned: readonly string[]): number {
+  return g.nodes.filter((n) => n.capstone && owned.includes(n.id)).length;
+}
+
+/** ok = 열 수 있음 / unreachable = 앞 칸 먼저 / level = 숙련 레벨 부족 / limit = 정점 개수 제한 / points = 포인트 부족 */
+export type UnlockCheck = 'ok' | 'owned' | 'unreachable' | 'level' | 'limit' | 'points' | 'missing';
 
 export function checkUnlock(g: WebGraph, cw: CharWeb | undefined, m: MasteryCurve, id: string): UnlockCheck {
   const n = g.nodes.find((x) => x.id === id);
   if (!n) return 'missing';
-  const owned = cw?.nodes ?? [];
+  const owned = ownedNodes(g, cw);
   if (owned.includes(id)) return 'owned';
   if (!isReachable(g, owned, id)) return 'unreachable';
+  if (masteryLevel(cw?.xp ?? 0, m).level < n.level) return 'level';
+  if (n.capstone && capstones(g, owned) >= g.capstoneLimit) return 'limit';
   if (points(g, cw, m).free < n.cost) return 'points';
   return 'ok';
 }
 
-/** 칸 열기(못 열면 그대로 돌려줌) */
+/** 칸 열기(못 열면 그대로 돌려줌). 예전 규칙 판의 칸은 이때 정리됨 */
 export function unlockNode(g: WebGraph, cw: CharWeb | undefined, m: MasteryCurve, id: string): CharWeb {
-  const base: CharWeb = { xp: cw?.xp ?? 0, nodes: [...(cw?.nodes ?? [])] };
+  const base: CharWeb = { xp: cw?.xp ?? 0, nodes: [...ownedNodes(g, cw)], v: g.version };
   if (checkUnlock(g, cw, m, id) !== 'ok') return base;
   return { ...base, nodes: [...base.nodes, id] };
 }
 
 /** 초기화: 연 칸을 모두 되돌림(포인트 전부 환급, 경험치 유지) */
-export function resetWeb(cw: CharWeb | undefined): CharWeb {
-  return { xp: cw?.xp ?? 0, nodes: [] };
+export function resetWeb(g: WebGraph, cw: CharWeb | undefined): CharWeb {
+  return { xp: cw?.xp ?? 0, nodes: [], v: g.version };
 }
 
-/** 한 판 정산: 그 캐릭터의 숙련 경험치 += 이번 판 전공 */
+/** 한 판 정산: 그 캐릭터의 숙련 경험치 += 이번 판 전공(칸과 규칙 판은 그대로) */
 export function addMasteryXp(cw: CharWeb | undefined, xp: number): CharWeb {
-  return { xp: (cw?.xp ?? 0) + Math.max(0, Math.round(xp)), nodes: [...(cw?.nodes ?? [])] };
+  return { xp: (cw?.xp ?? 0) + Math.max(0, Math.round(xp)), nodes: [...(cw?.nodes ?? [])], ...(cw?.v !== undefined ? { v: cw.v } : {}) };
 }
 
 export interface WebEffects {

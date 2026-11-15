@@ -168,6 +168,7 @@ export class PrepScene extends Phaser.Scene {
       this.charImg.setTexture(manifest.sheetKey(l.char, 'move_slow'), 0);
       // 숙련(성장 지도): 레벨과 남은 포인트, 남았으면 버튼에 점
       const cw = prof.web?.[l.char];
+      // (points는 규칙 판이 바뀐 저장의 칸을 환급한 것으로 셈)
       const free = points(buildWeb(WEB, l.char), cw, WEB.mastery).free;
       const level = masteryLevel(cw?.xp ?? 0, WEB.mastery).level;
       this.charInfo.setText(`${t('prep.charInfo', { name: c.name, role: c.role, hp: c.stats.hp, atk: c.stats.attack, spd: c.stats.moveSpeed })}\n${t('prep.mastery', { level, free })}`);

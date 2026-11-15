@@ -28,7 +28,7 @@ export interface SaveData {
   codex?: { chars: string[]; enemies: string[]; cards: string[] };
   merit: number;
   /** 성장 지도(2026-11-14, core/web): 캐릭터 → 숙련 경험치·연 칸 */
-  web?: Record<string, { xp: number; nodes: string[] }>;
+  web?: Record<string, { xp: number; nodes: string[]; v?: number }>;
   /** 스타팅 포인트 강화 단계(D19) */
   startUpgrades: Record<string, number>;
   settings: {

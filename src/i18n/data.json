@@ -478,7 +478,24 @@
       "signature.recon.nodes.0.name": "Recon march",
       "signature.recon.nodes.1.name": "Binoculars",
       "signature.recon.nodes.2.name": "Tracking",
-      "signature.recon.nodes.3.name": "Shadow move"
+      "signature.recon.nodes.3.name": "Shadow move",
+      "nodes.fire.4.name": "Concentrated barrage",
+      "nodes.move.4.name": "Rapid maneuver",
+      "nodes.supply.4.name": "Frontline supply net",
+      "nodes.ops.4.name": "Operations staff",
+      "nodes.guard.4.name": "Fortress",
+      "signature.rifle.nodes.4.name": "Sharpshooter",
+      "signature.guard.nodes.4.name": "Guardian",
+      "signature.artillery.nodes.4.name": "Fire direction",
+      "signature.assault.nodes.4.name": "Vanguard",
+      "signature.support.nodes.4.name": "Chief of staff",
+      "signature.recon.nodes.4.name": "Ghost",
+      "bridges.0.name": "Linked fire",
+      "bridges.1.name": "Fire on the move",
+      "bridges.2.name": "Scavenging",
+      "bridges.3.name": "Supply signals",
+      "bridges.4.name": "Composure",
+      "bridges.5.name": "Veteran"
     }
   }
 }

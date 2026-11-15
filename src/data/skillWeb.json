@@ -1,32 +1,46 @@
 {
-  "$comment": "성장 지도(2026-11-14, 사용자 요청 '거미줄형 캐릭터 고유 성장'). 캐릭터마다 숙련 경험치(그 캐릭터로 번 전공만큼)가 쌓여 숙련 레벨이 오르면 레벨당 pointsPerLevel 포인트, 그 포인트로 6갈래 거미줄의 칸을 연다. 1단계는 가운데와 이어져 언제나 열 수 있고, 같은 갈래는 안쪽→바깥쪽, ringLinks 단계의 고리는 옆 갈래와도 이어진다. 고유(sig) 갈래 내용은 캐릭터 계열(archetypes)마다 다르다. 칸 id는 '갈래id+단계'라 계열 내용이 바뀌어도 저장이 깨지지 않음. 수정자 mul은 core/stats처럼 더하는 비율(0.05 = +5%). 수치는 상점 스타팅 포인트(meta.json)보다 작게 잡아 전부 열면 약 +20~30% 전력. 비용 1·1·2·2 → 갈래당 6, 전체 36 = 숙련 Lv18(레벨 n→n+1에 base+step·n 경험치, 평균 한 판 전공 100~150 기준 약 25~30판).",
+  "$comment": "성장 지도 v2(2026-11-15, 사용자 요청 '너무 쉽다 → 더 복잡하고 한 단계씩 넘어가기 어렵게'). 캐릭터마다 숙련 경험치(그 캐릭터로 번 전공)가 쌓여 레벨마다 pointsPerLevel 포인트. 구조: 6갈래 × 5단계(5단계 = 정점, 캐릭터당 capstoneLimit개까지) + 옆 갈래를 잇는 연결 칸 6개(양쪽 갈래의 2단계를 모두 열어야 함). 관문: levelGates[단계] = 그 단계를 열 수 있는 숙련 레벨, 연결 칸은 bridgeLevel. 비용 costs = 1·2·3·4·6, 연결 칸 bridgeCost. 같은 갈래는 안→밖, ringLinks 단계는 옆 갈래에서도 이어짐. 전부(정점 2개 제한 기준 90포인트)는 최대 레벨(80포인트)로도 다 못 여니 캐릭터마다 방향을 골라야 함. 숙련 레벨 n→n+1에 base + step·n 경험치(v1의 1.5배). 수정자 mul은 core/stats처럼 더하는 비율(0.05 = +5%). version이 바뀌면 저장된 칸은 되돌리고(포인트 환급) 경험치는 유지.",
+  "version": 2,
   "mastery": {
-    "base": 40,
-    "step": 20,
+    "base": 60,
+    "step": 30,
     "pointsPerLevel": 2,
-    "maxLevel": 30
+    "maxLevel": 40
   },
   "costs": [
     1,
-    1,
     2,
-    2
+    3,
+    4,
+    6
+  ],
+  "levelGates": [
+    0,
+    0,
+    2,
+    5,
+    9,
+    14
   ],
   "ringLinks": [
-    2,
     4
   ],
+  "capstoneLimit": 2,
+  "bridgeCost": 3,
+  "bridgeLevel": 4,
   "layout": {
-    "cx": 320,
-    "cy": 292,
+    "cx": 300,
+    "cy": 304,
     "radii": [
       0,
-      54,
-      100,
-      146,
-      190
+      42,
+      76,
+      110,
+      144,
+      178
     ],
-    "labelRadius": 220
+    "labelRadius": 222,
+    "bridgeRadius": 93
   },
   "branches": [
     {
@@ -107,6 +121,21 @@
             "value": 0.1
           }
         ]
+      },
+      {
+        "name": "집중 포화",
+        "player": [
+          {
+            "stat": "attack",
+            "op": "mul",
+            "value": 0.12
+          },
+          {
+            "stat": "critMult",
+            "op": "add",
+            "value": 0.3
+          }
+        ]
       }
     ],
     "move": [
@@ -149,6 +178,21 @@
             "value": 0.08
           }
         ]
+      },
+      {
+        "name": "신속 기동",
+        "player": [
+          {
+            "stat": "moveSpeed",
+            "op": "mul",
+            "value": 0.08
+          },
+          {
+            "stat": "attackSpeed",
+            "op": "mul",
+            "value": 0.05
+          }
+        ]
       }
     ],
     "supply": [
@@ -184,6 +228,20 @@
             "stat": "magnet",
             "op": "mul",
             "value": 0.1
+          }
+        ]
+      },
+      {
+        "name": "전선 보급망",
+        "start": {
+          "tp": 20,
+          "seals": 1
+        },
+        "weapons": [
+          {
+            "stat": "damageMult",
+            "op": "mul",
+            "value": 0.06
           }
         ]
       }
@@ -231,6 +289,26 @@
         "start": {
           "tp": 10
         }
+      },
+      {
+        "name": "작전 참모",
+        "player": [
+          {
+            "stat": "sealOpReduction",
+            "op": "add",
+            "value": 1
+          },
+          {
+            "stat": "drawSpeed",
+            "op": "mul",
+            "value": 0.1
+          },
+          {
+            "stat": "luck",
+            "op": "add",
+            "value": 2
+          }
+        ]
       }
     ],
     "guard": [
@@ -278,9 +356,133 @@
             "value": 10
           }
         ]
+      },
+      {
+        "name": "철옹성",
+        "player": [
+          {
+            "stat": "hp",
+            "op": "add",
+            "value": 45
+          },
+          {
+            "stat": "defense",
+            "op": "add",
+            "value": 5
+          }
+        ]
       }
     ]
   },
+  "bridges": [
+    {
+      "between": [
+        "sig",
+        "fire"
+      ],
+      "name": "연계 사격",
+      "weapons": [
+        {
+          "stat": "damageMult",
+          "op": "mul",
+          "value": 0.06
+        }
+      ]
+    },
+    {
+      "between": [
+        "fire",
+        "move"
+      ],
+      "name": "이동 사격",
+      "player": [
+        {
+          "stat": "attackSpeed",
+          "op": "mul",
+          "value": 0.05
+        },
+        {
+          "stat": "moveSpeed",
+          "op": "mul",
+          "value": 0.03
+        }
+      ]
+    },
+    {
+      "between": [
+        "move",
+        "supply"
+      ],
+      "name": "전리품 수색",
+      "player": [
+        {
+          "stat": "magnet",
+          "op": "mul",
+          "value": 0.25
+        },
+        {
+          "stat": "luck",
+          "op": "add",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "between": [
+        "supply",
+        "ops"
+      ],
+      "name": "보급 통신",
+      "player": [
+        {
+          "stat": "drawSpeed",
+          "op": "mul",
+          "value": 0.06
+        }
+      ],
+      "start": {
+        "tp": 10
+      }
+    },
+    {
+      "between": [
+        "ops",
+        "guard"
+      ],
+      "name": "침착",
+      "player": [
+        {
+          "stat": "hp",
+          "op": "add",
+          "value": 15
+        },
+        {
+          "stat": "luck",
+          "op": "add",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "between": [
+        "guard",
+        "sig"
+      ],
+      "name": "역전의 용사",
+      "player": [
+        {
+          "stat": "defense",
+          "op": "add",
+          "value": 2
+        },
+        {
+          "stat": "hp",
+          "op": "add",
+          "value": 15
+        }
+      ]
+    }
+  ],
   "signature": {
     "rifle": {
       "name": "정밀 사격",
@@ -329,6 +531,28 @@
               "stat": "damageMult",
               "op": "mul",
               "value": 0.08
+            }
+          ]
+        },
+        {
+          "name": "저격 명수",
+          "weapons": [
+            {
+              "stat": "pierce",
+              "op": "add",
+              "value": 1
+            },
+            {
+              "stat": "damageMult",
+              "op": "mul",
+              "value": 0.12
+            }
+          ],
+          "player": [
+            {
+              "stat": "critChance",
+              "op": "add",
+              "value": 0.05
             }
           ]
         }
@@ -388,6 +612,28 @@
               "value": 3
             }
           ]
+        },
+        {
+          "name": "수호자",
+          "player": [
+            {
+              "stat": "hp",
+              "op": "add",
+              "value": 60
+            },
+            {
+              "stat": "defense",
+              "op": "add",
+              "value": 6
+            }
+          ],
+          "weapons": [
+            {
+              "stat": "auraRadius",
+              "op": "mul",
+              "value": 0.2
+            }
+          ]
         }
       ]
     },
@@ -436,6 +682,26 @@
               "stat": "damageMult",
               "op": "mul",
               "value": 0.08
+            }
+          ]
+        },
+        {
+          "name": "화력 지휘",
+          "weapons": [
+            {
+              "stat": "aoeRadius",
+              "op": "mul",
+              "value": 0.2
+            },
+            {
+              "stat": "damageMult",
+              "op": "mul",
+              "value": 0.15
+            },
+            {
+              "stat": "cooldownMs",
+              "op": "mul",
+              "value": -0.1
             }
           ]
         }
@@ -493,6 +759,26 @@
               "value": 0.08
             }
           ]
+        },
+        {
+          "name": "선봉",
+          "player": [
+            {
+              "stat": "moveSpeed",
+              "op": "mul",
+              "value": 0.08
+            },
+            {
+              "stat": "attack",
+              "op": "mul",
+              "value": 0.12
+            },
+            {
+              "stat": "critChance",
+              "op": "add",
+              "value": 0.06
+            }
+          ]
         }
       ]
     },
@@ -533,6 +819,25 @@
               "stat": "luck",
               "op": "add",
               "value": 2
+            }
+          ]
+        },
+        {
+          "name": "총괄 참모",
+          "start": {
+            "tp": 25,
+            "seals": 1
+          },
+          "player": [
+            {
+              "stat": "sealOpReduction",
+              "op": "add",
+              "value": 1
+            },
+            {
+              "stat": "drawSpeed",
+              "op": "mul",
+              "value": 0.12
             }
           ]
         }
@@ -583,6 +888,26 @@
               "stat": "critChance",
               "op": "add",
               "value": 0.05
+            }
+          ]
+        },
+        {
+          "name": "유령",
+          "player": [
+            {
+              "stat": "moveSpeed",
+              "op": "mul",
+              "value": 0.1
+            },
+            {
+              "stat": "critChance",
+              "op": "add",
+              "value": 0.08
+            },
+            {
+              "stat": "magnet",
+              "op": "mul",
+              "value": 0.3
             }
           ]
         }

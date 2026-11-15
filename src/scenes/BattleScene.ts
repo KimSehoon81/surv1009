@@ -13,7 +13,7 @@ import stagesData from '../data/stages.json';
 import disruptionsData from '../data/disruptions.json';
 import metaData from '../data/meta.json';
 import webJson from '../data/skillWeb.json';
-import { addMasteryXp, buildWeb, masteryLevel, webEffects, type WebData } from '../core/web';
+import { addMasteryXp, buildWeb, masteryLevel, ownedNodes, webEffects, type WebData } from '../core/web';
 import { StageDirector, bossAttackRate, rushBursts, type OverLevelRule, type RushRule, type StageDef, type StageEvent } from '../core/stage';
 import { Disruptions } from '../core/disruptions';
 import { actualRate, defeatTip, meritPoints, type RunRecord } from '../core/results';
@@ -734,7 +734,9 @@ export class BattleScene extends Phaser.Scene {
     const prof = loadProfile();
     const rs = runInit(prof, metaData.startUpgrades as Record<string, StartUpgradeDef>);
     // 성장 지도(캐릭터별 거미줄): 능력치·시작 무기 수정자, 시작 TP·인장은 스타팅 포인트에 더함
-    const web = webEffects(buildWeb(WEB, this.payload.char), prof.web?.[this.payload.char]?.nodes ?? []);
+    // (규칙 판이 바뀐 뒤 아직 다시 찍지 않은 칸은 효과 없음: ownedNodes)
+    const graph = buildWeb(WEB, this.payload.char);
+    const web = webEffects(graph, ownedNodes(graph, prof.web?.[this.payload.char]));
     if (web.player.length > 0) this.player.addMods(web.player);
     if (web.weapons.length > 0) for (const id of this.player.weapons) this.weapons.addMods(id, web.weapons);
     rs.seals += web.seals;

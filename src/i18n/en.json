@@ -397,16 +397,18 @@
   },
   "web": {
     "title": "Growth web — {name}",
-    "head": "Mastery Lv {level} · XP {xp}/{need} · points {free} (of {total})",
-    "howToEarn": "Merit earned with this character becomes mastery XP; each level gives 2 points",
+    "head": "Mastery Lv {level} · XP {xp}/{need} · points {free} (of {total}) · capstones {caps}/{capMax}",
+    "howToEarn": "Merit earned with this character becomes mastery XP; each level gives 2 points. Outer rings need higher mastery",
     "back": "{key}  Back",
     "sub": "{branch} branch · ring {ring} · cost {cost}",
     "canOpen": "{key}  Unlock",
     "why": {
       "owned": "Unlocked",
-      "unreachable": "Unlock a linked node first (center outward)",
+      "unreachable": "Unlock a linked node first (bridges need both ring-2 nodes)",
       "points": "Not enough points (need {n})",
-      "missing": "No such node"
+      "missing": "No such node",
+      "level": "Unlocks at mastery Lv {lv} (now Lv {now})",
+      "limit": "Up to {max} capstones per character — reset to pick another"
     },
     "opened": "{name} unlocked!",
     "resetConfirm": "{key} again: refund every node",
@@ -436,6 +438,16 @@
       "knockback": "Knockback",
       "tp": "Starting TP",
       "seals": "Starting seals"
-    }
+    },
+    "subCap": "{branch} branch · capstone (ring {ring}) · cost {cost}",
+    "subBridge": "Bridge: {a} + {b} · cost {cost}",
+    "req": {
+      "level": "Mastery Lv {lv}+ (now Lv {now})",
+      "prev": "Previous ring of this branch (or a linked neighbor)",
+      "both": "Both {a} ring 2 and {b} ring 2",
+      "cap": "Up to {max} capstones per character (now {now})"
+    },
+    "rulesChanged": "The growth web was reworked, so your nodes were refunded — pick them again",
+    "legend": "○ branch   □ bridge (needs both ring 2)   ◇ capstone (max {max})"
   }
 }
