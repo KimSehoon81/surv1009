@@ -158,8 +158,6 @@
       ]
     },
     "card_success": {
-      "screenFlashFrames": 4,
-      "screenFlashColor": "#ffd34d",
       "shakePx": 2,
       "shakeMs": 120,
       "zoomPunch": 0.02,
@@ -282,8 +280,6 @@
       "shakePx": 2,
       "shakeMs": 140,
       "zoomPunch": 0.03,
-      "screenFlashFrames": 2,
-      "screenFlashColor": "#7fd8ff",
       "emit": {
         "ring_skill": 1,
         "ring_skill_in": 1,
@@ -296,7 +292,8 @@
         80,
         0.3,
         0.5
-      ]
+      ],
+      "sfx": "skill_cast"
     },
     "skill_cast_big": {
       "hitstopFrames": 5,
@@ -304,8 +301,6 @@
       "shakePx": 4,
       "shakeMs": 260,
       "zoomPunch": 0.05,
-      "screenFlashFrames": 4,
-      "screenFlashColor": "#bfeaff",
       "emit": {
         "ring_skill": 2,
         "ring_skill_in": 1,
@@ -318,7 +313,8 @@
         140,
         0.5,
         0.6
-      ]
+      ],
+      "sfx": "skill_ult"
     },
     "power_up": {
       "zoomPunch": 0.015,
@@ -379,6 +375,47 @@
       "rumble": [
         140,
         0.6,
+        0.6
+      ]
+    },
+    "last_stand": {
+      "hitstopFrames": 8,
+      "hitstopForce": true,
+      "shakePx": 6,
+      "shakeMs": 420,
+      "zoomPunch": 0.06,
+      "emit": {
+        "ring_gold": 2,
+        "ring_gold_in": 1,
+        "glow_gold": 2,
+        "streak_gold": 30,
+        "mote_gold": 16
+      },
+      "sfx": "last_stand",
+      "lod": 100,
+      "rumble": [
+        220,
+        0.8,
+        0.8
+      ]
+    },
+    "outpost_capture": {
+      "hitstopFrames": 4,
+      "shakePx": 3,
+      "shakeMs": 220,
+      "zoomPunch": 0.04,
+      "emit": {
+        "ring_gold": 2,
+        "ring_gold_in": 1,
+        "glow_gold": 2,
+        "streak_gold": 24,
+        "mote_gold": 18
+      },
+      "sfx": "capture",
+      "lod": 100,
+      "rumble": [
+        160,
+        0.5,
         0.6
       ]
     }
@@ -1298,6 +1335,68 @@
       0.1,
       0.42
     ],
-    "pulseMs": 520
+    "pulseMs": 520,
+    "beatMs": [
+      950,
+      560
+    ]
+  },
+  "glare": {
+    "$comment": "눈부심(ui/glare.ts, 2026-11-16 사용자 요청: 기술을 쓸 때 눈부심). kind별 color·veil(화면 번쩍임 최대 알파 × 점멸 강도)·core(빛 덩어리 지름 px)·rays(광선 수)·rayLen(px)·streak(가로 빛줄기 한쪽 길이 px)·ms. minGapMs=연달아 번쩍이지 않게 하는 최소 간격. 번쩍임은 한 번 올랐다 꺼짐(깜빡임 없음). 기술·작전 성공·점령·구사일생 프리셋의 화면 플래시(screenFlashFrames)는 이 눈부심이 대신함(둘이 겹치면 화면이 통째로 하얘짐)",
+    "minGapMs": 280,
+    "skill": {
+      "color": "#7fd8ff",
+      "veil": 0.22,
+      "core": 320,
+      "rays": 10,
+      "rayLen": 240,
+      "streak": 440,
+      "ms": 560
+    },
+    "skillBig": {
+      "color": "#bfeaff",
+      "veil": 0.36,
+      "core": 480,
+      "rays": 14,
+      "rayLen": 400,
+      "streak": 640,
+      "ms": 820
+    },
+    "opSuccess": {
+      "color": "#ffd34d",
+      "veil": 0.18,
+      "core": 280,
+      "rays": 8,
+      "rayLen": 210,
+      "streak": 380,
+      "ms": 520
+    },
+    "combo": {
+      "color": "#ffb830",
+      "veil": 0.3,
+      "core": 440,
+      "rays": 14,
+      "rayLen": 360,
+      "streak": 620,
+      "ms": 760
+    },
+    "outpost": {
+      "color": "#fff0a0",
+      "veil": 0.22,
+      "core": 360,
+      "rays": 12,
+      "rayLen": 300,
+      "streak": 0,
+      "ms": 700
+    },
+    "lastStand": {
+      "color": "#ffffff",
+      "veil": 0.4,
+      "core": 520,
+      "rays": 16,
+      "rayLen": 420,
+      "streak": 640,
+      "ms": 820
+    }
   }
 }

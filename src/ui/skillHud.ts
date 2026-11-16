@@ -6,6 +6,7 @@ import type { SkillSlots } from '../core/skills';
 import { LOGICAL_WIDTH } from '../config/display';
 import { PIXEL_FONT } from './pixelFont';
 import { uiText } from './text';
+import { t } from '../i18n';
 
 const S = hud.skills;
 const BOX = S.box;
@@ -21,7 +22,7 @@ export class SkillHud {
   private readonly icons: (Phaser.GameObjects.Image | null)[] = [];
   private readonly costs: Phaser.GameObjects.BitmapText[] = [];
   private readonly cds: Phaser.GameObjects.BitmapText[] = [];
-  private readonly tpText: Phaser.GameObjects.BitmapText;
+  private readonly tpText: Phaser.GameObjects.Text;
   private readonly w = 4 * BOX + 3 * GAP;
   private readonly x0 = LOGICAL_WIDTH - S.right - (4 * BOX + 3 * GAP);
   private readonly y0 = S.top;
@@ -48,7 +49,8 @@ export class SkillHud {
       );
       this.cds.push(scene.add.bitmapText(x + BOX / 2, this.y0 + BOX / 2 + 4, PIXEL_FONT, '', 7).setOrigin(0.5).setLetterSpacing(-1).setScale(2).setDepth(2).setVisible(false));
     });
-    this.tpText = scene.add.bitmapText(this.x0, this.y0 - 15, PIXEL_FONT, 'TP', 7).setLetterSpacing(-1).setScale(2);
+    // 스킬 게이지 이름·수치(영문판은 TP)
+    this.tpText = scene.add.text(this.x0, this.y0 - 10, '', { ...uiText(12, '#ffffff'), stroke: '#0a0604', strokeThickness: 3 }).setOrigin(0, 0.5);
   }
 
   update(): void {
@@ -61,7 +63,7 @@ export class SkillHud {
     const bx = this.x0 + 58;
     const bw = this.w - 58;
     const by = this.y0 - 14;
-    this.tpText.setText(`TP ${Math.floor(s.tp)}`);
+    this.tpText.setText(`${t('hud.tpLabel')} ${Math.floor(s.tp)}`);
     g.fillStyle(0x1a1410, 0.9).fillRect(bx - 1, by - 1, bw + 2, 10);
     g.fillStyle(0x2a2a3a, 1).fillRect(bx, by, bw, 8);
     g.fillStyle(0x7fd8ff, 1).fillRect(bx, by, Math.round((bw * s.tp) / s.tpMax), 8);

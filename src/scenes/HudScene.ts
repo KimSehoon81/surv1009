@@ -1,5 +1,7 @@
 import * as Phaser from 'phaser';
 import feelData from '../data/feel.json';
+import combat from '../data/combat.json';
+import { playGlare, type GlareCfg } from '../ui/glare';
 import levels from '../data/levels.json';
 import upgradesData from '../data/upgrades.json';
 import chestData from '../data/chest.json';
@@ -33,11 +35,12 @@ import { panel, UI } from '../ui/widgets';
 import { uiText } from '../ui/text';
 import { t } from '../i18n';
 import { lastDevice } from '../systems/pad';
-import { buttonLabel, sealLabel } from '../ui/buttons';
+import { buttonLabel, hintVars, sealLabel } from '../ui/buttons';
 
 const RARITY = upgradesData.rarity;
 /** 화면 밖 관심 지점 화살표 색·크기 */
-const POI: Record<'supply' | 'airdrop' | 'chest' | 'npc' | 'boss' | 'rush', { color: number; size: number }> = {
+const POI: Record<'supply' | 'airdrop' | 'chest' | 'npc' | 'boss' | 'rush' | 'outpost', { color: number; size: number }> = {
+  outpost: { color: 0x7fd8ff, size: 14 },
   rush: { color: 0xff5a30, size: 16 },
   supply: { color: 0x6fd06f, size: 12 },
   airdrop: { color: 0x7fd8ff, size: 12 },
@@ -171,6 +174,24 @@ export class HudScene extends Phaser.Scene {
     this.tweens.add({ targets: [big, sub], alpha: 0, y: '-=14', delay: 780, duration: 260, onComplete: () => (big.destroy(), sub.destroy()) });
   };
 
+  /** 눈부심(기술 발동·작전 성공·고지 점령): 전장의 한 점(기본 = 주인공)에서 빛이 터짐. 점멸 강도 설정을 따름 */
+  private readonly onGlare = (ev: { kind: string; delayMs?: number; x?: number; y?: number }) => {
+    const cfg = (feelData.glare as unknown as Record<string, GlareCfg | undefined>)[ev.kind];
+    if (!cfg || typeof cfg !== 'object') return;
+    const fire = () => {
+      const b = this.battle;
+      if (!b.player) return;
+      const cam = b.cameras.main;
+      const wx = ev.x ?? b.player.x;
+      const wy = ev.y ?? b.player.y - combat.bodyOffsetY;
+      const sx = (wx - cam.midPoint.x) * cam.zoom + LOGICAL_WIDTH / 2;
+      const sy = (wy - cam.midPoint.y) * cam.zoom + LOGICAL_HEIGHT / 2;
+      playGlare(this, sx, sy, cfg, b.feel.intensity.flash);
+    };
+    if (ev.delayMs && ev.delayMs > 0) this.time.delayedCall(ev.delayMs, fire);
+    else fire();
+  };
+
   /** 컷인(F 궁극기): 0.3초 동안 화면 가운데 띠 + 스킬 이름이 실시간으로 지나감 */
   private readonly onCutIn = (name: string) => {
     const ms = skillsData.cutInMs;
@@ -280,6 +301,7 @@ export class HudScene extends Phaser.Scene {
     this.battle.events.on('warn', this.onWarn);
     this.battle.events.on('boss:spawn', this.onBossSpawn);
     this.battle.events.on('cutin', this.onCutIn);
+    this.battle.events.on('glare', this.onGlare);
     this.battle.events.on('skill:cast', this.onSkillCast);
     this.battle.events.on('op:result', this.onOpResult);
     this.battle.events.on('achievement', this.onAchievement);
@@ -301,6 +323,7 @@ export class HudScene extends Phaser.Scene {
       this.battle.events.off('warn', this.onWarn);
       this.battle.events.off('boss:spawn', this.onBossSpawn);
       this.battle.events.off('cutin', this.onCutIn);
+      this.battle.events.off('glare', this.onGlare);
       this.battle.events.off('skill:cast', this.onSkillCast);
       this.battle.events.off('op:result', this.onOpResult);
       this.battle.events.off('achievement', this.onAchievement);
@@ -399,7 +422,7 @@ export class HudScene extends Phaser.Scene {
       return t;
     });
     const info = this.add.text(x + 14, y + h - 54, '', uiText(12, UI.text)).setWordWrapWidth(w - 28);
-    const help = this.add.text(x + w / 2, y + h - 16, t('hud.shop.help'), uiText(11, UI.dim)).setOrigin(0.5);
+    const help = this.add.text(x + w / 2, y + h - 16, t('hud.shop.help', hintVars()), uiText(11, UI.dim)).setOrigin(0.5);
     root.add([merit, ...rows, info, help]);
     this.shop = { root, rows, info, merit, index: 0, note: '' };
     this.renderShop();
@@ -641,7 +664,7 @@ export class HudScene extends Phaser.Scene {
     this.chestClicked = false;
     if (!ch.done && ch.slots.every((s) => s.stopped)) {
       ch.done = true;
-      ch.prompt.setText(t('hud.chest.continue'));
+      ch.prompt.setText(t('hud.chest.continue', hintVars()));
       this.battle.audio.play('judge_success');
       ch.root.list[0]?.setInteractive().on('pointerdown', () => (this.chestClicked = true));
     }
@@ -841,13 +864,13 @@ export class HudScene extends Phaser.Scene {
     }
     if (r.ending) {
       // 마지막 지역 점령: 엔딩으로(Enter·M 모두)
-      const end = this.add.text(LOGICAL_WIDTH / 2, 400, t('hud.result.ending'), textStyle(18, '#ffe14d')).setOrigin(0.5);
+      const end = this.add.text(LOGICAL_WIDTH / 2, 400, t('hud.result.ending', { ok: buttonLabel('redeploy') }), textStyle(18, '#ffe14d')).setOrigin(0.5);
       end.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.battle.toEnding());
       root.add(end);
     } else {
-      const again = this.add.text(LOGICAL_WIDTH / 2 - 120, 400, t('hud.result.again'), textStyle(16, '#ffffff')).setOrigin(0.5);
+      const again = this.add.text(LOGICAL_WIDTH / 2 - 120, 400, t('hud.result.again', { ok: buttonLabel('redeploy') }), textStyle(16, '#ffffff')).setOrigin(0.5);
       again.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.battle.redeploy());
-      const map = this.add.text(LOGICAL_WIDTH / 2 + 120, 400, t('hud.result.map'), textStyle(16, '#ffffff')).setOrigin(0.5);
+      const map = this.add.text(LOGICAL_WIDTH / 2 + 120, 400, t('hud.result.map', { back: buttonLabel('toMap') }), textStyle(16, '#ffffff')).setOrigin(0.5);
       map.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.battle.toMap());
       root.add([again, map]);
     }
@@ -920,7 +943,7 @@ export class HudScene extends Phaser.Scene {
     this.tweens.add({ targets: go, scale: 1.06, duration: 520, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
     const again = this.add.text(right - 110, 460, t('hud.result.retry', { key: buttonLabel('retry') }), uiText(14, '#e8dcc0')).setOrigin(0.5);
     again.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.battle.redeploy());
-    const map = this.add.text(right + 110, 460, t('hud.result.map'), uiText(14, '#e8dcc0')).setOrigin(0.5);
+    const map = this.add.text(right + 110, 460, t('hud.result.map', { back: buttonLabel('toMap') }), uiText(14, '#e8dcc0')).setOrigin(0.5);
     map.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.battle.toMap());
     root.add([go, again, map]);
     root.setAlpha(0);

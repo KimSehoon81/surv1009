@@ -19,6 +19,7 @@ import { FocusGroup, UI, UiButton, UiList, panel } from '../ui/widgets';
 import type { BattlePayload, MapPayload, PrepPayload } from '../types/scenes';
 import { SceneKey } from './keys';
 import { t } from '../i18n';
+import { hintVars } from '../ui/buttons';
 import { params } from '../config/params';
 import { playMenuMusic } from '../systems/frontAudio';
 import webJson from '../data/skillWeb.json';
@@ -95,7 +96,7 @@ export class PrepScene extends Phaser.Scene {
     // 우: 스킬 슬롯·스타팅 포인트·지역 정보
     panel(this, 596, 40, 352, 400, t('prep.skillSlots'));
     this.skillList = new UiList(this, 600, 64, 344, 4);
-    this.add.text(604, 146, t('prep.starting'), uiText(13, UI.hi));
+    this.add.text(604, 146, t('prep.starting', hintVars()), uiText(13, UI.hi));
     this.meritText = this.add.text(940, 146, '', uiText(12, UI.hi)).setOrigin(1, 0);
     const hint = this.add.text(604, 270, '', uiText(11, UI.dim));
     this.shopList = new UiList(this, 600, 166, 344, 6, 17, (it) => hint.setText(it?.hint ?? ''));
@@ -111,7 +112,7 @@ export class PrepScene extends Phaser.Scene {
     const btnLoad = new UiButton(this, 626, by, t('prep.presetLoad'), () => this.loadPreset());
     const btnGo = new UiButton(this, 840, by, t('prep.go'), () => this.sortie());
     this.webBtn = new UiButton(this, 122, by, t('prep.web'), () => this.openWeb());
-    this.add.text(12, LOGICAL_HEIGHT - 22, t('prep.help'), uiText(11, UI.dim));
+    this.add.text(12, LOGICAL_HEIGHT - 22, t('prep.help', hintVars()), uiText(11, UI.dim));
     this.message = this.add.text(LOGICAL_WIDTH / 2, by + 34, '', uiText(12, UI.hi)).setOrigin(0.5);
 
     this.focus = new FocusGroup([this.charList, this.webBtn, this.deckList, this.skillList, this.shopList, btnRec, btnDef, btnSave, btnLoad, btnGo]);
@@ -228,7 +229,7 @@ export class PrepScene extends Phaser.Scene {
         }
         return {
           label: `${slot.key}  ${def?.name ?? t('prep.emptySlot')}`,
-          right: def ? `TP ${def.tpCost}` : '',
+          right: def ? t('prep.skillCost', { n: def.tpCost }) : '',
           onSelect: () => {
             if (choices.length === 0) return;
             const i = cur ? choices.indexOf(cur) : -1;

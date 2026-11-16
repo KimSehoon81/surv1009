@@ -17,7 +17,7 @@
     "seals": "인장이 남아 있었습니다. Shift+Space로 확정 성공을 쓰세요",
     "fewSubmits": "Space 한 번이면 추천 조합이 채워집니다. 카드를 자주 내세요",
     "default": "조합 성공 5회마다 다음 레벨업에 전술 선택지가 붙습니다",
-    "spendMerit": "전공 포인트 {merit}이 남아 있습니다 — 출정 준비의 스타팅 포인트(시작 레벨·무기·TP)로 시작을 강하게 하세요"
+    "spendMerit": "전공 포인트 {merit}이 남아 있습니다 — 출정 준비의 '시작 강화'(시작 레벨·무기·스킬 게이지)에 써서 더 강하게 출발하세요"
   },
   "startUpgrades": {
     "startLevel": {
@@ -67,8 +67,8 @@
       }
     },
     "startTp": {
-      "name": "시작 TP",
-      "effect": "단계마다 TP +15(최대 30)로 시작",
+      "name": "시작 스킬 게이지",
+      "effect": "단계마다 스킬 게이지 +15(최대 30)로 시작",
       "maxLevel": 2,
       "costs": [
         100,
@@ -80,7 +80,7 @@
     },
     "opMastery": {
       "name": "작전 숙련",
-      "effect": "인장 필요 OP −1(v0.2)",
+      "effect": "인장에 드는 조각 −1",
       "maxLevel": 2,
       "costs": [
         200,

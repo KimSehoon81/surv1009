@@ -39,7 +39,7 @@ export class CardHud {
   private readonly gfx: Phaser.GameObjects.Graphics;
   private readonly crack: Phaser.GameObjects.Image;
   private readonly info: Phaser.GameObjects.Text;
-  private readonly opLabel: Phaser.GameObjects.BitmapText;
+  private readonly opLabel: Phaser.GameObjects.Text;
   private readonly seals: Phaser.GameObjects.Image[] = [];
   private readonly toast: Phaser.GameObjects.Text;
   private readonly tip: Phaser.GameObjects.Text;
@@ -75,7 +75,7 @@ export class CardHud {
     this.smokeGfx = scene.add.graphics().setDepth(5);
     this.crack = scene.add.image(0, 0, overlayKey(scene, 'overlay_crack')).setVisible(false).setAlpha(0.85);
     this.info = text(scene, 12).setOrigin(0.5, 1);
-    this.opLabel = scene.add.bitmapText(0, 0, PIXEL_FONT, 'OP', 7).setLetterSpacing(-1).setScale(2).setOrigin(0, 0.5);
+    this.opLabel = scene.add.text(0, 0, t('hud.opLabel'), { ...uiText(11, '#ffe8b0'), stroke: '#0a0604', strokeThickness: 3 }).setOrigin(0, 0.5);
     const sealKey = manifest.image('ui', 'seal', 32, 32).key;
     for (let i = 0; i < CARD_DATA.rules.maxSeals; i++) this.seals.push(scene.add.image(0, 0, sealKey).setScale(0.75));
     this.toast = text(scene, 16, cardUi.colors.success).setOrigin(0.5).setPosition(LOGICAL_WIDTH / 2, 92).setVisible(false);
@@ -293,7 +293,7 @@ export class CardHud {
         const hiddenSel = this.cards.selected.some((uid) => hand.find((h) => h.uid === uid)?.faceDown);
         const what = hiddenSel ? t('card.withHidden') : pv.combo ? comboName(pv.combo) : names.length > 1 ? t('card.single') : (names[0] ?? '');
         const seal = this.shiftDown() ? ` ${t('card.sealTag')}` : '';
-        this.info.setText(`${what} ${Math.round(pv.chance.final * 100)}%${seal}   ${t('card.submitHelp', { submit: buttonLabel('cardSubmit'), clear: buttonLabel('cardClear') })}`);
+        this.info.setText(`${what} · ${t('card.rate', { pct: Math.round(pv.chance.final * 100) })}${seal}   ${t('card.submitHelp', { submit: buttonLabel('cardSubmit'), clear: buttonLabel('cardClear') })}`);
       } else this.info.setText(rejectText(pv.reason ?? ''));
     } else if (n > 0) {
       const a = this.cards.advice();
@@ -425,7 +425,7 @@ export class CardHud {
             t('card.board.op', { op: st.op, opMax: this.cards.opForSeal, seals: st.seals, sealMax: CARD_DATA.rules.maxSeals }),
             t('card.board.log', { submits: stats.submits, rate, streak: stats.longestFailStreak }),
             '',
-            t('card.board.close'),
+            t('card.board.close', { key: buttonLabel('opsBoard') }),
           ].join('\n'),
         )
         .setPosition(540, 76)

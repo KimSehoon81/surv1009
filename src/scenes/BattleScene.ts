@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import floorData from '../data/floor.json';
 import spawnData from '../data/spawn.json';
 import combat from '../data/combat.json';
+import outpostData from '../data/outpost.json';
 import { createSprint, sprinting, sprintMul, sprintReady, trySprint, type SprintConfig } from '../core/sprint';
 import { canSprint, enemySprintPhase, nextSprintSec, pickSprinters, type EnemySprintConfig } from '../core/enemySprint';
 import feelData from '../data/feel.json';
@@ -84,6 +85,8 @@ import { MAX_ENEMY_RADIUS, isEnemyId, type Enemy, type EnemyId } from '../entiti
 import enemyData from '../data/enemies.json';
 import { manifest, type SheetSpec } from '../assets/manifest';
 import { battleUnitIds, finishUnits, prepareUnits } from '../systems/unitAssets';
+import { OutpostSystem } from '../systems/outposts';
+import { resolveLethal } from '../core/lastStand';
 import { uiText } from '../ui/text';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { SceneKey } from './keys';
@@ -210,6 +213,10 @@ export class BattleScene extends Phaser.Scene {
   /** 카드 효과 실행기(예약·예고 마커 포함) */
   effects!: EffectRunner;
   support!: SupportSystem;
+  outposts!: OutpostSystem;
+  /** 구사일생을 쓴 횟수(판마다, combat.json lastStand) */
+  lastStandUsed = 0;
+  private heartAt = 0;
   chests!: ChestSystem;
   magnets!: MagnetDrops;
   /** 바닥 지형(개울·풀숲·눈, terrain.json): 개울을 건너면 느려짐 */
@@ -431,6 +438,11 @@ export class BattleScene extends Phaser.Scene {
           battle.onJudged(success, judged);
           battle.feel.hit(success ? 'card_success' : 'card_fail', battle.player.x, battle.player.y - combat.bodyOffsetY, { groundY: battle.player.y });
           battle.events.emit('op:result', { success, combo: judged?.combo ?? null, card: judged?.cards[0]?.id ?? null });
+          if (success) {
+            // 성공: 금빛 눈부심(조합 스킬은 더 크게 + 반짝이는 소리)
+            battle.events.emit('glare', { kind: judged?.combo ? 'combo' : 'opSuccess' });
+            if (judged?.combo) battle.audio.play('op_shine');
+          }
           if (!success) battle.tip('firstFail');
         },
         onEffect: (ev) => {
@@ -532,7 +544,7 @@ export class BattleScene extends Phaser.Scene {
       },
       addTp: (n) => {
         this.skills.addTp(n);
-        this.toast(`TP +${n}`);
+        this.toast(t('battle.tpGain', { n }));
       },
       toast: (msg, color) => this.toast(msg, color),
       debuffIds: DEBUFF_IDS,
@@ -569,6 +581,24 @@ export class BattleScene extends Phaser.Scene {
       toast: (msg, color) => this.toast(msg, color),
       feel: (preset, x, y) => this.feel.hit(preset, x, y),
     });
+    this.outposts?.destroy();
+    this.outposts = new OutpostSystem(this, {
+      rng: rng.fork('outpost'),
+      player: () => ({ x: this.player.x, y: this.player.y }),
+      canSpawn: () => !this.result && !this.run.defeated && !this.run.captured && !(outpostData.bossPause && this.boss?.alive),
+      place: (x, y) => this.obstacles.resolve(x, y, 24),
+      runEffects: (list) => {
+        for (const fx of list) runEffect(fx.effect, this.effects, fx.params as unknown as Params, 1);
+      },
+      blast: (x, y, radius, mult) => this.explode(x, y, radius, mult, undefined, 1, undefined, 'outpost'),
+      feel: (preset, x, y) => this.feel.hit(preset, x, y, { groundY: y }),
+      glare: (kind, x, y) => this.events.emit('glare', { kind, x, y }),
+      toast: (msg, color) => this.toast(msg, color),
+      stamp: (title, sub) => this.events.emit('stamp', title, sub),
+      audio: (cue, x, y) => this.audio.play(cue, x, y),
+    });
+    this.lastStandUsed = 0;
+    this.heartAt = 0;
     this.mines = new MineSystem(this, combat.mineCap);
     this.hazards = new HazardSystem(this);
     // 장애물(서울 시가전 등 floor.json obstacles) + 적이 세우는 바리케이드
@@ -854,6 +884,8 @@ export class BattleScene extends Phaser.Scene {
       this.projectiles.update(dt, this.enemies.grid, this.hooks);
       this.contactDamage(now);
       this.support.update(now, dt);
+      this.outposts.update(now, dt);
+      this.lowHpBeat(now);
       // 경험치 배율(전공 훈장 등)은 주울 때 곱한다
       const gained = this.pickups.update(dt, p.x, p.y, p.stats.magnet, now) * p.stats.xpMul;
       if (gained > 0) {
@@ -1171,7 +1203,41 @@ export class BattleScene extends Phaser.Scene {
       this.run.blocks++;
       p.trigger('defend', now);
     }
-    if (p.hp <= 0) this.defeat();
+    if (p.hp <= 0) {
+      const r = resolveLethal(p.hp, p.maxHp, this.lastStandUsed, combat.lastStand);
+      if (r.saved) this.lastStand(r.hp, r.used, now);
+      else this.defeat();
+    }
+  }
+
+  /**
+   * 구사일생(판마다 combat.json lastStand.uses번): 쓰러질 피해를 받아도 체력을 조금 남기고 버틴다.
+   * 잠깐 느려지며(숨 돌릴 틈) 주변 적을 밀어내는 충격파 + 무적, 화면은 흰 눈부심과 도장
+   */
+  private lastStand(hp: number, used: number, now: number): void {
+    const L = combat.lastStand;
+    const p = this.player;
+    p.hp = hp;
+    this.lastStandUsed = used;
+    p.invulnUntilMs = Math.max(p.invulnUntilMs, now + L.invulnMs);
+    this.clock.setScale('slowmo', L.slowmo.scale, L.slowmo.ms);
+    this.feel.hit('last_stand', p.x, p.y - combat.bodyOffsetY, { groundY: p.y });
+    this.explode(p.x, p.y, L.blast.radius, L.blast.mult, undefined, 1, undefined, 'lastStand');
+    this.events.emit('glare', { kind: 'lastStand' });
+    this.events.emit('stamp', t('battle.lastStand'), t('battle.lastStandSub'));
+  }
+
+  /** 체력이 낮으면 심장 박동 소리(낮을수록 빠르게, feel.json lowHp.beatMs). 화면 가장자리 붉은 맥박(HUD)과 짝 */
+  private lowHpBeat(now: number): void {
+    const L = feelData.lowHp;
+    const p = this.player;
+    const ratio = p.hp / p.maxHp;
+    if (p.hp <= 0 || ratio >= L.ratio || this.result) return;
+    if (now < this.heartAt) return;
+    const danger = 1 - ratio / L.ratio;
+    const [slow = 900, fast = slow] = L.beatMs;
+    this.heartAt = now + slow + (fast - slow) * danger;
+    this.audio.play('heartbeat');
   }
 
   /** 고급 스킬 키(Q·E·R·F). 카드 입력과 같은 조건(레벨업·일시정지·작전판 중에는 막힘) */
@@ -1200,6 +1266,8 @@ export class BattleScene extends Phaser.Scene {
     // 발동 순간: 발밑 충격 고리·방사 줄기·청색 섬광(feel.json skill_cast), 컷인 없는 스킬은 HUD 이름표
     this.feel.hit(r.def.cutIn ? 'skill_cast_big' : 'skill_cast', this.player.x, this.player.y - combat.bodyOffsetY, { groundY: this.player.y });
     if (!r.def.cutIn) this.events.emit('skill:cast', { name: r.def.name, icon: r.def.icon ?? '', key: this.skills.slots[i]?.key ?? '' });
+    // 눈부심: 컷인 스킬은 띠가 지나간 뒤(시계가 풀릴 때) 더 크게
+    this.events.emit('glare', { kind: r.def.cutIn ? 'skillBig' : 'skill', delayMs: r.def.cutIn ? skillsData.cutInMs : 0 });
     this.achEvent({ type: 'skill', id: this.skills.slots[i]?.skillId ?? '' });
     this.run.skillsUsed++;
     this.toast(`${r.def.name}!`, '#7fd8ff');
@@ -1331,15 +1399,16 @@ export class BattleScene extends Phaser.Scene {
    * 화면 밖 관심 지점(HUD 가장자리 화살표, 화면 좌표): 숨은 보급품·보급 투하 상자·보물 상자·만날 NPC·보스.
    * 방해원은 disruptorsOffscreen(따로, 위협 우선 조준 표시와 함께)
    */
-  pointsOffscreen(): { x: number; y: number; kind: 'supply' | 'airdrop' | 'chest' | 'npc' | 'boss' | 'rush' }[] {
+  pointsOffscreen(): { x: number; y: number; kind: 'supply' | 'airdrop' | 'chest' | 'npc' | 'boss' | 'rush' | 'outpost' }[] {
     const v = this.cameras.main.worldView;
-    const out: { x: number; y: number; kind: 'supply' | 'airdrop' | 'chest' | 'npc' | 'boss' | 'rush' }[] = [];
+    const out: { x: number; y: number; kind: 'supply' | 'airdrop' | 'chest' | 'npc' | 'boss' | 'rush' | 'outpost' }[] = [];
     const add = (x: number, y: number, kind: (typeof out)[number]['kind']) => {
       if (!v.contains(x, y)) out.push({ x: x - v.x, y: y - v.y, kind });
     };
     if (this.supply) add(this.supply.x, this.supply.y, 'supply');
     for (const c of this.support.crateSpots()) add(c.x, c.y, 'airdrop');
     for (const c of this.chests.spots()) add(c.x, c.y, 'chest');
+    for (const o of this.outposts.spots()) add(o.x, o.y, 'outpost');
     for (const n of this.npcs.waiting()) add(n.x, n.y, 'npc');
     if (this.boss?.alive) add(this.boss.x, this.boss.y - 40, 'boss');
     // 돌격대가 오는 방향(예고부터 등장 직후까지)

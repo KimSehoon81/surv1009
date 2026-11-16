@@ -1,11 +1,11 @@
 {
   "hud": {
     "shop": {
-      "soldOut": "이번 방문 재고 소진",
-      "noMerit": "전공 포인트 부족",
+      "soldOut": "이번에 살 수 있는 만큼 다 샀음",
+      "noMerit": "전공 포인트가 모자람",
       "unknown": "없는 품목",
       "title": "보급 트럭 — 전공 상점",
-      "help": "↑↓ 고르기 · Enter 구매 · Esc 닫기 (전투 정지 중)",
+      "help": "{up}{down} 고르기 · {ok} 구매 · {back} 닫기 (전투는 멈춰 있음)",
       "left": "남은 {n}",
       "out": "품절",
       "bought": "{name} 구매 — 전공 −{n}"
@@ -15,28 +15,28 @@
     "achievement": "업적 달성",
     "bossAppear": "보스 출현\n{name}",
     "boss": {
-      "opSuccess": "적 작전 성공 — 대형 포격 예고!",
-      "opCancel": "충전 취소 — 약점 노출!",
-      "opFail": "적 작전 실패 — 약점 노출!",
-      "opCharge": "적 작전 카드 충전 — 지금이 약점! 집중 사격으로 취소",
+      "opSuccess": "보스 작전 성공 — 큰 포격이 온다!",
+      "opCancel": "보스 작전을 끊었다 — 약점 노출!",
+      "opFail": "보스 작전 실패 — 약점 노출!",
+      "opCharge": "보스가 작전 준비 중 — 지금이 약점! 집중 사격으로 끊기",
       "rate": "공격 빈도 +{pct}%"
     },
     "paused": "일시정지",
     "result": {
       "victory": "{name} 점령",
       "defeat": "전사",
-      "summary": "시간 {time}    레벨 {level} (전역 단계 {step}/100)    처치 {kills}",
+      "summary": "시간 {time}    레벨 {level}    처치 {kills}    적 강도 {step}/100",
       "elite": " (엘리트 {n})",
       "recruit": "[신병 모드]",
       "threat": "[위협 등급 {n}]",
       "merit": "전공 포인트 +{n}",
-      "meritHalf": "(전사: 50%)",
+      "meritHalf": "(쓰러져서 절반)",
       "opsLog": "작전 기록",
-      "opsLine": "제출 {submits}회 · 실제 성공률 {rate}% · 최장 연패 {streak} · 인장 사용 {seals} · 잔효 피해 {residue}",
+      "opsLine": "작전 {submits}회 · 성공률 {rate}% · 연속 실패 최대 {streak}회 · 인장 {seals}개 사용 · 지속 피해 {residue}",
       "tip": "팁: {tip}",
-      "ending": "Enter  엔딩 보기",
-      "again": "Enter  다시 출정",
-      "map": "M  작전지도",
+      "ending": "{ok}  엔딩 보기",
+      "again": "{ok}  다시 출정",
+      "map": "{back}  작전지도",
       "missionClear": "미션 클리어",
       "nextShort": "다음",
       "nextLabel": "다음 목표",
@@ -53,7 +53,7 @@
       "ending": "엔딩·뉴게임+",
       "chars": "캐릭터 {n}명"
     },
-    "step": "단계 {n}/100",
+    "step": "적 강도 {n}/100",
     "upgrades": "획득한 업그레이드\n{list}",
     "levelUp": {
       "title": "레벨 업!  Lv {n}",
@@ -61,13 +61,13 @@
       "reroll": "{key}  다시 뽑기 (남은 {n})",
       "noReroll": "다시 뽑기 없음",
       "pending": "레벨업 {n}번 남음 · ",
-      "help": "숫자키 또는 클릭으로 선택",
+      "help": "숫자키(1~4) 또는 클릭으로 고르기",
       "helpPad": "←→ 고르기 · {pick} 선택",
       "helpTouch": "고를 것을 누르세요"
     },
-    "intro": "{n}/10  {region} · {name}\n보스를 격파하면 점령 — Lv {lv} 또는 {time}에 출현",
+    "intro": "{n}/10  {region} · {name}\n보스를 쓰러뜨리면 점령 — 레벨 {lv} 또는 {time}에 등장",
     "obj": {
-      "survive": "목표: 버티며 성장 → 보스 격파 (Lv {lv} 또는 {time} 출현)"
+      "survive": "목표: 살아남아 보스 격파 (레벨 {lv} 또는 {time}에 등장)"
     },
     "sprint": "{key} 질주",
     "poi": {
@@ -76,36 +76,39 @@
       "chest": "상자",
       "npc": "NPC",
       "boss": "보스",
-      "rush": "돌격대"
+      "rush": "돌격대",
+      "outpost": "고지"
     },
     "chest": {
       "title": "보물 상자!",
       "merit": "전공 +{n}",
-      "continue": "Enter · 클릭: 계속"
+      "continue": "{ok}: 계속"
     },
     "pause": {
       "where": "{name} · 경과 {time}",
       "resume": "계속하기",
       "map": "작전지도로 철수",
       "menu": "메인 메뉴로 철수",
-      "confirm": "한 번 더 누르면 철수합니다 — 전공은 전사처럼 절반",
+      "confirm": "한 번 더 누르면 철수 — 전공은 절반만 받음",
       "hint": "{up}{down} 고르기 · {ok} 결정 · {back} 계속하기"
     },
     "op": {
       "success": "작전 성공!",
       "fail": "작전 실패"
-    }
+    },
+    "tpLabel": "스킬",
+    "opLabel": "인장 조각"
   },
   "card": {
     "reject": {
-      "cooldown": "재정비 중",
+      "cooldown": "카드 재정비 중 — 잠시 뒤에",
       "empty": "손패가 비었음 — 곧 새 카드가 들어옴",
-      "onlyMinus": "추천할 카드 없음 — 마이너스는 숫자키로 골라 Space(OP 3으로 폐기)",
-      "tooMany": "최대 3장",
+      "onlyMinus": "낼 만한 카드가 없음 — 붉은 마이너스 카드는 직접 골라 버리기(인장 조각 3개)",
+      "tooMany": "한 번에 3장까지",
       "notInHand": "손패에 없음",
       "blockedTag": "지금 낼 수 없는 카드 (통신 두절·악천후)",
-      "noSeal": "인장 없음",
-      "notEnoughOp": "OP 부족(마이너스 폐기 3)",
+      "noSeal": "인장이 없음",
+      "notEnoughOp": "인장 조각 부족 — 마이너스 카드를 버리려면 3개",
       "judging": "판정 중",
       "onlyHeld": "아껴 둘 카드뿐(통신 복구는 방해가 걸렸을 때) — 그래도 내려면 직접 고르기"
     },
@@ -125,60 +128,61 @@
     "purified": "{name} 정화",
     "revealed": "정체 공개: {list}",
     "tip": {
-      "disguised": "{name}?\n흐릿한 카드 — 고르면 정체가 드러남 (척후 보고로 식별)",
-      "faceDown": "뒷면 카드 — 제출하면 공개 (+5%p)",
+      "disguised": "{name}?\n흐릿한 카드 — 고르면 정체가 드러남 (척후 보고 카드로 미리 식별)",
+      "faceDown": "뒷면 카드 — 내면 정체가 드러남 (성공률 +5%p)",
       "smoke": "포연으로 잘 보이지 않음"
     },
     "judgingDots": "판정 중…",
-    "minusDiscard": "마이너스 폐기 (OP {n})  {key}",
+    "minusDiscard": "마이너스 카드 버리기 (인장 조각 {n}개)  {key}",
     "faceDown": "뒷면 카드",
-    "withHidden": "뒷면 포함 작전",
-    "single": "단일 효과",
+    "withHidden": "뒷면 카드 포함",
+    "single": "조합 아님(각자 발동)",
     "sealTag": "[인장]",
-    "submitHelp": "{submit} 제출 · {clear} 해제",
-    "recommend": "{key}: 추천 — {name} {pct}%",
+    "submitHelp": "{submit} 제출 · {clear} 취소",
+    "recommend": "{key}: 추천 작전 — {name} · 성공률 {pct}%",
     "sealOp": "인장 작전",
     "success": "작전 성공",
     "failSeal": "실패 · 인장 획득!",
-    "failOp": "실패 · OP +1 ({n})",
+    "failOp": "실패 · 인장 조각 +1 ({n})",
     "fail": "실패",
     "board": {
       "title": "작전판",
       "recipes": "조합표\n{list}",
-      "final": "최종  {pct}% (상한 {cap}%)",
+      "final": "최종 성공률  {pct}% (최대 {cap}%)",
       "pickHint": "카드를 고르면 성공률 내역이 보입니다",
       "breakdown": "성공률 내역",
-      "op": "OP {op}/{opMax} · 인장 {seals}/{sealMax}",
-      "log": "작전 기록  제출 {submits} · 실제 성공률 {rate}% · 최장 연패 {streak}",
-      "close": "Tab 닫기"
-    }
+      "op": "인장 조각 {op}/{opMax} · 인장 {seals}/{sealMax}",
+      "log": "작전 기록  {submits}회 · 성공률 {rate}% · 연속 실패 최대 {streak}회",
+      "close": "{key} 닫기"
+    },
+    "rate": "성공률 {pct}%"
   },
   "battle": {
     "cast": {
-      "locked": "잠긴 슬롯",
-      "empty": "장착한 스킬 없음",
-      "cooldown": "재사용 대기 중",
-      "tp": "TP 부족",
+      "locked": "아직 잠긴 칸",
+      "empty": "스킬을 넣지 않은 칸",
+      "cooldown": "아직 다시 쓸 수 없음",
+      "tp": "스킬 게이지 부족",
       "unimplemented": "준비 중인 스킬"
     },
     "dome": "방어 돔 {sec}초 — 받는 피해 −{pct}%·반사",
     "antiAir": "대공포 요격 — 폭탄 일부 공중 폭발 (방공포병을 처치하세요)",
     "hiddenSupplyShown": "숨은 보급품 위치 표시 — 초록 화살표를 따라가세요",
     "hiddenSupplyGot": "숨은 보급품 확보!",
-    "disruptCleared": "{name} 해제 — 원인 처치",
+    "disruptCleared": "{name} 해제 — 원인을 처치함",
     "disruptEnded": "{name} 걷힘",
-    "disruptSource": "{name}: 방해원 위치 확인",
-    "tacticalSlot": "전술 선택지 확보 (다음 레벨업)",
+    "disruptSource": "{name}: 원인인 적의 위치 표시(붉은 화살표)",
+    "tacticalSlot": "다음 레벨업에 전술 선택지 추가",
     "comboDrawCard": "{n} 콤보 보급: 카드 +1",
-    "comboDrawOp": "{n} 콤보 보급: OP +1",
+    "comboDrawOp": "{n} 콤보 보급: 인장 조각 +1",
     "warn": {
       "elite": "{name} 접근!",
-      "disrupt": "{name} 예보",
+      "disrupt": "곧 {name}",
       "boss": "보스 {name} 출현",
-      "burst": "{name} 대규모 군집 접근!",
+      "burst": "{name} 떼가 몰려온다!",
       "rush": "적 돌격대 접근! 전부 격퇴하면 보급"
     },
-    "npcArrive": "{name} 등장 — 다가가서 만나기",
+    "npcArrive": "{name} 등장 — 가까이 가면 만남",
     "captured": "{name} 점령!",
     "autoQuality": "화면이 느려 이펙트 품질을 '{name}'(으)로 낮췄습니다 — 설정에서 바꿀 수 있음",
     "safeZone": "안전지대 {sec}초 — 노란 원 안으로 적이 못 들어옴",
@@ -193,9 +197,21 @@
     "multiKill": "대량 격파 ×{n}",
     "multiKillSub": "한 번에 쓸어 담았다!",
     "rushClear": "돌격대 격퇴!",
-    "rushClearSub": "자석 보급 · TP +{tp}",
-    "overLevel": "Lv {lv} — 계속 성장! 대신 보스의 공격이 잦아집니다(+{pct}%)",
-    "loading": "불러오는 중… {pct}%"
+    "rushClearSub": "경험치 모두 회수 · 스킬 게이지 +{tp}",
+    "overLevel": "레벨 {lv} — 계속 성장! 대신 보스의 공격이 잦아집니다(+{pct}%)",
+    "loading": "불러오는 중… {pct}%",
+    "lastStand": "구사일생!",
+    "lastStandSub": "쓰러질 뻔했다 — 이번 판 한 번뿐",
+    "outpost": {
+      "spawn": "고지 발견! 푸른 원 안에서 {sec}초 버티면 점령",
+      "label": "▼ 원 안으로",
+      "holding": "점령 중 {sec}초",
+      "doneLabel": "점령!",
+      "captured": "고지 점령!",
+      "capturedSub": "체력 회복 · {sec}초간 공격력·이동 속도 상승",
+      "lost": "고지를 놓쳤다"
+    },
+    "tpGain": "스킬 게이지 +{n}"
   },
   "prep": {
     "deckErr": {
@@ -207,8 +223,8 @@
     },
     "title": "출정 준비 — {region} {name}",
     "chars": "캐릭터",
-    "skillSlots": "고급 스킬 슬롯",
-    "starting": "스타팅 포인트 (Enter 구매)",
+    "skillSlots": "스킬 (전투 중 Q·E·R·F)",
+    "starting": "시작 강화 — 전공으로 구매 ({ok})",
     "regionInfo": "지역 정보",
     "regionBody": "주요 적: {enemies}\n보스: {boss}\n방해: {disruption}\n대응: {counter}",
     "recDeck": "추천 덱",
@@ -216,8 +232,8 @@
     "baseDeck": "기본 덱",
     "presetSave": "프리셋 저장",
     "presetLoad": "프리셋 불러오기",
-    "go": "▶ 출정 (Enter)",
-    "help": "←→ 칸 이동 · ↑↓ 고르기 · Enter 실행 · +/− 덱 장수 · Esc 작전지도",
+    "go": "▶ 출정",
+    "help": "{left}{right} 칸 이동 · {up}{down} 고르기 · {ok} 실행 · {dec}/{inc} 덱 장수 · {back} 작전지도",
     "presetSaved": "덱 프리셋 저장",
     "noPreset": "저장된 프리셋이 없습니다",
     "presetLoaded": "프리셋을 불러왔습니다",
@@ -235,18 +251,19 @@
     "cannotGo": "출정 불가: {list}",
     "web": "성장 지도",
     "webPoints": "성장 지도 ●{n}",
-    "mastery": "숙련 Lv {level} · 성장 포인트 {free}"
+    "mastery": "숙련 Lv {level} · 성장 포인트 {free}",
+    "skillCost": "게이지 {n}"
   },
   "map": {
     "title": "한반도 작전지도",
     "merit": "전공 포인트 {n}",
-    "help": "←→ 지역 선택 · Enter 출정 준비 · Esc 메뉴",
+    "help": "{left}{right} 지역 선택 · {ok} 출정 준비 · {back} 메뉴",
     "returnWin": "{name} 점령! 전공 +{n}",
     "returnLose": "{name} 철수 — 전공 +{n}",
     "needPrev": "앞 지역을 먼저 점령해야 합니다",
     "notReady": "{region} 작전은 준비 중입니다",
     "st": {
-      "fog": "미해금(안개)",
+      "fog": "아직 갈 수 없음",
       "captured": "점령 {n}회",
       "best": " · 최고 {time}",
       "open": "출정 가능",
@@ -254,7 +271,7 @@
     },
     "info": "주요 적: {enemies}\n보스: {boss}\n환경 방해: {disruption}",
     "status": "상태: {status}",
-    "goal": "낙동강에서 압록강까지,\n남에서 북으로 10개 지역을 차례로 점령하세요.\n\n한 판 = 버티며 성장 → 보스 격파 → 점령 (약 15분)\n\n점령하면 전공 포인트와 새 캐릭터·스킬이 열립니다. 전사해도 전공은 절반 남습니다.",
+    "goal": "낙동강에서 압록강까지,\n남에서 북으로 10개 지역을 차례로 점령하세요.\n\n한 판 = 살아남아 성장 → 보스 격파 → 점령 (약 15분)\n\n점령하면 전공 포인트와 새 캐릭터·스킬이 열립니다. 쓰러져도 전공은 절반 남습니다.",
     "parallel": "38선",
     "sea": {
       "east": "동해",
@@ -277,7 +294,7 @@
       "boss": "보스"
     },
     "title": "도감·업적",
-    "help": "←→ 칸 · ↑↓ 고르기 · Esc 돌아가기",
+    "help": "{left}{right} 칸 · {up}{down} 고르기 · {back} 돌아가기",
     "charLocked": "아직 합류하지 않음\n해금: {stage} 점령",
     "enemyLocked": "아직 쓰러뜨리지 않은 적",
     "cardLocked": "아직 손에 들어온 적 없는 카드",
@@ -292,7 +309,7 @@
     "ngPlus": "뉴게임+  위협 등급 {n}",
     "summary": "점령 {captured}/10 · 전공 포인트 {merit}",
     "threat": " · 위협 등급 {n}",
-    "bestStep": " · 최고 단계 {n}/100",
+    "bestStep": " · 최고 적 강도 {n}/100",
     "saveCorrupt": "세이브가 손상되어 백업해 두고 새로 시작했습니다",
     "saveMigrated": "이전 저장을 새 형식으로 옮겼습니다",
     "restore": "백업에서 복원 (마지막 정상 세이브)",
@@ -303,7 +320,7 @@
   },
   "settings": {
     "title": "설정",
-    "help": "←→ 칸 · ↑↓ 고르기 · Enter·+/− 바꾸기 · Esc 돌아가기",
+    "help": "{left}{right} 칸 · {up}{down} 고르기 · {ok}·{dec}/{inc} 바꾸기 · {back} 돌아가기",
     "percentHint": "+/− 또는 [−][+]로 10%씩",
     "on": "켬",
     "off": "끔",
@@ -386,15 +403,15 @@
     "reload": "다시 불러오기"
   },
   "support": {
-    "dropIncoming": "보급 투하 — 청록 표시 자리로 가서 상자 줍기",
+    "dropIncoming": "보급 투하! 청록 표시로 가서 상자 줍기",
     "got": "보급품: {what}",
     "squadArrive": "우방군 지원 분대 도착 — {sec}초간 함께 싸웁니다",
     "squadLeave": "지원 분대 철수 — 행운을 빈다!",
     "reward": {
       "medkit": "구급 상자(체력 30% 회복)",
-      "ammo": "탄약 상자(20초간 공격력 +25%, TP +15)",
+      "ammo": "탄약 상자(20초간 공격력 +25%, 스킬 게이지 +15)",
       "orders": "작전 명령서(카드 2장)",
-      "radio": "무전기(TP +45)"
+      "radio": "무전기(스킬 게이지 +45)"
     }
   },
   "web": {
@@ -417,7 +434,7 @@
     "resetDone": "모든 칸을 되돌렸습니다(포인트 환급)",
     "totalTitle": "적용 중인 효과(출정 때)",
     "totalNone": "아직 연 칸이 없습니다",
-    "help": "방향키 이동 · {ok} 개방 · {reset} 초기화 · {back} 돌아가기",
+    "help": "{left}{right}{up}{down} 이동 · {ok} 개방 · {reset} 초기화 · {back} 돌아가기",
     "stat": {
       "attack": "공격",
       "attackSpeed": "공격 속도",
@@ -430,7 +447,7 @@
       "range": "사거리",
       "luck": "행운",
       "drawSpeed": "카드 뽑기 속도",
-      "sealOpReduction": "인장 필요 OP",
+      "sealOpReduction": "인장에 드는 조각",
       "damageMult": "무기 피해",
       "cooldownMs": "재장전 시간",
       "pierce": "관통",
@@ -438,7 +455,7 @@
       "auraRadius": "오라 범위",
       "meleeRadius": "근접 범위",
       "knockback": "밀쳐내기",
-      "tp": "시작 TP",
+      "tp": "시작 스킬 게이지",
       "seals": "시작 인장"
     },
     "subCap": "{branch} 갈래 · 정점({ring}단계) · 비용 {cost}",

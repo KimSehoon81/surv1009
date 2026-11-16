@@ -5,7 +5,7 @@
       "noMerit": "Not enough merit",
       "unknown": "Unknown item",
       "title": "Supply Truck — Merit Shop",
-      "help": "↑↓ choose · Enter buy · Esc close (battle paused)",
+      "help": "{up}{down} choose · {ok} buy · {back} close (battle paused)",
       "left": "{n} left",
       "out": "Sold out",
       "bought": "Bought {name} — merit −{n}"
@@ -34,9 +34,9 @@
       "opsLog": "Operations log",
       "opsLine": "Submits {submits} · actual success {rate}% · longest fail streak {streak} · seals used {seals} · residue damage {residue}",
       "tip": "Tip: {tip}",
-      "ending": "Enter  View ending",
-      "again": "Enter  Deploy again",
-      "map": "M  Campaign map",
+      "ending": "{ok}  View ending",
+      "again": "{ok}  Deploy again",
+      "map": "{back}  Campaign map",
       "missionClear": "MISSION CLEAR",
       "nextShort": "Next",
       "nextLabel": "Next objective",
@@ -76,12 +76,13 @@
       "chest": "Chest",
       "npc": "NPC",
       "boss": "Boss",
-      "rush": "Assault"
+      "rush": "Assault",
+      "outpost": "Hill"
     },
     "chest": {
       "title": "TREASURE CHEST!",
       "merit": "Merit +{n}",
-      "continue": "Enter · click: continue"
+      "continue": "{ok}: continue"
     },
     "pause": {
       "where": "{name} · {time} elapsed",
@@ -94,7 +95,9 @@
     "op": {
       "success": "OPERATION SUCCESS!",
       "fail": "Operation failed"
-    }
+    },
+    "tpLabel": "TP",
+    "opLabel": "OP"
   },
   "card": {
     "reject": {
@@ -150,8 +153,9 @@
       "breakdown": "Success breakdown",
       "op": "OP {op}/{opMax} · seals {seals}/{sealMax}",
       "log": "Ops log  submits {submits} · actual {rate}% · longest fail streak {streak}",
-      "close": "Tab close"
-    }
+      "close": "{key} close"
+    },
+    "rate": "{pct}%"
   },
   "battle": {
     "cast": {
@@ -195,7 +199,19 @@
     "rushClear": "ASSAULT REPELLED!",
     "rushClearSub": "Magnet drop · TP +{tp}",
     "overLevel": "Lv {lv} — still growing! The boss attacks more often (+{pct}%)",
-    "loading": "Loading… {pct}%"
+    "loading": "Loading… {pct}%",
+    "lastStand": "CLOSE CALL!",
+    "lastStandSub": "You should be down — once per battle",
+    "outpost": {
+      "spawn": "Hill spotted! Hold the blue circle for {sec}s to capture",
+      "label": "▼ Get in",
+      "holding": "Capturing {sec}s",
+      "doneLabel": "Captured!",
+      "captured": "HILL CAPTURED!",
+      "capturedSub": "Healed · attack & speed up for {sec}s",
+      "lost": "The hill was lost"
+    },
+    "tpGain": "TP +{n}"
   },
   "prep": {
     "deckErr": {
@@ -208,7 +224,7 @@
     "title": "Deployment — {region} {name}",
     "chars": "Character",
     "skillSlots": "Skill slots",
-    "starting": "Starting upgrades (Enter to buy)",
+    "starting": "Starting points ({ok} to buy)",
     "regionInfo": "Region intel",
     "regionBody": "Enemies: {enemies}\nBoss: {boss}\nDisruption: {disruption}\nCounter: {counter}",
     "recDeck": "Suggested",
@@ -216,8 +232,8 @@
     "baseDeck": "Starter deck",
     "presetSave": "Save preset",
     "presetLoad": "Load preset",
-    "go": "▶ Deploy (Enter)",
-    "help": "←→ column · ↑↓ choose · Enter select · +/− deck count · Esc map",
+    "go": "▶ Deploy",
+    "help": "{left}{right} column · {up}{down} choose · {ok} select · {dec}/{inc} deck count · {back} map",
     "presetSaved": "Deck preset saved",
     "noPreset": "No saved preset",
     "presetLoaded": "Preset loaded",
@@ -235,12 +251,13 @@
     "cannotGo": "Can't deploy: {list}",
     "web": "Growth web",
     "webPoints": "Growth web ●{n}",
-    "mastery": "Mastery Lv {level} · points {free}"
+    "mastery": "Mastery Lv {level} · points {free}",
+    "skillCost": "TP {n}"
   },
   "map": {
     "title": "Korean Peninsula Campaign Map",
     "merit": "Merit {n}",
-    "help": "←→ region · Enter prepare · Esc menu",
+    "help": "{left}{right} region · {ok} prepare · {back} menu",
     "returnWin": "{name} captured! merit +{n}",
     "returnLose": "Withdrew from {name} — merit +{n}",
     "needPrev": "Capture the previous region first",
@@ -277,7 +294,7 @@
       "boss": "Boss"
     },
     "title": "Codex & Achievements",
-    "help": "←→ tab · ↑↓ choose · Esc back",
+    "help": "{left}{right} tab · {up}{down} choose · {back} back",
     "charLocked": "Not joined yet\nUnlock: capture {stage}",
     "enemyLocked": "Not defeated yet",
     "cardLocked": "Never drawn yet",
@@ -303,7 +320,7 @@
   },
   "settings": {
     "title": "Settings",
-    "help": "←→ tab · ↑↓ choose · Enter/+/− change · Esc back",
+    "help": "{left}{right} tab · {up}{down} choose · {ok}·{dec}/{inc} change · {back} back",
     "percentHint": "+/− or [−][+] in 10% steps",
     "on": "On",
     "off": "Off",
@@ -417,7 +434,7 @@
     "resetDone": "All nodes refunded",
     "totalTitle": "Active bonuses (on deploy)",
     "totalNone": "No nodes unlocked yet",
-    "help": "Arrows move · {ok} unlock · {reset} reset · {back} back",
+    "help": "{left}{right}{up}{down} move · {ok} unlock · {reset} reset · {back} back",
     "stat": {
       "attack": "Attack",
       "attackSpeed": "Attack speed",

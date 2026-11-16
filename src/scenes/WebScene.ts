@@ -13,7 +13,7 @@ import { loadProfile, updateProfile } from '../systems/save';
 import { frontSfx, playMenuMusic } from '../systems/frontAudio';
 import { uiText } from '../ui/text';
 import { UI } from '../ui/widgets';
-import { buttonLabel } from '../ui/buttons';
+import { buttonLabel, hintVars } from '../ui/buttons';
 import { t } from '../i18n';
 import type { PrepPayload, WebPayload } from '../types/scenes';
 import { SceneKey } from './keys';
@@ -190,7 +190,7 @@ export class WebScene extends Phaser.Scene {
     this.total = this.add.text(px + 12, 314, '', { ...uiText(12, UI.text), lineSpacing: 3, wordWrap: { width: 340 } });
     this.message = this.add.text(px + 182, 470, '', { ...uiText(12, UI.hi), align: 'center', wordWrap: { width: 360 } }).setOrigin(0.5, 0);
     this.add
-      .text(px + 182, 508, t('web.help', { ok: buttonLabel('uiConfirm'), reset: buttonLabel('webReset'), back: buttonLabel('uiBack') }), { ...uiText(11, UI.dim), align: 'center' })
+      .text(px + 182, 508, t('web.help', { ...hintVars(), reset: buttonLabel('webReset') }), { ...uiText(11, UI.dim), align: 'center' })
       .setOrigin(0.5, 0);
     // 칸 모양 범례(오른쪽 판 맨 아래)
     this.add.text(px + 12, 436, t('web.legend', { max: this.graph.capstoneLimit }), uiText(11, UI.dim));

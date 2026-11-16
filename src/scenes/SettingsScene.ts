@@ -7,7 +7,7 @@ import { InputMap } from '../systems/input';
 import { hasBackup, loadProfile, restoreBackup, updateProfile } from '../systems/save';
 import { FocusGroup, UI, UiList, panel, type ListItem } from '../ui/widgets';
 import { uiText } from '../ui/text';
-import { prettyKey } from '../ui/buttons';
+import { hintVars, prettyKey } from '../ui/buttons';
 import { SceneKey } from './keys';
 import { setLocale, t } from '../i18n';
 import { frontVolume } from '../systems/frontAudio';
@@ -52,7 +52,7 @@ export class SettingsScene extends Phaser.Scene {
       if (!this.capture) this.hint.setText(it?.hint ?? '').setColor(UI.text);
     });
     this.hint = this.add.text(228, LOGICAL_HEIGHT - 52, '', uiText(12, UI.text)).setWordWrapWidth(LOGICAL_WIDTH - 250);
-    this.add.text(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT - 18, t('settings.help'), uiText(11, UI.dim)).setOrigin(0.5);
+    this.add.text(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT - 18, t('settings.help', hintVars()), uiText(11, UI.dim)).setOrigin(0.5);
     this.focus = new FocusGroup([this.tabs, this.list]);
     this.focus.focus(1);
     this.input.keyboard?.on('keydown', this.onKeyDown);

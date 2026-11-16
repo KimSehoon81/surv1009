@@ -11,6 +11,7 @@ import { FocusGroup, UI, UiList, panel, type ListItem } from '../ui/widgets';
 import { uiText } from '../ui/text';
 import { SceneKey } from './keys';
 import { t } from '../i18n';
+import { hintVars } from '../ui/buttons';
 
 const TABS = ['chars', 'enemies', 'cards', 'ach'] as const;
 const tabName = (i: number): string => t(`codex.tab.${TABS[i] ?? 'chars'}`);
@@ -45,7 +46,7 @@ export class CodexScene extends Phaser.Scene {
     this.tabs = new UiList(this, 24, 60, 134, 4, 24);
     this.list = new UiList(this, 188, 60, 364, 17, 24, (it) => this.detail.setText(it?.hint ?? ''));
     this.detail = this.add.text(586, 62, '', uiText(13, UI.text)).setWordWrapWidth(LOGICAL_WIDTH - 614).setLineSpacing(6);
-    this.add.text(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT - 18, t('codex.help'), uiText(11, UI.dim)).setOrigin(0.5);
+    this.add.text(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT - 18, t('codex.help', hintVars()), uiText(11, UI.dim)).setOrigin(0.5);
     this.focus = new FocusGroup([this.tabs, this.list]);
     this.focus.focus(1);
     this.refresh();

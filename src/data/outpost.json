@@ -1,0 +1,61 @@
+{
+  "$comment": "고지 점령 기믹(2026-11-16, 사용자 요청: 몰입·기믹 요소). firstSec 뒤 everySec마다 주인공에서 distance[최소,최대] 떨어진 곳에 점령 지점(반지름 radius)이 생김. 원 안에서 captureMs 버티면 점령(밖에 있으면 진행이 decayMul 속도로 줄어듦), lifeMs 안에 못 하면 사라짐. 점령하면 rewards(카드 효과 핸들러와 같은 형식: 회복·버프·TP) + blast(주변 적에게 피해, mult = 공격력 배수) + keepMs 동안 깃발이 남음. maxActive=동시에 있을 수 있는 수. 보스가 살아 있는 동안에는 새로 생기지 않음(bossPause). PRD 밖 기믹이라 수치는 여기서 조정",
+  "firstSec": 70,
+  "everySec": 95,
+  "maxActive": 1,
+  "bossPause": true,
+  "distance": [
+    170,
+    250
+  ],
+  "radius": 74,
+  "captureMs": 7000,
+  "decayMul": 0.5,
+  "lifeMs": 40000,
+  "keepMs": 6000,
+  "blast": {
+    "radius": 160,
+    "mult": 2.5
+  },
+  "rewards": [
+    {
+      "effect": "heal",
+      "params": {
+        "pct": 0.2
+      }
+    },
+    {
+      "effect": "buff",
+      "params": {
+        "id": "outpost_morale",
+        "stat": "attack",
+        "op": "mul",
+        "value": 0.2,
+        "ms": 20000
+      }
+    },
+    {
+      "effect": "buff",
+      "params": {
+        "id": "outpost_pace",
+        "stat": "moveSpeed",
+        "op": "mul",
+        "value": 0.1,
+        "ms": 20000
+      }
+    },
+    {
+      "effect": "tp",
+      "params": {
+        "amount": 20
+      }
+    }
+  ],
+  "buffSec": 20,
+  "poleHeight": 62,
+  "colors": {
+    "ring": "#7fd8ff",
+    "fill": "#3a88c8",
+    "done": "#ffe14d"
+  }
+}
