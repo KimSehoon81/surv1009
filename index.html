@@ -2,16 +2,68 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#120d0a" />
+    <meta property="og:title" content="압록강 서바이벌" />
+    <meta property="og:description" content="6·25전쟁 배경 레트로 도트 서바이벌 + 전략카드 조합" />
+    <meta property="og:image" content="https://kimsehoon81.github.io/surv1009/banner/banner_600x300.png" />
     <title>압록강 서바이벌</title>
     <link rel="icon" href="data:," />
     <style>
       /* 갈무리 글꼴(OFL, public/fonts/Galmuri-OFL.txt) */
       @font-face { font-family: 'Galmuri11'; src: url('./fonts/Galmuri11.woff2') format('woff2'); font-display: block; }
       @font-face { font-family: 'Galmuri14'; src: url('./fonts/Galmuri14.woff2') format('woff2'); font-display: block; }
-      html, body { margin: 0; height: 100%; background: #120d0a; overflow: hidden; }
-      #game { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+      html, body { margin: 0; height: 100%; background: #120d0a; overflow: hidden; overscroll-behavior: none; touch-action: none; }
+      body { position: fixed; inset: 0; }
+      /* 크기·회전은 systems/view.ts가 창에 맞춰 넣음(세로로 든 휴대폰은 90° 돌려 가로 화면) */
+      #game { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; transform-origin: 0 0;
+        touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+        --u: 1vh; --sl: env(safe-area-inset-left, 0px); --sr: env(safe-area-inset-right, 0px); }
+      #game.rot { --sl: env(safe-area-inset-top, 0px); --sr: env(safe-area-inset-bottom, 0px); }
       #game canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+      #game.smooth canvas { image-rendering: auto; }
+
+      /* 터치 조작판(systems/touch.ts, 버튼 목록은 data/touch.json). --u = 가로 화면 높이의 1% */
+      #touch { position: absolute; inset: 0; pointer-events: none; font-family: 'Galmuri11', sans-serif; z-index: 5; }
+      #touch[data-mode='none'] { display: none; }
+      #touch[data-mode='battle'] .t-menu, #touch[data-mode='menu'] .t-battle { display: none; }
+      .t-btn { position: absolute; pointer-events: auto; touch-action: none; box-sizing: border-box; display: flex; align-items: center; justify-content: center;
+        border-radius: 50%; border: calc(var(--u) * 0.5) solid rgba(255, 232, 176, 0.5); background: rgba(26, 20, 16, 0.4);
+        color: rgba(255, 240, 200, 0.95); font-size: calc(var(--u) * 4.6); line-height: 1; text-shadow: 0 0 3px #000, 0 1px 0 #000; white-space: nowrap; }
+      .t-btn.on { background: rgba(255, 225, 77, 0.5); border-color: #ffe14d; }
+      .t-btn.off { display: none; }
+      .t-zone { position: absolute; left: 0; top: 24%; bottom: 0; width: 38%; pointer-events: auto; touch-action: none; }
+      .t-base { display: none; position: absolute; width: calc(var(--u) * 26); height: calc(var(--u) * 26); margin: calc(var(--u) * -13) 0 0 calc(var(--u) * -13);
+        border-radius: 50%; border: calc(var(--u) * 0.5) solid rgba(255, 232, 176, 0.45); background: rgba(26, 20, 16, 0.3); box-sizing: border-box; }
+      .t-knob { position: absolute; left: 50%; top: 50%; width: calc(var(--u) * 11); height: calc(var(--u) * 11); border-radius: 50%;
+        background: rgba(255, 232, 176, 0.6); transform: translate(-50%, -50%); }
+      /* 전투: 오른손 = 질주(크게) · 그 위 스킬 2×2 · 왼쪽에 카드 제출 */
+      .t-sprint { right: calc(var(--u) * 4 + var(--sr)); bottom: calc(var(--u) * 5); width: calc(var(--u) * 21); height: calc(var(--u) * 21); font-size: calc(var(--u) * 5.2); }
+      .t-q, .t-e, .t-r, .t-f { width: calc(var(--u) * 13); height: calc(var(--u) * 13); font-size: calc(var(--u) * 6); border-color: rgba(120, 200, 255, 0.6); }
+      .t-q { right: calc(var(--u) * 18 + var(--sr)); bottom: calc(var(--u) * 29); }
+      .t-e { right: calc(var(--u) * 3 + var(--sr)); bottom: calc(var(--u) * 29); }
+      .t-r { right: calc(var(--u) * 18 + var(--sr)); bottom: calc(var(--u) * 44); }
+      .t-f { right: calc(var(--u) * 3 + var(--sr)); bottom: calc(var(--u) * 44); }
+      .t-submit { right: calc(var(--u) * 29 + var(--sr)); bottom: calc(var(--u) * 5); width: calc(var(--u) * 22); height: calc(var(--u) * 12); border-radius: calc(var(--u) * 3);
+        font-size: calc(var(--u) * 5.2); border-color: rgba(255, 225, 77, 0.75); }
+      .t-seal { right: calc(var(--u) * 33 + var(--sr)); bottom: calc(var(--u) * 19); width: calc(var(--u) * 15); height: calc(var(--u) * 9); border-radius: calc(var(--u) * 3); font-size: calc(var(--u) * 4); }
+      .t-pause { right: calc(var(--u) * 3 + var(--sr)); top: calc(var(--u) * 17); width: calc(var(--u) * 10); height: calc(var(--u) * 10); }
+      .t-board { right: calc(var(--u) * 15 + var(--sr)); top: calc(var(--u) * 18); width: calc(var(--u) * 15); height: calc(var(--u) * 8); border-radius: calc(var(--u) * 3); font-size: calc(var(--u) * 3.8); }
+      /* 메뉴·멈춘 창: 왼손 = 방향, 오른손 = 확인·뒤로 */
+      .t-up, .t-down, .t-left, .t-right { width: calc(var(--u) * 12); height: calc(var(--u) * 12); border-radius: 22%; }
+      .t-up { left: calc(var(--u) * 15 + var(--sl)); bottom: calc(var(--u) * 28); }
+      .t-down { left: calc(var(--u) * 15 + var(--sl)); bottom: calc(var(--u) * 4); }
+      .t-left { left: calc(var(--u) * 3 + var(--sl)); bottom: calc(var(--u) * 16); }
+      .t-right { left: calc(var(--u) * 27 + var(--sl)); bottom: calc(var(--u) * 16); }
+      .t-ok { right: calc(var(--u) * 4 + var(--sr)); bottom: calc(var(--u) * 5); width: calc(var(--u) * 21); height: calc(var(--u) * 21); font-size: calc(var(--u) * 5.2); border-color: rgba(255, 225, 77, 0.75); }
+      .t-back { right: calc(var(--u) * 28 + var(--sr)); bottom: calc(var(--u) * 5); width: calc(var(--u) * 15); height: calc(var(--u) * 15); }
+      .t-again { right: calc(var(--u) * 28 + var(--sr)); bottom: calc(var(--u) * 23); width: calc(var(--u) * 11); height: calc(var(--u) * 11); font-size: calc(var(--u) * 6); }
+      .t-inc { right: calc(var(--u) * 4 + var(--sr)); bottom: calc(var(--u) * 30); width: calc(var(--u) * 11); height: calc(var(--u) * 11); font-size: calc(var(--u) * 6); }
+      .t-dec { right: calc(var(--u) * 16 + var(--sr)); bottom: calc(var(--u) * 30); width: calc(var(--u) * 11); height: calc(var(--u) * 11); font-size: calc(var(--u) * 6); }
+      .t-full { left: calc(var(--u) * 3 + var(--sl)); top: calc(var(--u) * 44); width: calc(var(--u) * 9); height: calc(var(--u) * 9); font-size: calc(var(--u) * 5); opacity: 0.7; }
+      #touch[data-mode='battle'] .t-full { display: none; }
     </style>
   </head>
   <body>

@@ -184,7 +184,7 @@ export class SupportSystem {
     if (units.length === 0) return;
     const fromLeft = this.h.rng.next() < 0.5;
     units.forEach((id, i) => {
-      const anims = registerUnitAnims(this.scene, id);
+      const anims = registerUnitAnims(this.scene, id, true);
       const sprite = this.scene.add
         .sprite(p.x + (fromLeft ? -SQ.enterPx : SQ.enterPx) - i * 18, p.y + (i - 1) * 20, manifest.sheetKey(id, 'move_slow'), 0)
         .setOrigin(manifest.anchor.x, manifest.anchor.y)

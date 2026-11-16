@@ -62,7 +62,8 @@
       "noReroll": "다시 뽑기 없음",
       "pending": "레벨업 {n}번 남음 · ",
       "help": "숫자키 또는 클릭으로 선택",
-      "helpPad": "←→ 고르기 · {pick} 선택"
+      "helpPad": "←→ 고르기 · {pick} 선택",
+      "helpTouch": "고를 것을 누르세요"
     },
     "intro": "{n}/10  {region} · {name}\n보스를 격파하면 점령 — Lv {lv} 또는 {time}에 출현",
     "obj": {
@@ -193,7 +194,8 @@
     "multiKillSub": "한 번에 쓸어 담았다!",
     "rushClear": "돌격대 격퇴!",
     "rushClearSub": "자석 보급 · TP +{tp}",
-    "overLevel": "Lv {lv} — 계속 성장! 대신 보스의 공격이 잦아집니다(+{pct}%)"
+    "overLevel": "Lv {lv} — 계속 성장! 대신 보스의 공격이 잦아집니다(+{pct}%)",
+    "loading": "불러오는 중… {pct}%"
   },
   "prep": {
     "deckErr": {
@@ -449,5 +451,14 @@
     },
     "rulesChanged": "성장 지도가 새로 바뀌어 찍은 칸을 되돌렸습니다(포인트는 모두 환급) — 다시 골라 주세요",
     "legend": "○ 갈래 칸   □ 연결 칸(양쪽 2단계 필요)   ◇ 정점(캐릭터당 {max}개)"
+  },
+  "touch": {
+    "sprint": "질주",
+    "submit": "제출",
+    "seal": "인장",
+    "board": "작전표",
+    "confirm": "확인",
+    "back": "뒤로",
+    "stick": "화면 왼쪽 드래그"
   }
 }

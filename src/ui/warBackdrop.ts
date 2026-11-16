@@ -228,7 +228,7 @@ function animateMarchers(scene: Phaser.Scene): void {
   const span = W + 140;
   title.marchers.forEach((id, i) => {
     if (!manifest.sheet(id, 'move_slow').path) return;
-    const anims = registerUnitAnims(scene, id);
+    const anims = registerUnitAnims(scene, id, true);
     const key = anims.keys.move_slow;
     if (!key) return;
     const s = scene.add.sprite(0, 0, manifest.sheetKey(id, 'move_slow'), 0).setOrigin(manifest.anchor.x, manifest.anchor.y).setTint(0xb08070).setScale(0.9);
@@ -320,7 +320,7 @@ function animateColumn(scene: Phaser.Scene, c: Bg['column']): void {
   for (let i = 0; i < c.count; i++) {
     const id = c.ids[i % c.ids.length] ?? 'A01';
     if (!manifest.sheet(id, 'move_slow').path) continue;
-    const key = registerUnitAnims(scene, id).keys.move_slow;
+    const key = registerUnitAnims(scene, id, true).keys.move_slow;
     if (!key) continue;
     const s = scene.add.sprite(0, 0, manifest.sheetKey(id, 'move_slow'), 0).setOrigin(manifest.anchor.x, manifest.anchor.y).setScale(c.scale).setTintFill(col(c.color)).setAlpha(0.92);
     s.play({ key, startFrame: (i * 3) % 6 });
@@ -338,7 +338,7 @@ function animateSquad(scene: Phaser.Scene, sq: Bg['squad']): void {
   const span = W + 160;
   sq.ids.forEach((id, i) => {
     if (!manifest.sheet(id, 'move_slow').path) return;
-    const key = registerUnitAnims(scene, id).keys.move_slow;
+    const key = registerUnitAnims(scene, id, true).keys.move_slow;
     if (!key) return;
     const shadow = scene.add.ellipse(0, 0, 30, 7, 0x0a0406, 0.45);
     const s = scene.add.sprite(0, 0, manifest.sheetKey(id, 'move_slow'), 0).setOrigin(manifest.anchor.x, manifest.anchor.y).setTint(col(sq.tint));

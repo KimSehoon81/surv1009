@@ -20,6 +20,7 @@ OUT = ROOT / 'public' / 'atlas'
 CATS = ['fx', 'chars', 'enemies', 'npcs', 'critters', 'props', 'skills']
 PAGE = 2048
 PAD = 2
+MENU_SUFFIX = '_move_slow.png'
 
 
 def shelf_pack(items):
@@ -47,12 +48,21 @@ def main() -> int:
     for old in OUT.glob('*'):
         old.unlink()
     index = {'builtAt': time.time(), 'pages': []}
+    groups = []
     for cat in CATS:
         files = sorted((SRC / cat).glob('*.png')) if (SRC / cat).exists() else []
         items = []
         for f in files:
             with Image.open(f) as im:
                 items.append((f'{cat}/{f.name}', im.width, im.height))
+        if cat == 'chars':
+            # 메뉴 화면이 늘 쓰는 시트(캐릭터 걷는 모습)는 따로 묶는다: 유닛 페이지는 전투마다 올리고 내리는데,
+            # 걷는 모습이 캐릭터마다 다른 페이지에 흩어져 있으면 그 페이지들이 전부 메모리에 남는다(systems/unitAssets)
+            menu = [it for it in items if it[0].endswith(MENU_SUFFIX)]
+            items = [it for it in items if not it[0].endswith(MENU_SUFFIX)]
+            groups.append(('menu', menu))
+        groups.append((cat, items))
+    for cat, items in groups:
         for n, page in enumerate(shelf_pack(items)):
             w = max(x + pw for _, x, _, pw, _ in page)
             h = max(y + ph for _, _, y, _, ph in page)

@@ -3,6 +3,7 @@ import { manifest, type Faction, type SheetSpec } from '../assets/manifest';
 import animations from '../data/animations.json';
 import type { AnimRules } from '../core/animState';
 import { buildStride, strideFps, wantsStride } from './stride';
+import { ensureTextures } from './assetLoader';
 
 export function animRules(faction: Faction): AnimRules {
   return animations[faction] as AnimRules;
@@ -20,13 +21,21 @@ export interface UnitAnims {
  * 유닛 한 명의 모든 동작 애니메이션을 등록한다(이미 있으면 재사용).
  * 동작 목록·프레임 수는 assets.json, 재생 속도·반복은 animations.json에서 온다.
  * 대기(idle) 시트가 없는 아군은 move_slow 첫 프레임을 정지 화면으로 쓴다.
+ * 유닛 시트는 전투마다 필요한 것만 올라와 있다(systems/unitAssets). partial=true(메뉴 화면)면 올라온 시트만 쓰고,
+ * 아니면 빠진 시트를 자리표시자로 채우고 알린다(전투에서 그런 일이 생기면 unitAssets의 필요 목록이 틀린 것).
  */
-export function registerUnitAnims(scene: Phaser.Scene, id: string): UnitAnims {
+export function registerUnitAnims(scene: Phaser.Scene, id: string, partial = false): UnitAnims {
   const faction = manifest.factionOf(id);
   const rules = animRules(faction);
   const keys: Record<string, string> = {};
   const frames: Record<string, number> = {};
-  const sheets = manifest.unitSheets(id);
+  const all = manifest.unitSheets(id);
+  const missing = all.filter((s) => !scene.textures.exists(s.key));
+  if (!partial && missing.length > 0) {
+    console.warn(`[assets] not preloaded: ${id} (${missing.length})`);
+    ensureTextures(scene, missing);
+  }
+  const sheets = partial ? all.filter((s) => scene.textures.exists(s.key)) : all;
   const add = (action: string, sheet: SheetSpec, frameList: number[], loop: boolean, fps: number) => {
     const key = `${id}_${action}`;
     if (!scene.anims.exists(key)) {

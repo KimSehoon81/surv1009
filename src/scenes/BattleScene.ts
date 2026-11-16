@@ -82,7 +82,10 @@ import { Player, isCharacterId, isImplemented, passiveOf, type CharacterId, type
 import characterData from '../data/characters.json';
 import { MAX_ENEMY_RADIUS, isEnemyId, type Enemy, type EnemyId } from '../entities/Enemy';
 import enemyData from '../data/enemies.json';
-import { manifest } from '../assets/manifest';
+import { manifest, type SheetSpec } from '../assets/manifest';
+import { battleUnitIds, finishUnits, prepareUnits } from '../systems/unitAssets';
+import { uiText } from '../ui/text';
+import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { SceneKey } from './keys';
 import { t } from '../i18n';
 
@@ -303,6 +306,7 @@ export class BattleScene extends Phaser.Scene {
 
   /** 이번 판 구성(다시 출정은 같은 값) */
   payload!: BattlePayload;
+  private unitSpecs: SheetSpec[] = [];
 
   constructor() {
     super(SceneKey.Battle);
@@ -313,7 +317,17 @@ export class BattleScene extends Phaser.Scene {
     this.payload = { stage: data.stage ?? params.stage, char, ...(data.deck ? { deck: data.deck } : {}), ...(data.skills ? { skills: data.skills } : {}) };
   }
 
+  /** 이번 판의 유닛 그림만 올림(지난 판에만 쓰인 것은 내림). 불러오는 동안 한 줄 안내 */
+  preload(): void {
+    this.unitSpecs = prepareUnits(this, battleUnitIds(this.payload.stage, this.payload.char));
+    if (this.load.list.size === 0) return;
+    const label = this.add.text(LOGICAL_WIDTH / 2, LOGICAL_HEIGHT / 2, t('battle.loading', { pct: 0 }), uiText(14)).setOrigin(0.5);
+    this.load.on(Phaser.Loader.Events.PROGRESS, (p: number) => label.setText(t('battle.loading', { pct: Math.round(p * 100) })));
+    this.load.once(Phaser.Loader.Events.COMPLETE, () => label.destroy());
+  }
+
   create(): void {
+    finishUnits(this, this.unitSpecs);
     this.pref = prefs();
     this.clock.reset();
     Object.assign(this.run, {
@@ -1609,6 +1623,16 @@ export class BattleScene extends Phaser.Scene {
   private togglePause(): void {
     if (this.clock.hasScale('pause')) this.clock.resume('pause');
     else this.clock.pause('pause');
+  }
+
+  /** 터치 조작판을 전투용(조이스틱·스킬)으로 보일 때: 멈춘 창이 하나도 없음 */
+  get touchPlay(): boolean {
+    return Boolean(this.clock) && !this.result && !this.run.defeated && !this.progression.isOpen && !this.modalOpen && !this.clock.hasScale('pause');
+  }
+
+  /** 스킬 칸(Q·E·R·F)에 스킬이 있는지 */
+  get touchSkills(): boolean[] {
+    return this.skills.slots.map((s) => Boolean(s.skillId) && !s.locked);
   }
 
   /** 작전판·상점 창이 열려 있음(전투 정지, 카드·스킬 입력 막음) */

@@ -1,7 +1,7 @@
 import './i18n/boot';
 import { installErrorScreen } from './systems/errors';
 import * as Phaser from 'phaser';
-import { LOGICAL_HEIGHT, LOGICAL_WIDTH, computeZoom } from './config/display';
+import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from './config/display';
 import { BootScene } from './scenes/BootScene';
 import { PreloadScene } from './scenes/PreloadScene';
 import { BattleScene } from './scenes/BattleScene';
@@ -16,6 +16,9 @@ import { SettingsScene } from './scenes/SettingsScene';
 import { EndingScene } from './scenes/EndingScene';
 import { CodexScene } from './scenes/CodexScene';
 import { setTextResolution, textResolution } from './ui/text';
+import { SceneKey } from './scenes/keys';
+import { currentView, installPointerTransform, layoutView } from './systems/view';
+import { installTouch, type TouchContext } from './systems/touch';
 
 installErrorScreen();
 
@@ -26,7 +29,8 @@ async function loadFonts(): Promise<void> {
   await Promise.race([all, new Promise<void>((r) => setTimeout(r, 2500))]).catch(() => undefined);
 }
 await loadFonts();
-const startZoom = computeZoom(window.innerWidth, window.innerHeight);
+const parent = document.getElementById('game') as HTMLElement;
+const startZoom = layoutView(parent).zoom;
 setTextResolution(startZoom);
 
 const game = new Phaser.Game({
@@ -41,7 +45,8 @@ const game = new Phaser.Game({
     height: LOGICAL_HEIGHT,
     zoom: startZoom,
   },
-  input: { keyboard: true, mouse: true, gamepad: false },
+  // 터치: 카드·메뉴를 누르는 손가락 + 여유(조이스틱·버튼은 DOM 조작판이 따로 받음)
+  input: { keyboard: true, mouse: true, touch: true, gamepad: false, activePointers: 3 },
   scene: [BootScene, PreloadScene, MenuScene, MapScene, PrepScene, WebScene, SettingsScene, EndingScene, CodexScene, BattleScene, HudScene, GalleryScene, AudioGalleryScene],
 });
 
@@ -52,11 +57,28 @@ function refreshTexts(list: Phaser.GameObjects.GameObject[]): void {
     else if (o instanceof Phaser.GameObjects.Container) refreshTexts(o.list);
   }
 }
-window.addEventListener('resize', () => {
-  const z = computeZoom(window.innerWidth, window.innerHeight);
+function relayout(): void {
+  const z = layoutView(parent).zoom;
   game.scale.setZoom(z);
   if (setTextResolution(z)) for (const s of game.scene.getScenes(false)) refreshTexts(s.children.list);
-});
+}
+window.addEventListener('resize', relayout);
+window.addEventListener('orientationchange', () => window.setTimeout(relayout, 250));
+window.visualViewport?.addEventListener('resize', relayout);
+installPointerTransform(game);
+
+// 터치 조작판(모바일): 전투가 흐르는 중이면 조이스틱·스킬, 멈춘 창·메뉴에서는 방향·확인·뒤로
+function touchContext(): TouchContext {
+  const sm = game.scene;
+  if (sm.isActive(SceneKey.Boot) || sm.isActive(SceneKey.Preload)) return { mode: 'none' };
+  if (sm.isActive(SceneKey.Battle)) {
+    const b = sm.getScene(SceneKey.Battle) as BattleScene;
+    return b.touchPlay ? { mode: 'battle', skills: b.touchSkills } : { mode: 'menu', again: b.progression.isOpen || Boolean(b.result) };
+  }
+  return { mode: 'menu', again: sm.isActive(SceneKey.Web), adjust: sm.isActive(SceneKey.Prep) || sm.isActive(SceneKey.Settings) };
+}
+const syncTouch = installTouch(parent, currentView, touchContext);
+game.events.on(Phaser.Core.Events.POST_STEP, syncTouch);
 
 // 개발·자동 테스트(Playwright)에서 상태 확인용
 declare global {

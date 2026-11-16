@@ -46,3 +46,39 @@ test('전역 오류는 오류 화면과 콘솔 기록으로', async ({ page }) =
   await expect(page.locator('#fatal-error pre')).toContainText('qa-test-rejection');
   expect(logged.some((l) => l.includes('qa-test-rejection'))).toBe(true);
 });
+
+// 모바일(2026-11-16): 세로로 든 터치 기기 → 가로로 돌린 화면 + 터치 조작판. 조이스틱으로 움직이고, 일시정지 → 뒤로가 된다
+test.describe('휴대폰(세로로 듦)', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+
+  test('가로로 돌고, 손으로 조작한다', async ({ page, context }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
+    await page.goto('/?reset=1&seed=1&stage=S1&battle=1');
+    const mode = () => page.evaluate(() => document.getElementById('touch')?.dataset.mode);
+    await expect.poll(mode, { timeout: 30_000 }).toBe('battle');
+    expect(await page.evaluate(() => document.getElementById('game')?.classList.contains('rot'))).toBe(true);
+    const px = () => page.evaluate(() => (((window as Win).__game?.scene.getScene('Battle') ?? {}) as { player: { x: number } }).player.x);
+    const x0 = await px();
+    // 게임 기준 왼쪽 아래를 누르고 오른쪽으로 끌기 = 돌린 화면에서는 창의 아래쪽으로
+    const cdp = await context.newCDPSession(page);
+    const touch = (type: string, pts: { x: number; y: number }[]) => cdp.send('Input.dispatchTouchEvent', { type: type as 'touchStart', touchPoints: pts });
+    await touch('touchStart', [{ x: 390 - 280, y: 120 }]);
+    await touch('touchMove', [{ x: 390 - 280, y: 200 }]);
+    await page.waitForTimeout(800);
+    await touch('touchEnd', []);
+    expect(await px()).toBeGreaterThan(x0 + 20);
+    const tap = async (sel: string) => {
+      const b = await page.locator(sel).boundingBox();
+      if (!b) throw new Error(`${sel} 없음`);
+      await touch('touchStart', [{ x: b.x + b.width / 2, y: b.y + b.height / 2 }]);
+      await touch('touchEnd', []);
+    };
+    await tap('.t-pause');
+    await expect.poll(mode, { timeout: 3_000 }).toBe('menu');
+    await tap('.t-back');
+    await expect.poll(mode, { timeout: 3_000 }).toBe('battle');
+    expect(await page.locator('#fatal-error').count()).toBe(0);
+    expect(errors).toEqual([]);
+  });
+});

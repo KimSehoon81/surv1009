@@ -101,7 +101,7 @@ export class HudScene extends Phaser.Scene {
         .replace(/\{submit\}/g, buttonLabel('cardSubmit'))
         .replace(/\{seal\}/g, sealLabel())
         .replace(/\{skill\}/g, buttonLabel('skillQ'))
-        .replace(/\{move\}/g, lastDevice() === 'pad' ? t('buttons.leftStick') : 'WASD')
+        .replace(/\{move\}/g, lastDevice() === 'pad' ? t('buttons.leftStick') : lastDevice() === 'touch' ? t('touch.stick') : 'WASD')
         .replace(/\{sprint\}/g, buttonLabel('sprint')),
     );
   private readonly onWarn = (msg: string, inSec: number, kind?: string) => {
@@ -210,6 +210,8 @@ export class HudScene extends Phaser.Scene {
     this.battle = this.scene.get(SceneKey.Battle) as BattleScene;
     // 씬 재시작 때 지난 그리기 객체를 버림
     this.arrowGfx = null;
+    // 지난 판의 글자 객체는 씬이 닫힐 때 파괴됨: 다시 쓰면 오류
+    this.poiLabels.length = 0;
     this.snowGfx = null;
     this.resultPanel = null;
     this.resultMap = null;
@@ -705,7 +707,8 @@ export class HudScene extends Phaser.Scene {
     // 질주 게이지(체력 아래): 차오르는 동안 흐린 청록, 준비되면 밝게 깜빡
     const s = this.battle.sprintGauge;
     const ready = s >= 1;
-    this.sprintLabel.setText(t('hud.sprint', { key: buttonLabel('sprint') })).setAlpha(ready ? 1 : 0.6);
+    // 터치는 버튼 글자가 곧 '질주'라 키 이름을 붙이지 않음
+    this.sprintLabel.setText(lastDevice() === 'touch' ? buttonLabel('sprint') : t('hud.sprint', { key: buttonLabel('sprint') })).setAlpha(ready ? 1 : 0.6);
     const sx = Math.round(this.sprintLabel.x + this.sprintLabel.width + 6);
     const sy = st.sprint.y;
     g.fillStyle(0x0a0806, 0.9).fillRect(sx - 1, sy - 1, st.sprint.w + 2, st.sprint.h + 2);
@@ -1037,7 +1040,7 @@ export class HudScene extends Phaser.Scene {
     }
     if (c.justDown('uiConfirm')) this.activatePause(m.sel);
     // 패드 B = 계속(키보드 Esc는 전투 쪽 pause가 처리)
-    else if (lastDevice() === 'pad' && c.justDown('uiBack')) this.battle.resumeFromPause();
+    else if (lastDevice() !== 'keyboard' && c.justDown('uiBack')) this.battle.resumeFromPause();
   }
 
   private closePauseMenu(): void {
@@ -1097,7 +1100,7 @@ export class HudScene extends Phaser.Scene {
     rr.setText(p.rerolls > 0 ? t('hud.levelUp.reroll', { key: buttonLabel('levelReroll'), n: p.rerolls }) : t('hud.levelUp.noReroll'));
     if (p.rerolls > 0) rr.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.reroll());
     root.add(rr);
-    root.add(this.add.text(LOGICAL_WIDTH / 2, y0 + CARD_H + 56, `${p.pending > 1 ? t('hud.levelUp.pending', { n: p.pending }) : ''}${lastDevice() === 'pad' ? t('hud.levelUp.helpPad', { pick: buttonLabel('levelConfirm') }) : t('hud.levelUp.help')}`, textStyle(11, '#b0a890')).setOrigin(0.5));
+    root.add(this.add.text(LOGICAL_WIDTH / 2, y0 + CARD_H + 56, `${p.pending > 1 ? t('hud.levelUp.pending', { n: p.pending }) : ''}${lastDevice() === 'pad' ? t('hud.levelUp.helpPad', { pick: buttonLabel('levelConfirm') }) : lastDevice() === 'touch' ? t('hud.levelUp.helpTouch') : t('hud.levelUp.help')}`, textStyle(11, '#b0a890')).setOrigin(0.5));
     this.levelCursorGfx = this.add.graphics();
     root.add(this.levelCursorGfx);
     this.levelUp = root;
@@ -1127,7 +1130,7 @@ export class HudScene extends Phaser.Scene {
     // 패드로 놀 때만 커서 테두리(키보드·마우스는 숫자·클릭)
     const g = this.levelCursorGfx?.clear();
     const x = this.levelCardX[this.levelCursor];
-    if (g && x !== undefined && lastDevice() === 'pad') g.lineStyle(3, 0xffffff, 1).strokeRect(x - 5, 185, CARD_W + 10, CARD_H + 10);
+    if (g && x !== undefined && lastDevice() !== 'keyboard') g.lineStyle(3, 0xffffff, 1).strokeRect(x - 5, 185, CARD_W + 10, CARD_H + 10);
   }
 
   private pick(i: number): void {

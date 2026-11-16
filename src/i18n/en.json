@@ -62,7 +62,8 @@
       "noReroll": "No rerolls",
       "pending": "{n} level-ups left · ",
       "help": "Pick with number keys or click",
-      "helpPad": "←→ choose · {pick} select"
+      "helpPad": "←→ choose · {pick} select",
+      "helpTouch": "Tap a choice"
     },
     "intro": "{n}/10  {region} · {name}\nDefeat the boss to capture — it appears at Lv {lv} or {time}",
     "obj": {
@@ -193,7 +194,8 @@
     "multiKillSub": "Swept them all at once!",
     "rushClear": "ASSAULT REPELLED!",
     "rushClearSub": "Magnet drop · TP +{tp}",
-    "overLevel": "Lv {lv} — still growing! The boss attacks more often (+{pct}%)"
+    "overLevel": "Lv {lv} — still growing! The boss attacks more often (+{pct}%)",
+    "loading": "Loading… {pct}%"
   },
   "prep": {
     "deckErr": {
@@ -449,5 +451,14 @@
     },
     "rulesChanged": "The growth web was reworked, so your nodes were refunded — pick them again",
     "legend": "○ branch   □ bridge (needs both ring 2)   ◇ capstone (max {max})"
+  },
+  "touch": {
+    "sprint": "Dash",
+    "submit": "Play",
+    "seal": "Seal",
+    "board": "Ops",
+    "confirm": "OK",
+    "back": "Back",
+    "stick": "left-side drag"
   }
 }

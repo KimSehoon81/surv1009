@@ -22,6 +22,8 @@ Phaser 3 + TypeScript + Vite, 테스트 Vitest. 논리 해상도 960×540, 정�
 - 적 행동은 behavior 부품 조합(data), 스킬·조합 연출은 타임라인 JSON + 효과 handler. 개별 캐릭터·적을 위한 코드 분기 금지
 - 대량 개체는 오브젝트 풀 + 공간 해시. 파티클 300, 데미지 숫자 40 상한(PRD §4.4)
 - 타격감·소리는 이름으로만 호출: `feel.hit('crit', ...)`(src/data/feel.json 프리셋, sfx 키로 소리 동시 재생), 그 밖의 소리는 `audio.play('이름')`(src/data/sfx.json). 효과음은 합성음이 기본이라 파일이 없어도 멈추지 않음
+- 터치(모바일): 화면 위 DOM 조작판(`systems/touch.ts`, 버튼 목록 `data/touch.json`)이 액션 이름으로 눌림을 넣음. 세로 화면은 `systems/view.ts`가 90° 돌림. 새 조작을 넣으면 터치 버튼도 같이
+- 유닛 시트(캐릭터·적·NPC)는 전투마다 필요한 것만 올림(`systems/unitAssets.ts`, 스테이지·적 데이터에서 id를 찾아냄). 전부 미리 올리지 않음(휴대폰 메모리). 메뉴 화면은 캐릭터 `move_slow` 한 장씩만 씀
 - 조작 원칙(PRD §3): 생각은 멈춘 화면에서, 전투 중에는 키 하나로. 입력은 controls.json 액션 이름으로만, 고급 스킬 키는 Q·E·R·F
 
 ## 명령

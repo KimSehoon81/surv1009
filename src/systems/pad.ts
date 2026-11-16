@@ -5,11 +5,11 @@ import type { PadConfig, PadSnapshot } from '../core/pad';
 export const PAD_CFG = controls.padConfig as PadConfig;
 export const PAD_BIND = controls.pad as Readonly<Record<string, readonly string[]>>;
 
-type Device = 'keyboard' | 'pad';
+type Device = 'keyboard' | 'pad' | 'touch';
 let device: Device = 'keyboard';
 let padIndex = -1;
 
-/** 마지막으로 입력한 장치(버튼 표시를 키보드·패드 중 무엇으로 할지) */
+/** 마지막으로 입력한 장치(버튼 표시를 키보드·패드·터치 중 무엇으로 할지) */
 export const lastDevice = (): Device => device;
 export function setDevice(d: Device): void {
   device = d;

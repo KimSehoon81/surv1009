@@ -4,6 +4,7 @@ import { keyMap } from './prefs';
 import { normalizeAxis, type Vec2 } from '../core/movement';
 import { heldPadState, padMove, stepPad, type PadState } from '../core/pad';
 import { PAD_BIND, PAD_CFG, readPad, setDevice } from './pad';
+import { takeTouch, touchHeld, touchMove, touchSeq } from './touch';
 
 export type InputAction = keyof typeof controls.keys;
 
@@ -21,6 +22,8 @@ export class InputMap {
   private padFrame = -1;
   private padHeld = new Set<string>();
   private padVec: Vec2 = { x: 0, y: 0 };
+  /** 터치 조작판(systems/touch): 이 뒤에 쌓인 눌림만 받음 */
+  private touchCursor = touchSeq();
   /** 자동 진행(D44): 있으면 이동을 이것으로 */
   autoMove: (() => Vec2) | null = null;
 
@@ -49,6 +52,9 @@ export class InputMap {
     const frame = this.scene.game.loop.frame;
     if (frame === this.padFrame) return;
     this.padFrame = frame;
+    const touch = takeTouch(this.touchCursor);
+    this.touchCursor = touch.next;
+    for (const a of touch.actions) this.pressed.add(a as InputAction);
     const snap = readPad();
     if (!snap) {
       this.padHeld.clear();
@@ -65,7 +71,7 @@ export class InputMap {
 
   isDown(action: InputAction): boolean {
     this.syncPad();
-    return this.padHeld.has(action) || (this.keys.get(action) ?? []).some((k) => k.isDown);
+    return this.padHeld.has(action) || touchHeld(action) || (this.keys.get(action) ?? []).some((k) => k.isDown);
   }
 
   /** 이번 프레임까지 눌린 적이 있는지(한 번만 true) */
@@ -86,11 +92,12 @@ export class InputMap {
     this.pressed.clear();
   }
 
-  /** 정규화된 이동 방향(대각선도 길이 1). 키를 안 누르면 왼쪽 스틱(아날로그, 길이 0~1) */
+  /** 정규화된 이동 방향(대각선도 길이 1). 키를 안 누르면 왼쪽 스틱·터치 조이스틱(아날로그, 길이 0~1) */
   moveVector(): Vec2 {
     if (this.autoMove) return this.autoMove();
     const x = (this.isDown('right') ? 1 : 0) - (this.isDown('left') ? 1 : 0);
     const y = (this.isDown('down') ? 1 : 0) - (this.isDown('up') ? 1 : 0);
-    return x === 0 && y === 0 ? this.padVec : normalizeAxis(x, y);
+    if (x !== 0 || y !== 0) return normalizeAxis(x, y);
+    return this.padVec.x !== 0 || this.padVec.y !== 0 ? this.padVec : touchMove();
   }
 }

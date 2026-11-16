@@ -1,0 +1,48 @@
+{
+  "$comment": "터치 조작(모바일, 2026-11-16). stick=가상 조이스틱(radiusPct: 화면 높이의 %, deadzone: 반지름 비율). battle=전투 중 버튼(act=controls.json 액션 이름), menu=그 밖의 화면(pad=가상 패드 버튼 → controls.json pad 묶음의 액션들, acts=액션 직접). label이 '@'로 시작하면 i18n 키. slot=스킬 칸 번호(잠긴 칸의 버튼은 숨김). show=조건(again: 다시·초기화가 있는 화면, adjust: +/−를 쓰는 화면). repeat=누르고 있으면 반복(controls.json padConfig 간격). labels=화면 안내 문구에 쓰는 버튼 이름(터치로 놀 때). 버튼 크기·자리는 index.html의 CSS(.t-*)",
+  "stick": { "radiusPct": 12, "deadzone": 0.15 },
+  "battle": [
+    { "cls": "sprint", "act": "sprint", "label": "@touch.sprint" },
+    { "cls": "q", "act": "skillQ", "label": "Q", "slot": 0 },
+    { "cls": "e", "act": "skillE", "label": "E", "slot": 1 },
+    { "cls": "r", "act": "skillR", "label": "R", "slot": 2 },
+    { "cls": "f", "act": "skillF", "label": "F", "slot": 3 },
+    { "cls": "submit", "act": "cardSubmit", "label": "@touch.submit" },
+    { "cls": "seal", "act": "cardSealSubmit", "label": "@touch.seal" },
+    { "cls": "board", "act": "opsBoard", "label": "@touch.board" },
+    { "cls": "pause", "act": "pause", "label": "Ⅱ" }
+  ],
+  "menu": [
+    { "cls": "up", "pad": "DUp", "label": "▲", "repeat": true },
+    { "cls": "down", "pad": "DDown", "label": "▼", "repeat": true },
+    { "cls": "left", "pad": "DLeft", "label": "◀", "repeat": true },
+    { "cls": "right", "pad": "DRight", "label": "▶", "repeat": true },
+    { "cls": "ok", "pad": "A", "label": "@touch.confirm" },
+    { "cls": "back", "pad": "B", "label": "@touch.back" },
+    { "cls": "again", "acts": ["retry", "webReset", "levelReroll"], "label": "↺", "show": "again" },
+    { "cls": "inc", "pad": "RB", "label": "+", "show": "adjust", "repeat": true },
+    { "cls": "dec", "pad": "LB", "label": "−", "show": "adjust", "repeat": true }
+  ],
+  "labels": {
+    "skillQ": "Q",
+    "skillE": "E",
+    "skillR": "R",
+    "skillF": "F",
+    "sprint": "@touch.sprint",
+    "cardSubmit": "@touch.submit",
+    "cardSealSubmit": "@touch.seal",
+    "opsBoard": "@touch.board",
+    "pause": "Ⅱ",
+    "uiConfirm": "@touch.confirm",
+    "redeploy": "@touch.confirm",
+    "levelConfirm": "@touch.confirm",
+    "uiBack": "@touch.back",
+    "toMap": "@touch.back",
+    "cardClear": "@touch.back",
+    "retry": "↺",
+    "webReset": "↺",
+    "levelReroll": "↺",
+    "uiInc": "+",
+    "uiDec": "−"
+  }
+}
