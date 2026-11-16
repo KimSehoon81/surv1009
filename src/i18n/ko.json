@@ -286,7 +286,7 @@
     "reward": "보상 전공 {n}"
   },
   "menu": {
-    "title": "압록강 서바이벌",
+    "title": "6.25 서바이벌",
     "subtitle": "가칭",
     "start": "출정",
     "ngPlus": "뉴게임+  위협 등급 {n}",
@@ -298,7 +298,7 @@
     "restore": "백업에서 복원 (마지막 정상 세이브)",
     "tagline": "1950년, 낙동강에서 압록강까지 — 10개 지역을 버티고 북진하라",
     "year": "1950 · 한국전쟁",
-    "titleEn": "AMNOK RIVER SURVIVAL",
+    "titleEn": "6.25 SURVIVAL",
     "hint": "{up}{down} 선택   {ok} 결정"
   },
   "settings": {
