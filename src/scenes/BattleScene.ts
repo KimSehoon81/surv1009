@@ -57,7 +57,7 @@ import { AmbientSystem } from '../systems/ambient';
 import { KillGhosts } from '../systems/killGhosts';
 import { killCenter, newMultiKill, registerKill } from '../core/multiKill';
 import terrainData from '../data/terrain.json';
-import { hashString } from '../core/rng';
+import { freshSeed, hashString } from '../core/rng';
 import { inStream, type TerrainCfg } from '../core/terrain';
 import { ChestSystem, MagnetDrops } from '../systems/chests';
 import chestData from '../data/chest.json';
@@ -313,6 +313,8 @@ export class BattleScene extends Phaser.Scene {
 
   /** 이번 판 구성(다시 출정은 같은 값) */
   payload!: BattlePayload;
+  /** 이번 판의 시드(디버그·재현용) */
+  runSeed = 'amnok';
   private unitSpecs: SheetSpec[] = [];
 
   constructor() {
@@ -376,12 +378,18 @@ export class BattleScene extends Phaser.Scene {
     this.comboDrawStep = 0;
     this.comboDrawTimes = [];
     this.lastComboCount = 0;
-    const rng = createRng(params.seed);
+    // 판마다 새 시드(?seed=로 고정 가능): 카드 순서·레벨업 선택지·스폰·전장 지형이 매번 다름
+    const ent = new Uint32Array(2);
+    globalThis.crypto?.getRandomValues?.(ent);
+    if (ent[0] === 0 && ent[1] === 0) ent.set([Date.now() >>> 0, Math.floor(performance.now() * 1000) >>> 0]);
+    this.runSeed = freshSeed(params.fixedSeed ? params.seed : null, [...ent]);
+    console.info(`[battle] seed ${this.runSeed} (replay: ?seed=${this.runSeed})`);
+    const rng = createRng(this.runSeed);
     this.combatRng = rng.fork('combat');
     this.controls = new InputMap(this);
     this.terrain = (terrainData.stages as Record<string, TerrainCfg>)[this.payload.stage];
-    this.terrainSeed = hashString(String(params.seed));
-    this.floor = new Floor(this, floorData[this.stage.floor as keyof typeof floorData] as FloorConfig, params.seed, this.terrain);
+    this.terrainSeed = hashString(this.runSeed);
+    this.floor = new Floor(this, floorData[this.stage.floor as keyof typeof floorData] as FloorConfig, this.runSeed, this.terrain);
 
     this.player = new Player(this, 0, 0, this.payload.char);
     this.enemies = new EnemySystem(this, spawnData.S1, rng.fork('enemies'));
@@ -565,7 +573,7 @@ export class BattleScene extends Phaser.Scene {
     this.multi = newMultiKill();
     this.multiStep = 0;
     this.ambient?.destroy();
-    this.ambient = new AmbientSystem(this, this.payload.stage, `${params.seed ?? 'run'}:${this.payload.stage}`);
+    this.ambient = new AmbientSystem(this, this.payload.stage, `${this.runSeed}:${this.payload.stage}`);
     this.chestOpen = false;
     this.support?.destroy();
     this.support = new SupportSystem(this, {
@@ -602,10 +610,10 @@ export class BattleScene extends Phaser.Scene {
     this.mines = new MineSystem(this, combat.mineCap);
     this.hazards = new HazardSystem(this);
     // 장애물(서울 시가전 등 floor.json obstacles) + 적이 세우는 바리케이드
-    this.obstacles = new ObstacleSystem(this, (floorData[this.stage.floor as keyof typeof floorData] as { obstacles?: ObstacleConfig }).obstacles ?? null, params.seed);
+    this.obstacles = new ObstacleSystem(this, (floorData[this.stage.floor as keyof typeof floorData] as { obstacles?: ObstacleConfig }).obstacles ?? null, this.runSeed);
     this.enemies.blocker = this.obstacles;
     // 낮음 품질이면 배경 소품을 끈다
-    this.props = new PropSystem(this, qualityPreset(this.pref.quality).props ? ((propsData.stages as Record<string, PropLayout>)[this.payload.stage] ?? null) : null, params.seed);
+    this.props = new PropSystem(this, qualityPreset(this.pref.quality).props ? ((propsData.stages as Record<string, PropLayout>)[this.payload.stage] ?? null) : null, this.runSeed);
     // 상시 환경(혹한 등): 판 내내 걸린 수정자, 방해 수에 넣지 않음
     const envDef = this.stage.environment;
     if (envDef) this.player.addBuff(`env_${envDef.name}`, envDef.mods, 24 * 3600 * 1000, 0);

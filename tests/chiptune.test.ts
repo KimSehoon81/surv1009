@@ -22,19 +22,47 @@ describe('칩튠 렌더러(레트로 음악)', () => {
       expect(a.length, name).toBe(Math.round(songSteps(song) * stepSec(song) * sr));
       let peak = 0;
       let energy = 0;
+      let bad = 0;
       for (const v of a) {
-        expect(Number.isFinite(v)).toBe(true);
+        if (!Number.isFinite(v)) bad++;
         peak = Math.max(peak, Math.abs(v));
         energy += v * v;
       }
+      expect(bad, name).toBe(0);
       expect(peak, name).toBeLessThanOrEqual(1);
       expect(energy / a.length, name).toBeGreaterThan(0.005);
-      expect(renderSong(song, sr, 7)).toEqual(a);
+      // 같은 시드면 같은 결과(바이트 비교: 큰 배열의 깊은 비교는 느림)
+      const again = renderSong(song, sr, 7);
+      expect(Buffer.from(again.buffer).equals(Buffer.from(a.buffer)), name).toBe(true);
     }
   });
 
   it('마디 칸 수가 틀리면 알려 줌', () => {
     const bad: Song = { bpm: 120, steps: 8, vol: 1, melody: [{ wave: 'square', vol: 0.2, env: { a: 0, d: 0, s: 1, r: 0 }, bars: ['A4 . .'] }] };
     expect(() => renderSong(bad, 8000)).toThrow();
+  });
+});
+
+describe('지역별 전투 음악(2026-11-18)', () => {
+  it('10개 지역이 각자 다른 곡을 쓰고, 곡마다 빠르기·선율이 다름', async () => {
+    const stages = (await import('../src/data/stages.json')).default.stages as Record<string, { bgm?: string }>;
+    const names = Object.values(stages).map((s) => s.bgm);
+    expect(new Set(names).size).toBe(names.length);
+    for (const n of names) expect(SONGS[n ?? ''], n).toBeDefined();
+    const leads = names.map((n) => SONGS[n ?? '']?.melody[0]?.bars.join('|'));
+    expect(new Set(leads).size).toBe(leads.length);
+  });
+
+  it('지역 곡: 16마디, 끝마디 첫 음은 으뜸음(되풀이 이음매)', () => {
+    const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const pc = (tok: string) => NAMES.indexOf(tok.slice(0, -1));
+    for (const [name, song] of Object.entries(SONGS)) {
+      if (!/^bgm_stage(0[2-9]|10)$/.test(name)) continue;
+      const lead = song.melody[0]?.bars ?? [];
+      expect(lead.length, name).toBe(16);
+      const bass = song.melody[2]?.bars ?? [];
+      // 마지막 마디 선율 첫 음 = 첫 마디 베이스의 으뜸음과 같은 음이름
+      expect(pc(lead[15]?.split(' ')[0] ?? ''), name).toBe(pc(bass[0]?.split(' ')[0] ?? ''));
+    }
   });
 });

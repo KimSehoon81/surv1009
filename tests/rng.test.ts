@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createRng, fromState, hashString, normalizeSeed } from '../src/core/rng';
+import { createRng, freshSeed, fromState, hashString, normalizeSeed } from '../src/core/rng';
 
 const sample = (seed: number | string, n: number) => {
   const r = createRng(seed);
@@ -94,5 +94,18 @@ describe('rng', () => {
     const expected = [r.next(), r.next(), r.next()];
     const restored = fromState(saved);
     expect([restored.next(), restored.next(), restored.next()]).toEqual(expected);
+  });
+});
+
+describe('판마다 새 시드(freshSeed)', () => {
+  it('고정 시드가 있으면 그대로, 없으면 엔트로피마다 다른 시드', () => {
+    expect(freshSeed('abc', [1, 2])).toBe('abc');
+    const a = freshSeed(null, [123456, 789]);
+    const b = freshSeed(null, [123457, 789]);
+    expect(a).not.toBe(b);
+    expect(freshSeed(null, [123456, 789])).toBe(a);
+    // 다른 시드면 카드 섞는 순서도 다름
+    const deck = Array.from({ length: 20 }, (_, i) => i);
+    expect(createRng(a).fork('cards').shuffle(deck)).not.toEqual(createRng(b).fork('cards').shuffle(deck));
   });
 });

@@ -411,7 +411,7 @@
         "N03",
         "N01"
       ],
-      "bgm": "bgm_stage01",
+      "bgm": "bgm_stage02",
       "bossBgm": "bgm_boss",
       "spawnScale": 1.3,
       "earlyDensity": {
@@ -629,7 +629,7 @@
         "N05",
         "N04"
       ],
-      "bgm": "bgm_stage01",
+      "bgm": "bgm_stage03",
       "bossBgm": "bgm_boss",
       "spawnScale": 1.3,
       "earlyDensity": {
@@ -855,7 +855,7 @@
         "N02",
         "N03"
       ],
-      "bgm": "bgm_stage01",
+      "bgm": "bgm_stage04",
       "bossBgm": "bgm_boss",
       "spawnScale": 1.15
     },
@@ -1065,7 +1065,7 @@
         "N05",
         "N03"
       ],
-      "bgm": "bgm_stage01",
+      "bgm": "bgm_stage05",
       "bossBgm": "bgm_boss",
       "spawnScale": 1.0
     },
@@ -1287,7 +1287,7 @@
         "N09",
         "N06"
       ],
-      "bgm": "bgm_stage01",
+      "bgm": "bgm_stage06",
       "bossBgm": "bgm_boss",
       "spawnScale": 0.9
     },
@@ -1511,7 +1511,7 @@
         "N10",
         "N07"
       ],
-      "bgm": "bgm_stage01",
+      "bgm": "bgm_stage07",
       "bossBgm": "bgm_boss",
       "spawnScale": 1.05
     },
@@ -1733,7 +1733,7 @@
         "N08",
         "N03"
       ],
-      "bgm": "bgm_stage01",
+      "bgm": "bgm_stage08",
       "bossBgm": "bgm_boss",
       "spawnScale": 0.9
     },
@@ -1943,7 +1943,7 @@
         "N09",
         "N07"
       ],
-      "bgm": "bgm_stage01",
+      "bgm": "bgm_stage09",
       "bossBgm": "bgm_boss",
       "spawnScale": 0.85
     },
@@ -2172,7 +2172,7 @@
         "N06",
         "N08"
       ],
-      "bgm": "bgm_stage01",
+      "bgm": "bgm_stage10",
       "bossBgm": "bgm_boss",
       "spawnScale": 0.6
     }

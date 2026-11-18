@@ -75,6 +75,7 @@ npm run build      # dist/ 에 배포용 빌드 (build:release는 아틀라스�
 ## 개발용 주소
 
 - `?debug=1` 디버그 키(J공격 K방어 L스킬 U치명 I무적 F2적300 …)·계측 표시, `?stage=S5` 시작 스테이지, `?char=A02` 시작 캐릭터
+- 전투는 판마다 새 시드라 카드 순서·레벨업 선택지·지형이 매번 다릅니다. 같은 판을 다시 보려면 콘솔의 `[battle] seed …`를 `?seed=…`로
 - `?auto=stage1&speed=8&seed=1` 자동 진행(메뉴부터 전투·결과까지 스스로), `?reset=1` 저장 초기화 (2지역부터는 앞 지역을 점령한 저장이 있어야 지도에서 넘어감)
 - `?gallery=1` 그래픽 갤러리, `?gallery=audio` 소리 검수, `npm run assets:check` 그래픽 규격 검사
 - 그래픽은 `public/assets/` 아래에 규격대로 PNG를 넣으면 자동으로 교체됩니다(없으면 자리표시자). 규격은 [docs/ASSETS.md](docs/ASSETS.md)

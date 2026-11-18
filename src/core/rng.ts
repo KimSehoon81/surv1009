@@ -133,3 +133,12 @@ export function fromState(saved: RngState): Rng {
   };
   return rng;
 }
+
+/**
+ * 판마다 새 시드(카드 순서·레벨업 선택지·스폰·지형이 매번 달라지게). fixed가 있으면 그대로(재현·테스트).
+ * entropy = 32비트 정수 두 개(브라우저 crypto 등). 확률 자체는 여전히 이 시드의 RNG만 씀
+ */
+export function freshSeed(fixed: string | null, entropy: readonly number[]): string {
+  if (fixed !== null) return fixed;
+  return entropy.map((n) => (n >>> 0).toString(36)).join('-') || '0';
+}

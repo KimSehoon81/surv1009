@@ -12,7 +12,6 @@ import { Depth } from '../config/depth';
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '../config/display';
 import { Enemy, MAX_ENEMY_RADIUS, isEnemyId, type EnemyId } from '../entities/Enemy';
 import enemyData from '../data/enemies.json';
-import { createRng } from '../core/rng';
 import { manifest } from '../assets/manifest';
 import combatData from '../data/combat.json';
 import { enemySprintMul, type EnemySprintConfig } from '../core/enemySprint';
@@ -81,6 +80,7 @@ export class EnemySystem {
     private readonly rng: Rng,
   ) {
     this.pool = new Pool(() => new Enemy(scene), cfg.poolSize);
+    this.lookRng = rng.fork('enemyLooks');
   }
 
   setSpawns(spawns: ReadonlyArray<{ enemy: string; perSec: number }>, mult: number): void {
@@ -94,7 +94,7 @@ export class EnemySystem {
   }
 
   /** 겉모습 변형(looks): 그림이 있는 것 중에서 전투 RNG와 따로 고름. 없으면 원본 */
-  private readonly lookRng = createRng('enemyLooks');
+  private readonly lookRng: Rng;
   private lookOf(id: EnemyId): string {
     const looks = (enemyData.enemies[id] as { looks?: string[] }).looks;
     if (!looks || looks.length === 0) return id;

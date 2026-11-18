@@ -1702,6 +1702,51 @@
         "vol": 0.5,
         "loopStart": 0,
         "loopEnd": 0
+      },
+      "bgm_stage02": {
+        "vol": 0.55,
+        "loopStart": 0,
+        "loopEnd": 0
+      },
+      "bgm_stage03": {
+        "vol": 0.55,
+        "loopStart": 0,
+        "loopEnd": 0
+      },
+      "bgm_stage04": {
+        "vol": 0.55,
+        "loopStart": 0,
+        "loopEnd": 0
+      },
+      "bgm_stage05": {
+        "vol": 0.55,
+        "loopStart": 0,
+        "loopEnd": 0
+      },
+      "bgm_stage06": {
+        "vol": 0.55,
+        "loopStart": 0,
+        "loopEnd": 0
+      },
+      "bgm_stage07": {
+        "vol": 0.55,
+        "loopStart": 0,
+        "loopEnd": 0
+      },
+      "bgm_stage08": {
+        "vol": 0.55,
+        "loopStart": 0,
+        "loopEnd": 0
+      },
+      "bgm_stage09": {
+        "vol": 0.55,
+        "loopStart": 0,
+        "loopEnd": 0
+      },
+      "bgm_stage10": {
+        "vol": 0.55,
+        "loopStart": 0,
+        "loopEnd": 0
       }
     }
   },

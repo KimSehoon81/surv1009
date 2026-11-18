@@ -23,4 +23,6 @@ export const params = {
   reset: q.has('reset'),
   /** 바닥 무늬 등 시드 */
   seed: q.get('seed') ?? 'amnok',
+  /** ?seed=를 줬으면 판마다 같은 흐름(재현·테스트). 없으면 전투마다 새 시드(core/rng freshSeed) */
+  fixedSeed: q.has('seed'),
 };
